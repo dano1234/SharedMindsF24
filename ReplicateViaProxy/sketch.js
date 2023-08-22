@@ -18,7 +18,7 @@ async function askForPicture(p_prompt) {
             prompt: p_prompt,
         },
     };
-    console.log("Asking for Picture ", data);
+    console.log("Asking for Picture From Replicate via Proxy", data);
     const options = {
         method: "POST",
         headers: {
