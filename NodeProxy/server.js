@@ -1,4 +1,5 @@
 //THIS IS PROXY SERVER AS GO BETWEEN YOUR WEB PAGE AND REPLICATE API
+//live at https://glitch.com/edit/#!/proxy-replicate-stablediffusion-api?path=index.js%3A146%3A7
 const express = require("express");
 const Datastore = require("nedb");
 const fetch = require("node-fetch");
@@ -153,7 +154,7 @@ app.post("/replicate_api_id_from_prompt", async (request, response) => {
 
 });
 
-app.post("/replicate_prediction_from_id", async (request, response) => {
+app.post("/replicate_prediction_output_from_id", async (request, response) => {
     //USE PREDICTION ID TO GET THE URL OF THE PICTURE
     let prediction_id = request.body.id;
     console.log("prediction id", prediction_id)

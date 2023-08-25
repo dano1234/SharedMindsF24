@@ -2,7 +2,7 @@ const container = document.getElementById("container");
 var input_image_field = document.createElement("input");
 input_image_field.type = "text";
 input_image_field.id = "input_image_prompt";
-input_image_field.value = "Gothic Fairy";
+input_image_field.value = "A student trying to learn how use a machine learning API";
 container.appendChild(input_image_field);
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
@@ -13,7 +13,7 @@ input_image_field.addEventListener("keyup", function (event) {
 var input_field = document.createElement("input");
 input_field.type = "text";
 input_field.id = "input_prompt";
-input_field.value = "Gothic Fairy";
+input_field.value = "Why should learn to use a machine learning API?";
 container.appendChild(input_field);
 input_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
@@ -40,29 +40,16 @@ async function askForPicture(p_prompt) {
         },
         body: JSON.stringify(data),
     };
-    const picture_info = await fetch("https://proxy-replicate-stablediffusion-api.glitch.me/replicate_api", options);
+    const picture_info = await fetch("https://proxy-replicate-stablediffusion-api.glitch.me/replicate_api_prompt_and_prediction", options);
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
-    let prediction_id = proxy_said.id;
-    data = { 'id': prediction_id, };
-    console.log("Asking for Picture From Replicate via Proxy", data);
-    options = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    };
-    console.log("Asking for Actual Picture From Replicate via Proxy", options);
-    const picture_response = await fetch("https://proxy-replicate-stablediffusion-api.glitch.me/replicate_image_from_id", options);
-    console.log("proxy relayed this about picture:", picture_response);
-    const picture_json = await picture_response.json();
-    if (picture_json.output.length == 0) {
+
+    if (proxy_said.output.length == 0) {
         imageDiv.innerHTML = "Something went wrong, try it again";
     } else {
         imageDiv.innerHTML = "";
         let img = document.createElement("img");
-        img.src = picture_json.output[0];
+        img.src = proxy_said.output[0];
         imageDiv.appendChild(img);
     }
 }
@@ -84,10 +71,10 @@ async function askForWords(p_prompt) {
         },
         body: JSON.stringify(data),
     };
-    const picture_response = await fetch("https://proxy-replicate-stablediffusion-api.glitch.me/replicate_api", options);
+    const picture_response = await fetch("https://proxy-replicate-stablediffusion-api.glitch.me/replicate_api_prompt_and_prediction", options);
     //console.log("picture_response", picture_response);
     const proxy_said = await picture_response.json();
-    console.log("proxy relayed this about picture:", proxy_said);
+    console.log("proxy relayed this about picture:", proxy_said.output.join(""));
     /*
     if (proxy_said.output.length == 0) {
         imageDiv.innerHTML = "Something went wrong, try it again";
