@@ -1,4 +1,4 @@
-const NGrokAddress = "https://dano.ngrok.dev";
+const NGrokAddress = "https://dano.ngrok.dev/";
 
 const container = document.getElementById("container");
 var input_image_field = document.createElement("input");
