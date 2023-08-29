@@ -1,10 +1,13 @@
-const NGrokAddress = "https://dano.ngrok.dev/";
+const NGrokAddress = "https://dano.ngrok.dev";
 
 const container = document.getElementById("container");
 var input_image_field = document.createElement("input");
 input_image_field.type = "text";
 input_image_field.id = "input_image_prompt";
 input_image_field.value = "A student trying to learn how use a machine learning API";
+input_image_field.style.width = "100%";
+input_image_field.style.height = "50px";
+input_image_field.style.fontSize = "18px";
 container.appendChild(input_image_field);
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
