@@ -3,6 +3,7 @@ let button;
 let inputBox;
 let video;    // webcam
 let canvas;
+let img
 
 
 const replicateProxy = "https://proxy-replicate-stablediffusion-api.glitch.me"
@@ -15,22 +16,28 @@ function setup() {
   button = createButton("Ask");
   button.mousePressed(ask);
   button.position(530, 40);
+  button = createButton("Live Video");
+  button.mousePressed(function () { img = video; });
+  button.position(530, 70);
   inputBox = createInput("Old Man");
   inputBox.position(530, 10);
 
   video = createCapture(VIDEO);
   video.size(512, 512);
+  video.hide();
+  img = video;
 }
 
 function draw() {
-  if (video) {
-    image(video, 0, 0);
+  if (img) {
+    image(img, 0, 0);
   }
 
 }
 
 
 async function ask() {
+  canvas.loadPixels();
   let imgBase64 = canvas.elt.toDataURL();
 
   let postData = {
@@ -60,8 +67,7 @@ async function ask() {
     //"data:image/png;base64," +
     console.log("image loaded", newImage);
     // image(img, 0, 0);
-    video = newImage;
-
+    img = newImage;
   });
 
 }

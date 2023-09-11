@@ -13,9 +13,10 @@ function preload() {
 function setup() {
   button = createButton("Ask");
   button.mousePressed(ask);
-  button.position(10, 40);
+  button.position(530, 40);
   inputBox = createInput("Old Man");
-  inputBox.position(10, 10);
+  inputBox.position(530, 10);
+
   canvas = createCanvas(512, 512);
   mask = createGraphics(512, 512);
   image(img, 0, 0);
