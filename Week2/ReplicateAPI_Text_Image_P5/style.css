@@ -1,0 +1,19 @@
+p {
+    padding: 10px;
+    background-color: #ffddff;
+}
+
+
+#text_container {
+    padding: 10px;
+    background-color: #ffddff;
+    float: right;
+    width: 40%;
+}
+
+#image_container {
+    padding: 10px;
+    background-color: #ffddff;
+    float: left;
+    width: 40%;
+}
