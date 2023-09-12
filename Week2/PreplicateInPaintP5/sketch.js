@@ -5,7 +5,7 @@ let mask;
 let maskBase64 = "";
 let canvas;
 const replicateProxy = "https://proxy-replicate-stablediffusion-api.glitch.me"
-
+let canvas2;
 
 function preload() {
   img = loadImage("jacob.jpeg");
@@ -18,8 +18,13 @@ function setup() {
   inputBox.position(530, 10);
 
   canvas = createCanvas(512, 512);
+  canvas.position(0, 0);
+
   mask = createGraphics(512, 512);
+  mask.fill(0, 0, 0);
+  mask.noStroke();
   image(img, 0, 0, 512, 512);
+
 }
 
 function draw() {
@@ -28,27 +33,26 @@ function draw() {
 
 function mouseDragged() {
   mask.noStroke();
-  mask.fill(0, 0, 0);
+  mask.fill(255, 255, 255);
   mask.ellipse(mouseX, mouseY, 10, 10);
+  ellipse(512 + mouseX, mouseY, 10, 10);
   image(mask, 0, 0, 512, 512);
+
 }
 function mouseReleased() {
   maskBase64 = mask.elt.toDataURL();
 }
 
 async function ask() {
+  image(img, 0, 0, 512, 512);
   canvas.loadPixels();
   mask.loadPixels();
-  let imgBase64 = canvas.elt.toDataURL();
   let maskBase64 = mask.elt.toDataURL();
-  //imgBase64 = imgBase64.split(",")[1];
-  //maskBase64 = maskBase64.split(",")[1];
-  // let postData = {
-  // data: [{ image: imgBase64, mask: maskBase64 }, inputBox.value()],
-  //};
+  let imgBase64 = canvas.elt.toDataURL();
+
 
   let postData = {
-    "version": "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+    "version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
     input: {
       "prompt": inputBox.value(),
       "width": 512,
@@ -72,16 +76,10 @@ async function ask() {
   const response = await fetch(url, options);
   const result = await response.json();
   console.log(result.output[0]);
-  // imageDiv.innerHTML = "";
-  // let img = document.createElement("img");
-  //img.src = result.output[0];
-  // imageDiv.appendChild(img);
+
   loadImage(result.output[0], function (newImage) {
-    //"data:image/png;base64," +
     console.log("image loaded", newImage);
-    // image(img, 0, 0);
     mask = createGraphics(512, 512);
-    image(mask, 0, 0, 512, 512);
     img = newImage;
     image(img, 0, 0, 512, 512);
   });
