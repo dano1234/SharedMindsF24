@@ -30,7 +30,7 @@ function setup() {
 
 function draw() {
   if (img) {
-    image(img, 0, 0);
+    image(img, 0, 0, 512, 512);
   }
 
 }

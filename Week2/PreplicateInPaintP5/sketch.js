@@ -19,27 +19,26 @@ function setup() {
 
   canvas = createCanvas(512, 512);
   mask = createGraphics(512, 512);
-  image(img, 0, 0);
+  image(img, 0, 0, 512, 512);
 }
 
 function draw() {
-  // background(220);
-  //image(img, 0, 0);
-
-  //image(mask, 0, 0);
+  //nothing
 }
 
 function mouseDragged() {
   mask.noStroke();
-  mask.fill(255, 255, 255);
+  mask.fill(0, 0, 0);
   mask.ellipse(mouseX, mouseY, 10, 10);
-  image(mask, 0, 0);
+  image(mask, 0, 0, 512, 512);
 }
 function mouseReleased() {
   maskBase64 = mask.elt.toDataURL();
 }
 
 async function ask() {
+  canvas.loadPixels();
+  mask.loadPixels();
   let imgBase64 = canvas.elt.toDataURL();
   let maskBase64 = mask.elt.toDataURL();
   //imgBase64 = imgBase64.split(",")[1];
@@ -49,14 +48,14 @@ async function ask() {
   //};
 
   let postData = {
-    "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf",
+    "version": "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
     input: {
       "prompt": inputBox.value(),
       "width": 512,
       "height": 512,
+      "prompt_strength": 0.5,
       "image": imgBase64,
       "mask": maskBase64,
-
 
     },
   };
@@ -82,9 +81,9 @@ async function ask() {
     console.log("image loaded", newImage);
     // image(img, 0, 0);
     mask = createGraphics(512, 512);
-    image(mask, 0, 0);
+    image(mask, 0, 0, 512, 512);
     img = newImage;
-    image(img, 0, 0);
+    image(img, 0, 0, 512, 512);
   });
 
 }
