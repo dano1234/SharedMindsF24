@@ -7,6 +7,7 @@ var input_image_field = document.createElement("input");
 input_image_field.type = "text";
 input_image_field.id = "input_image_prompt";
 input_image_field.value = "A student trying to learn how use a machine learning API";
+input_image_field.size = 100;
 image_container.prepend(input_image_field);
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
@@ -19,6 +20,7 @@ var input_field = document.createElement("input");
 input_field.type = "text";
 input_field.id = "input_prompt";
 input_field.value = "Why should learn to use a machine learning API?";
+input_field.size = 100;
 text_container.prepend(input_field);
 input_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {

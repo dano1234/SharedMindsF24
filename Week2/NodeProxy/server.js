@@ -1,5 +1,4 @@
 //THIS IS PROXY SERVER AS GO BETWEEN YOUR WEB PAGE AND REPLICATE API
-//live at https://glitch.com/edit/#!/proxy-replicate-stablediffusion-api?path=index.js%3A146%3A7
 const express = require("express");
 const Datastore = require("nedb");
 const fetch = require("node-fetch");
@@ -7,22 +6,27 @@ require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const cors = require("cors") // importing the `cors` package
+const cors = require("cors"); // importing the `cors` package
+app.use(express.json({ limit: "2mb" }));
 
-app.use(cors()) // tells Express to use `cors`, and solves the issue
+const corsOptions = {
+    origin: "*",
+};
+
+app.use(cors(corsOptions));
+app.use(cors()); // tells Express to use `cors`, and solves the issue
 
 app.listen(port, () => {
     console.log(`Starting server at ${port}`);
 });
 app.use(express.static("public"));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "2mb" }));
 const api_key = process.env.REPLICATE_API_KEY;
+
 var version = null;
 
-
-
 //REPLICATE SEND PROMPT
-app.post("/replicate_api_prompt_and_prediction", async (request, response) => {
+app.post("/create_n_get", async (request, response) => {
     //await getModel(); //could be outside of this function but glitch restarts server alot while i debug.
     //START PREDICTION
     let data_to_send = request.body;
@@ -52,7 +56,7 @@ app.post("/replicate_api_prompt_and_prediction", async (request, response) => {
     const header = {
         Authorization: `Token ${api_key}`,
         "Content-Type": "application/json",
-        Accept: "application/json",
+        //Accept: "application/json",
     };
 
     //console.log(get_prediction_url, { headers: header });
@@ -67,15 +71,13 @@ app.post("/replicate_api_prompt_and_prediction", async (request, response) => {
             headers: header,
         });
         get_prediction_result = await get_prediction_response.json();
+        console.log("got interim message", get_prediction_result);
         predictionStatus = get_prediction_result.status;
-        await sleep(500);
+        await sleep(50);
     } while (["starting", "processing"].includes(predictionStatus));
     console.log(get_prediction_result);
     response.json(get_prediction_result);
-
 });
-
-
 
 async function getModel() {
     //MOST OF THE TIME WE LOOK UP VERSION IDS ON THE REPLICATE DOCS BUT YOU CAN GET DYNAMICALLY
@@ -151,13 +153,12 @@ app.post("/replicate_api_id_from_prompt", async (request, response) => {
     } while (["starting", "processing"].includes(predictionStatus));
     console.log(get_prediction_result);
     response.json(get_prediction_result);
-
 });
 
 app.post("/replicate_prediction_output_from_id", async (request, response) => {
     //USE PREDICTION ID TO GET THE URL OF THE PICTURE
     let prediction_id = request.body.id;
-    console.log("prediction id", prediction_id)
+    console.log("prediction id", prediction_id);
     const get_prediction_url =
         "https://api.replicate.com/v1/predictions/" + prediction_id;
     const header = {
@@ -184,9 +185,6 @@ app.post("/replicate_prediction_output_from_id", async (request, response) => {
     console.log(get_prediction_result);
     response.json(get_prediction_result);
 });
-
-
-
 
 function sleep(ms) {
     return new Promise((resolve) => {

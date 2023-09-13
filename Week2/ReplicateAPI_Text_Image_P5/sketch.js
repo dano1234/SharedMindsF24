@@ -4,18 +4,29 @@ const replicateProxy = "https://replicate-api-proxy.glitch.me"
 function setup() {
     createCanvas(512, 512);
     let input_image_field = createInput("A student trying to learn how use a machine learning API");
+    input_image_field.size(600);
+
     input_image_field.id("input_image_prompt");
     input_image_field.parent("image_container");
-    input_image_field.changed(() => {
+    //add a button to ask for picture
+    let button1 = createButton("Ask");
+    button1.parent("image_container");
+    button1.mousePressed(() => {
         askForPicture(input_image_field.value());
     });
 
     let input_field = createInput("Why should learn to use a machine learning API?");
     input_field.id("input_prompt");
+    input_field.size(600);
     input_field.parent("text_container");
-    input_field.changed(() => {
+    //add a button to ask for words
+    let button2 = createButton("Ask");
+    button2.parent("text_container");
+    button2.mousePressed(() => {
         askForWords(input_field.value());
     });
+
+
 }
 
 async function askForPicture(p_prompt) {

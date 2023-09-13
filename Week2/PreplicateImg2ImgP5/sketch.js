@@ -5,13 +5,9 @@ let video;    // webcam
 let canvas;
 let img
 
-
 const replicateProxy = "https://replicate-api-proxy.glitch.me";
 
-
-
 function setup() {
-
   canvas = createCanvas(512, 512);
   button = createButton("Ask");
   button.mousePressed(ask);
@@ -34,7 +30,6 @@ function draw() {
   }
 
 }
-
 
 async function ask() {
   canvas.loadPixels();
