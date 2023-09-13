@@ -1,25 +1,36 @@
-const replicateProxy = "https://delightful-picturesque-anthropology.glitch.me";
+const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
-function setup() {
-    createCanvas(512, 512);
-    let input_image_field = createInput("A student trying to learn how use a machine learning API");
-    input_image_field.id("input_image_prompt");
-    input_image_field.parent("image_container");
-    input_image_field.changed(() => {
-        askForPicture(input_image_field.value());
-    });
 
-    let input_field = createInput("Why should learn to use a machine learning API?");
-    input_field.id("input_prompt");
-    input_field.parent("text_container");
-    input_field.changed(() => {
-        askForWords(input_field.value());
-    });
-}
+//////This is all vanilla javascript, no p5.js form making two fields and a listener for when the user hits enter
+const image_container = document.getElementById("image_container");
+var input_image_field = document.createElement("input");
+input_image_field.type = "text";
+input_image_field.id = "input_image_prompt";
+input_image_field.value = "A student trying to learn how use a machine learning API";
+image_container.prepend(input_image_field);
+input_image_field.addEventListener("keyup", function (event) {
+    if (event.key === "Enter") {
+        askForPicture(input_image_field.value);
+    }
+});
+
+const text_container = document.getElementById("text_container");
+var input_field = document.createElement("input");
+input_field.type = "text";
+input_field.id = "input_prompt";
+input_field.value = "Why should learn to use a machine learning API?";
+text_container.prepend(input_field);
+input_field.addEventListener("keyup", function (event) {
+    if (event.key === "Enter") {
+        askForWords(input_field.value);
+    }
+});
+
+
 
 async function askForPicture(p_prompt) {
-    const imageDiv = select("#resulting_image");
-    imageDiv.html("Waiting for reply from Replicate's Stable Diffusion API...");
+    const imageDiv = document.getElementById("resulting_image");
+    imageDiv.innerHTML = "Waiting for reply from Replicate's Stable Diffusion API...";
     let data = {
         "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf",
         input: {
@@ -43,19 +54,20 @@ async function askForPicture(p_prompt) {
     const proxy_said = await picture_info.json();
 
     if (proxy_said.output.length == 0) {
-        imageDiv.html("Something went wrong, try it again");
+        imageDiv.innerHTML = "Something went wrong, try it again";
     } else {
-        imageDiv.html("");
-        loadImage(proxy_said.output[0], (img) => {
-            image(img, 0, 0, width, height);
-        });
+        imageDiv.innerHTML = "";
+        let img = document.createElement("img");
+        img.src = proxy_said.output[0];
+        imageDiv.appendChild(img);
     }
 }
 
 async function askForWords(p_prompt) {
+
     document.body.style.cursor = "progress";
-    const textDiv = select("#resulting_text");
-    textDiv.html("Waiting for reply from Replicate...");
+    const textDiv = document.getElementById("resulting_text");
+    textDiv.innerHTML = "Waiting for reply from Replicate...";
     const data = {
         "version": "35042c9a33ac8fd5e29e27fb3197f33aa483f72c2ce3b0b9d201155c7fd2a287",
         input: {
@@ -79,9 +91,10 @@ async function askForWords(p_prompt) {
     console.log("words_response", words_response);
     const proxy_said = await words_response.json();
     if (proxy_said.output.length == 0) {
-        textDiv.html("Something went wrong, try it again");
+        textDiv.innerHTML = "Something went wrong, try it again";
     } else {
-        textDiv.html(proxy_said.output.join(""));
+        textDiv.innerHTML = proxy_said.output.join("");
         console.log("proxy_said", proxy_said.output.join(""));
     }
 }
+

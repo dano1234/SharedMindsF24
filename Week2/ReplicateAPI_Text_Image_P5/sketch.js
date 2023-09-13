@@ -1,4 +1,5 @@
-const replicateProxy = "https://delightful-picturesque-anthropology.glitch.me";
+
+const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
 function setup() {
     createCanvas(512, 512);

@@ -6,7 +6,7 @@ let canvas;
 let img
 
 
-const replicateProxy = "https://proxy-replicate-stablediffusion-api.glitch.me"
+const replicateProxy = "https://replicate-api-proxy.glitch.me";
 
 
 
@@ -46,6 +46,7 @@ async function ask() {
       "prompt": inputBox.value(),
       "width": 512,
       "height": 512,
+      "prompt_strength": 0.5,
       "image": imgBase64,
     },
   };
