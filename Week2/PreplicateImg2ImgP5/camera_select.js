@@ -12,7 +12,18 @@ function allowCameraSelection(w, h) {
             height: h
         }
     };
-
+    let select = document.createElement("select");
+    select.id = "video_select";
+    select.style.position = "absolute";
+    select.style.top = "600px";
+    select.style.left = "50px";
+    select.style.width = "100px";
+    select.label = "Pick a Camera";
+    // option = document.createElement('option');
+    // option.value = d[0].deviceId;
+    // option.textContent = "Pick A Camera";
+    //select.appendChild(option);
+    document.body.appendChild(select);
     let preferredCam = localStorage.getItem('preferredCam')
     //if you changed it in the past and stored setting
     if (preferredCam) {
@@ -27,13 +38,13 @@ function allowCameraSelection(w, h) {
     //create a pulldown menu for picking source
     navigator.mediaDevices.enumerateDevices().then(function (d) {
         // var sel = createSelect();
-        var select = document.getElementById('video_select');
+        //var select = document.getElementById('video_select');
         //sel.position(10, 10);
 
         var option;
         option = document.createElement('option');
         option.value = d[0].deviceId;
-        option.textContent = "";
+        option.textContent = "Pick a Camera";
         select.appendChild(option);
         numberOfCameras = 0;
         //console.log(d);
@@ -52,20 +63,19 @@ function allowCameraSelection(w, h) {
 
                 //sel.option(label, d[i].deviceId)
             }
-            if (preferredCam)
-                $("#video_select").val(preferredCam);
-            //sel.selected(preferredCam);
+            if (preferredCam) {
+                select.value = preferredCam;
+            }
         }
         //  console.log("Number of Cameras"+ numberOfCameras );
         if (numberOfCameras < 2) {
-            $('#video_select').hide();
-            return;
+            select.style.display = 'none';
         } else {
-            $('#video_select').css({ 'width': 20 });
+            select.style.width = '20px';
         }
-        $('#video_select').change(function () {
+        select.addEventListener('change', function () {
             //let item = sel.value();
-            let item = $("select#video_select:checked").val();
+            let item = select.value;
 
             localStorage.setItem('preferredCam', item);
             videoOptions = {
