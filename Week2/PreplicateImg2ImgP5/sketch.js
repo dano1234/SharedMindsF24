@@ -19,6 +19,10 @@ function setup() {
   inputBox.position(530, 10);
 
   video = createCapture(VIDEO);
+  //if you want to pick a different camera than default
+  //let captureConstraints = allowCameraSelection(myCanvas.width, myCanvas.height);
+  //video = createCapture(captureConstraints);//, captureLoaded);
+
   video.size(512, 512);
   video.hide();
   img = video;
