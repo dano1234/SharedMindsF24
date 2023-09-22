@@ -35,7 +35,7 @@ function mouseDragged() {
   mask.noStroke();
   mask.fill(255, 255, 255);
   mask.ellipse(mouseX, mouseY, 10, 10);
-  ellipse(512 + mouseX, mouseY, 10, 10);
+  //  this was a test thing sorry. ellipse(512 + mouseX, mouseY, 10, 10);
   image(mask, 0, 0, 512, 512);
 
 }
