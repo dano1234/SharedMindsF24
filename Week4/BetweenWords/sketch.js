@@ -1,67 +1,71 @@
-let img;
-let button;
-let inputBox;
-let mask1;
-let maskBase64 = "";
-let canvas;
+
 const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
-
-
+let leftInputs = [];
+let rightInputs = [];
+let adderLeft;
+let adderRight;
+let leftImage;
+let rightImage;
+let middleImage;
 
 function setup() {
-  button = createButton("Ask");
-  button.mousePressed(ask);
-  button.position(530, 40);
-  inputBox = createInput("Old Man");
-  inputBox.position(530, 10);
 
-  canvas = createCanvas(1024, 1024);
-  canvas.position(0, 0);
-
-
+  createCanvas(1024, 1024);
+  adderLeft = createInput("Add Word");
+  adderLeft.position(40, 10);
+  adderLeft.size(200, 20);
+  adderLeft.changed(function () { addWord(adderLeft.value()); });
+  adderRight = createInput("Add Word");
+  adderRight.position(width - 40, 10);
+  adderRight.size(200, 20);
+  adderRight.changed(function () { addWord(adderRight.value()); });
+  addWord("A")
+  addWord("Picture")
+  addWord("Of")
+  addWord("A")
+  addWord("Dog")
+  let prompt = "";
+  for (let i = 0; i < leftInputs.length; i++) {
+    prompt += leftInputs[i].value() + " ";
+  }
+  ask(prompt, "leftAndRight");
 
 }
+
+function addWord(word) {
+  let newInput = createInput(word);
+  newInput.position(40, 10 + leftInputs.length * 30);
+  //console.log("newInput", newInput.length);
+  newInput.size(200, 20);
+  newInput.changed(ask);
+  newInput = createInput(word);
+  leftInputs.push(newInput);
+  newInput.position(width - 40, 10 + rightInputs.length * 30);
+  newInput.size(200, 20);
+  newInput.changed(ask);
+  adderLeft.position(40, 10 + rightInputs.length * 30);
+  adderRight.position(width - 40, 10 + rightInputs.length * 30);
+  rightInputs.push(newInput);
+  adderLeft.value("Add Word");
+  adderRight.value("Add Word");
+}
+
 
 function draw() {
-  //nothing
-  image(picture1, 0, 0, 512, 512);
-  image(picture2, 512, 0, 512, 512);
-  if (resultImage) image(resultImage, 256, 512, 512, 512);
+  if (leftImage) image(leftImage, leftInputs.length * 30 + 40, 0, 256, 256);
+  if (rightImage) image(rightImage, rightInputs.length * 30 + 40, 0, 256, 256);
+  if (middleImage) image(middleImage, 256, 0, 256, 256);
 }
 
-function mouseDragged() {
-  // mask1.noStroke();
-  // mask1.fill(255, 255, 255);
-  // mask1.ellipse(mouseX, mouseY, 10, 10);
-  // ellipse(512 + mouseX, mouseY, 10, 10);
-  // image(mask1, 0, 0, 512, 512);
 
-}
-function mouseReleased() {
-  // mask1Base64 = mask1.elt.toDataURL();
-}
 
-async function ask() {
-  //image(img, 0, 0, 512, 512);
-  //canvas.loadPixels();
-  //mask1.loadPixels();
-  // let mask1Base64 = mask1.elt.toDataURL();
-  // let imgBase64 = canvas.elt.toDataURL();
-  picture1.updatePixels();
-  picture2.updatePixels();
-  let picture1Base64 = picture1.elt.toDataURL("image/jpeg", 1.0);
-  let picture2Base64 = picture2.elt.toDataURL("image/jpeg", 1.0);
-  picture1Base64 = picture1Base64.split(",")[1];
-  picture2Base64 = picture2Base64.split(",")[1];
+async function ask(prompt, asker) {
+
   let postData = {
-    "version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
     input: {
-      "prompt": inputBox.value(),
+      "prompt": prompt,
       "width": 512,
       "height": 512,
-      "picture1": picture1Base64,
-      "picture2": picture2Base64,
-
     },
   };
 
@@ -76,11 +80,27 @@ async function ask() {
   console.log("Asking for Picture ", url, options);
   const response = await fetch(url, options);
   const result = await response.json();
+  const imageInfo = "data:image/jpeg;base64," + result.b64Image;
   console.log(result.b64Image);
 
-  loadImage("data:image/jpeg;base64," + result.b64Image, function (newImage) {
-    console.log("image loaded", newImage);
-    resultImage = newImage;
-  });
+  if (asker == "leftAndRight" || asker == "left") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      leftImage = newImage;
+    });
+  }
+  if (asker == "leftAndRight" || asker == "right") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      rightImage = newImage;
+    });
+  }
+  if (asker == "middle") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      middleImage = newImage;
+    });
+  }
+
 
 }
