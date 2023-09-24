@@ -60,6 +60,7 @@ function mouseReleased() {
 }
 
 async function ask() {
+  document.body.style.cursor = "progress";
   //image(img, 0, 0, 512, 512);
   //canvas.loadPixels();
   //mask1.loadPixels();
@@ -95,7 +96,7 @@ async function ask() {
   const response = await fetch(url, options);
   const result = await response.json();
   console.log(result.b64Image);
-
+  document.body.style.cursor = "default";
   loadImage("data:image/jpeg;base64," + result.b64Image, function (newImage) {
     console.log("image loaded", newImage);
     resultImage = newImage;
