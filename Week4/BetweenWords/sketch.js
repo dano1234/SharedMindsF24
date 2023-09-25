@@ -1,7 +1,7 @@
 
 const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
 
-let debugingTrick = 512
+
 let slider;
 let leftImage;
 let rightImage;
@@ -43,7 +43,7 @@ function draw() {
   const h = int(heightOfImageInput.value());
   if (leftImage) image(leftImage, 0, imagesTopPosition, w, h);
   if (rightImage) image(rightImage, width - w, imagesTopPosition, w, h);
-  if (middleImage) image(middleImage, width / 2 - w / 2, imagesTopPosition, w, debuggingTrick);
+  if (middleImage) image(middleImage, width / 2 - w / 2, 650, w, h);
 }
 
 function showSlider(leftWord, rightWord, distanceFromTop, whichSide) {
@@ -161,7 +161,7 @@ async function askBetween(whichSide, sliderVal) {
   const result = await response.json();
   const imageInfo = "data:image/jpeg;base64," + result.b64Image;
   console.log("Got Between Words");
-  debuggingTrick = random(300, 512);
+
   feedback.html("Got between image.");
   document.body.style.cursor = "default";
   loadImage(imageInfo, function (newImage) {
