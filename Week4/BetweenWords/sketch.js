@@ -49,7 +49,12 @@ function draw() {
 function showSlider(leftWord, rightWord, distanceFromTop, whichSide) {
   console.log("showSlider", leftWord, rightWord, distanceFromTop);
   slider.style.display = "block"; //make it visiable
-  slider.addEventListener("mouseup", function () { askBetween(whichSide, slider.value); });
+  if (whichSide == "left") {
+    slider.value = 0;
+  } else {
+    slider.value = 1;
+  }
+  slider.addEventListener("mouseup", function () { askBetween(whichSide); });
 }
 
 function changedPrompt(whichSide) {
@@ -118,6 +123,7 @@ async function ask(prompt, whichSide) {
 async function askBetween(whichSide, sliderVal) {
   rightWord = document.getElementById("rightWord").value;
   leftWord = document.getElementById("leftWord").value;
+  sliderVal = slider.value
   document.body.style.cursor = "progress";
   feedback.html("Asking for image in between...");
   let wordInPrompt = "";
