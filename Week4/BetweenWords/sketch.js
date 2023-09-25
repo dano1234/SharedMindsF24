@@ -1,7 +1,7 @@
 
 const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
 
-
+let promptsSlider;
 let slider;
 let leftImage;
 let rightImage;
@@ -29,8 +29,9 @@ function setup() {
   slider = document.getElementById("betweenWordsSlider");
   slider.style.position = "absolute";
   slider.style.display = "none";  //hide it for now
-  slider.addEventListener("mouseup", function () { askBetween(); });
-
+  slider.addEventListener("mouseup", function () { askBetweenWords(); });
+  promptsSlider = document.getElementById("betweenPromptsSlider");
+  promptsSlider.addEventListener("mouseup", function () { askBetweenPrompts(); });
   feedback.html("Asking for initial images..");
   let prompt1 = document.getElementById("prompt1").value;
   ask(prompt1, "left");
@@ -73,21 +74,24 @@ function changedPrompt(whichSide) {
   whichPrompt = whichSide;
   ask(prompt, whichSide);
 }
+async function askBetweenPrompts() {
 
-
-async function ask(prompt, whichSide) {
+  prompt1 = document.getElementById("prompt1").value;
+  prompt2 = document.getElementById("prompt2").value;
+  distance = document.getElementById("betweenPromptsSlider").value;
   document.body.style.cursor = "progress";
+  feedback.html("Asking for image in between prompts...");
 
   let postData = {
     input: {
-      "prompt": prompt,
-      "width": int(widthOfImageInput.value()),
-      "height": int(heightOfImageInput.value()),
-      "steps": int(stepsInput.value()),
+      "prompt1": prompt1,
+      "prompt2": prompt2,
+      "distance": distance,
     },
   };
+  console.log("askBetween", postData);
 
-  let url = NGrokAddress + "/justImage/";
+  let url = NGrokAddress + "/betweenPrompts/";
   const options = {
     headers: {
       "Content-Type": `application/json`,
@@ -95,35 +99,22 @@ async function ask(prompt, whichSide) {
     method: "POST",
     body: JSON.stringify(postData), //p)
   };
-  console.log("Asking for Picture ", url, postData);
+  console.log("Asking for Between Prompts ", url, postData);
   const response = await fetch(url, options);
   const result = await response.json();
   const imageInfo = "data:image/jpeg;base64," + result.b64Image;
-  console.log(result.b64Image);
-  console.log(whichSide);
+  console.log("Got Between Prompts");
+
+  feedback.html("Got between image.");
   document.body.style.cursor = "default";
-  feedback.html("Got image.");
-  if (whichSide == "left") {
-    loadImage(imageInfo, function (newImage) {
-      console.log("image loaded", newImage);
-      leftImage = newImage;
-    });
-  }
-  if (whichSide == "right") {
-    loadImage(imageInfo, function (newImage) {
-      console.log("image loaded", newImage);
-      rightImage = newImage;
-    });
-  }
-  if (whichSide == "middle") {
-    loadImage(imageInfo, function (newImage) {
-      console.log("image loaded", newImage);
-      middleImage = newImage;
-    });
-  }
+  loadImage(imageInfo, function (newImage) {
+    console.log("image loaded", newImage);
+    middleImage = newImage;
+  });
+
 }
 
-async function askBetween() {
+async function askBetweenWords() {
   whichSide = whichPrompt;
   rightWord = document.getElementById("rightWord").value;
   leftWord = document.getElementById("leftWord").value;
@@ -180,6 +171,55 @@ async function askBetween() {
   });
 
 }
+async function ask(prompt, whichSide) {
+  document.body.style.cursor = "progress";
+
+  let postData = {
+    input: {
+      "prompt": prompt,
+      "width": int(widthOfImageInput.value()),
+      "height": int(heightOfImageInput.value()),
+      "steps": int(stepsInput.value()),
+    },
+  };
+
+  let url = NGrokAddress + "/justImage/";
+  const options = {
+    headers: {
+      "Content-Type": `application/json`,
+    },
+    method: "POST",
+    body: JSON.stringify(postData), //p)
+  };
+  console.log("Asking for Picture ", url, postData);
+  const response = await fetch(url, options);
+  const result = await response.json();
+  const imageInfo = "data:image/jpeg;base64," + result.b64Image;
+  console.log(result.b64Image);
+  console.log(whichSide);
+  document.body.style.cursor = "default";
+  feedback.html("Got image.");
+  if (whichSide == "left") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      leftImage = newImage;
+    });
+  }
+  if (whichSide == "right") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      rightImage = newImage;
+    });
+  }
+  if (whichSide == "middle") {
+    loadImage(imageInfo, function (newImage) {
+      console.log("image loaded", newImage);
+      middleImage = newImage;
+    });
+  }
+}
+
+
 
 function selectedNewWord(which) {
   console.log("selected", which);
