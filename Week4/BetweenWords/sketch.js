@@ -6,6 +6,7 @@ let slider;
 let leftImage;
 let rightImage;
 let middleImage;
+let whichPrompt = "left";
 
 let stepsInput;
 let widthOfImageInput;
@@ -28,7 +29,7 @@ function setup() {
   slider = document.getElementById("betweenWordsSlider");
   slider.style.position = "absolute";
   slider.style.display = "none";  //hide it for now
-
+  slider.addEventListener("mouseup", function () { askBetween(); });
 
   feedback.html("Asking for initial images..");
   let prompt1 = document.getElementById("prompt1").value;
@@ -54,7 +55,8 @@ function showSlider(leftWord, rightWord, distanceFromTop, whichSide) {
   } else {
     slider.value = 1;
   }
-  slider.addEventListener("mouseup", function () { askBetween(whichSide); });
+  let whichPrompt = whichSide;
+
 }
 
 function changedPrompt(whichSide) {
@@ -68,6 +70,7 @@ function changedPrompt(whichSide) {
     rightImage = null; //blank out picture
     prompt = document.getElementById("prompt2").value;
   }
+  whichPrompt = whichSide;
   ask(prompt, whichSide);
 }
 
@@ -120,7 +123,8 @@ async function ask(prompt, whichSide) {
   }
 }
 
-async function askBetween(whichSide, sliderVal) {
+async function askBetween() {
+  whichSide = whichPrompt;
   rightWord = document.getElementById("rightWord").value;
   leftWord = document.getElementById("leftWord").value;
   sliderVal = slider.value
