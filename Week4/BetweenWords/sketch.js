@@ -1,6 +1,7 @@
 
 const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
 
+let debugingTrick = 512
 let slider;
 let leftImage;
 let rightImage;
@@ -20,19 +21,20 @@ function setup() {
   createCanvas(1024, 1536);
   //CHECK THE HTML AND CSS FILES FOR WHERE ALL THE ELEMENTS ARE ARE CREATED AND STYLED
   wordsTopPosition = imagesTopPosition + int(heightOfImageInput.value()) + 20;
-  document.getElementById("prompt1").addEventListener("mouseup", function () { selected("left"); });
-  document.getElementById("prompt2").addEventListener("mouseup", function () { selected("right"); });
-  document.getElementById("prompt1").addEventListener("change", function () { changedWords("left"); });
-  document.getElementById("prompt2").addEventListener("change", function () { changedWords("right"); });
+  document.getElementById("prompt1").addEventListener("mouseup", function () { selectedNewWord("left"); });
+  document.getElementById("prompt2").addEventListener("mouseup", function () { selectedNewWord("right"); });
+  document.getElementById("prompt1").addEventListener("change", function () { changedPrompt("left"); });
+  document.getElementById("prompt2").addEventListener("change", function () { changedPrompt("right"); });
   slider = document.getElementById("betweenWordsSlider");
-  console.log("slider", slider);
   slider.style.position = "absolute";
-  slider.style.display = "none";
+  slider.style.display = "none";  //hide it for now
 
-  //since both sides start out the same you can ask onece for both
+
   feedback.html("Asking for initial images..");
-  let prompt = document.getElementById("prompt1").value;
-  ask(prompt, "leftAndRight");
+  let prompt1 = document.getElementById("prompt1").value;
+  ask(prompt1, "left");
+  let prompt2 = document.getElementById("prompt2").value;
+  ask(prompt2, "right");
 }
 
 function draw() {
@@ -41,16 +43,16 @@ function draw() {
   const h = int(heightOfImageInput.value());
   if (leftImage) image(leftImage, 0, imagesTopPosition, w, h);
   if (rightImage) image(rightImage, width - w, imagesTopPosition, w, h);
-  if (middleImage) image(middleImage, width / 2 - w / 2, imagesTopPosition, w, h);
+  if (middleImage) image(middleImage, width / 2 - w / 2, imagesTopPosition, w, debuggingTrick);
 }
 
 function showSlider(leftWord, rightWord, distanceFromTop, whichSide) {
   console.log("showSlider", leftWord, rightWord, distanceFromTop);
-  slider.style.display = "block";
-  slider.addEventListener("change", function () { askBetween(leftWord, rightWord, whichSide, slider.value); });
+  slider.style.display = "block"; //make it visiable
+  slider.addEventListener("mouseup", function () { askBetween(whichSide, slider.value); });
 }
 
-function changedWords(whichSide) {
+function changedPrompt(whichSide) {
   console.log("changedWords", whichSide);
   document.getElementById("leftWord").value = "";
   let prompt = "";
@@ -93,13 +95,13 @@ async function ask(prompt, whichSide) {
   console.log(whichSide);
   document.body.style.cursor = "default";
   feedback.html("Got image.");
-  if (whichSide == "leftAndRight" || whichSide == "left") {
+  if (whichSide == "left") {
     loadImage(imageInfo, function (newImage) {
       console.log("image loaded", newImage);
       leftImage = newImage;
     });
   }
-  if (whichSide == "leftAndRight" || whichSide == "right") {
+  if (whichSide == "right") {
     loadImage(imageInfo, function (newImage) {
       console.log("image loaded", newImage);
       rightImage = newImage;
@@ -113,7 +115,9 @@ async function ask(prompt, whichSide) {
   }
 }
 
-async function askBetween(leftWord, rightWord, whichSide, sliderVal) {
+async function askBetween(whichSide, sliderVal) {
+  rightWord = document.getElementById("rightWord").value;
+  leftWord = document.getElementById("leftWord").value;
   document.body.style.cursor = "progress";
   feedback.html("Asking for image in between...");
   let wordInPrompt = "";
@@ -121,12 +125,12 @@ async function askBetween(leftWord, rightWord, whichSide, sliderVal) {
   if (whichSide == "left") {
     wordInPrompt = leftWord;
     otherWord = rightWord;
-    strengthOfOtherWord = float(sliderVal) / 10;
+    strengthOfOtherWord = float(sliderVal).toFixed(2);
     prompt = document.getElementById("prompt1").value;
   } else {
     wordInPrompt = rightWord;
     otherWord = leftWord;
-    strengthOfOtherWord = 10 - float(sliderVal) / 10;
+    strengthOfOtherWord = (1 - float(sliderVal).toFixed(2));
     prompt = document.getElementById("prompt2").value;
   }
 
@@ -157,6 +161,7 @@ async function askBetween(leftWord, rightWord, whichSide, sliderVal) {
   const result = await response.json();
   const imageInfo = "data:image/jpeg;base64," + result.b64Image;
   console.log("Got Between Words");
+  debuggingTrick = random(300, 512);
   feedback.html("Got between image.");
   document.body.style.cursor = "default";
   loadImage(imageInfo, function (newImage) {
@@ -166,16 +171,16 @@ async function askBetween(leftWord, rightWord, whichSide, sliderVal) {
 
 }
 
-function selected(which) {
+function selectedNewWord(which) {
   console.log("selected", which);
   let prompt1 = document.getElementById("prompt1");
 
-  word1 = prompt1.value.slice(prompt1.selectionStart, prompt1.selectionEnd);
+  word1 = prompt1.value.slice(prompt1.selectionStart, prompt1.selectionEnd).trim();
   document.getElementById("leftWord").value = word1;
 
   let prompt2 = document.getElementById("prompt2");
 
-  word2 = prompt2.value.slice(prompt2.selectionStart, prompt2.selectionEnd);
+  word2 = prompt2.value.slice(prompt2.selectionStart, prompt2.selectionEnd).trim();
   document.getElementById("rightWord").value = word2;
 
 
