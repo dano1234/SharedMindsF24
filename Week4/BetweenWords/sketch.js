@@ -1,5 +1,5 @@
 
-const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
+const NGrokAddress = "https://dano.ngrok.dev";
 
 
 let slider;

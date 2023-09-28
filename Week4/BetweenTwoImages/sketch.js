@@ -18,7 +18,7 @@ function setup() {
   button = createButton("Ask");
   button.mousePressed(ask);
   button.position(530, 40);
-  inputBox = createInput("Old Man");
+  inputBox = createInput("Baseball Player in the Woods");
   inputBox.position(530, 10);
 
   canvas = createCanvas(1024, 1024);
