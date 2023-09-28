@@ -31,7 +31,7 @@ function setup() {
   slider.style.display = "none";  //hide it for now
   slider.addEventListener("mouseup", function () { askBetweenWords(); });
   promptsSlider = document.getElementById("betweenPromptsSlider");
-  promptsSlider.addEventListener("mouseup", function () { askBetweenPrompts(); });
+  // promptsSlider.addEventListener("mouseup", function () { askBetweenPrompts(); });
   feedback.html("Asking for initial images..");
   let prompt1 = document.getElementById("prompt1").value;
   ask(prompt1, "left");
@@ -73,45 +73,6 @@ function changedPrompt(whichSide) {
   }
   whichPrompt = whichSide;
   ask(prompt, whichSide);
-}
-async function askBetweenPrompts() {
-
-  prompt1 = document.getElementById("prompt1").value;
-  prompt2 = document.getElementById("prompt2").value;
-  distance = document.getElementById("betweenPromptsSlider").value;
-  document.body.style.cursor = "progress";
-  feedback.html("Asking for image in between prompts...");
-
-  let postData = {
-    input: {
-      "prompt1": prompt1,
-      "prompt2": prompt2,
-      "distance": distance,
-    },
-  };
-  console.log("askBetween", postData);
-
-  let url = NGrokAddress + "/betweenPrompts/";
-  const options = {
-    headers: {
-      "Content-Type": `application/json`,
-    },
-    method: "POST",
-    body: JSON.stringify(postData), //p)
-  };
-  console.log("Asking for Between Prompts ", url, postData);
-  const response = await fetch(url, options);
-  const result = await response.json();
-  const imageInfo = "data:image/jpeg;base64," + result.b64Image;
-  console.log("Got Between Prompts");
-
-  feedback.html("Got between image.");
-  document.body.style.cursor = "default";
-  loadImage(imageInfo, function (newImage) {
-    console.log("image loaded", newImage);
-    middleImage = newImage;
-  });
-
 }
 
 async function askBetweenWords() {
@@ -311,3 +272,44 @@ function createParamInterface() {
   // for (let i = 0; i < leftInputs.length; i++) {
   //   prompt += leftInputs[i].value() + " ";
   // }
+/*
+async function askBetweenPrompts() {
+
+  prompt1 = document.getElementById("prompt1").value;
+  prompt2 = document.getElementById("prompt2").value;
+  distance = document.getElementById("betweenPromptsSlider").value;
+  document.body.style.cursor = "progress";
+  feedback.html("Asking for image in between prompts...");
+
+  let postData = {
+    input: {
+      "prompt1": prompt1,
+      "prompt2": prompt2,
+      "distance": distance,
+    },
+  };
+  console.log("askBetween", postData);
+
+  let url = NGrokAddress + "/betweenPrompts/";
+  const options = {
+    headers: {
+      "Content-Type": `application/json`,
+    },
+    method: "POST",
+    body: JSON.stringify(postData), //p)
+  };
+  console.log("Asking for Between Prompts ", url, postData);
+  const response = await fetch(url, options);
+  const result = await response.json();
+  const imageInfo = "data:image/jpeg;base64," + result.b64Image;
+  console.log("Got Between Prompts");
+
+  feedback.html("Got between image.");
+  document.body.style.cursor = "default";
+  loadImage(imageInfo, function (newImage) {
+    console.log("image loaded", newImage);
+    middleImage = newImage;
+  });
+
+}
+*/
