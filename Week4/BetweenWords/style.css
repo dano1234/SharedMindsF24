@@ -42,6 +42,13 @@ canvas {
   top: 600px;
 }
 
+#betweenPromptsSlider {
+  position: absolute;
+  top: 550px;
+  left: 412px;
+  width: 200px;
+}
+
 #betweenWordsSlider {
   position: absolute;
   top: 600px;
