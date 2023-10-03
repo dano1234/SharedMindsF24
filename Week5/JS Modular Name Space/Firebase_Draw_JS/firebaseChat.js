@@ -55,7 +55,7 @@ function init() {
 
 function subscribeToUsers() {
     const db = getDatabase();
-    const usersRef = ref(db, 'users/');
+    const usersRef = ref(db, 'draw/users/');
     //get changes to users
     onValue(usersRef, (snapshot) => {   //onValue is a listener
         const data = snapshot.val();
@@ -82,14 +82,14 @@ function subscribeToUsers() {
 
 function askForExistingUser(name) {
     const db = getDatabase();
-    const usersRef = ref(db, 'users/' + name);
+    const usersRef = ref(db, 'draw/users/' + name);
     console.log("usersRef", usersRef);
     onValue(usersRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) {
             console.log("new user");
             const db = getDatabase();
-            set(ref(db, 'users/' + name), {
+            set(ref(db, 'draw/users/' + name), {
                 username: name
             });
         }
@@ -99,7 +99,7 @@ function askForExistingUser(name) {
 
 function setDrawingData(data) {
     const db = getDatabase();
-    set(ref(db, 'users/' + inputField.value), {
+    set(ref(db, 'draw/users/' + inputField.value), {
         locations: data
     });
 }

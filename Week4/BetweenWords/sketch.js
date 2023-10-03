@@ -1,5 +1,5 @@
 
-const NGrokAddress = "https://dano.ngrok.dev";
+const NGrokAddress = "https://ce9a-34-90-65-94.ngrok.io";
 
 let promptsSlider;
 let slider;
@@ -263,15 +263,15 @@ function createParamInterface() {
 
 
 
-  // addWord("A")
-  // addWord("Picture")
-  // addWord("Of")
-  // addWord("A")
-  // addWord("Dog")
-  // let prompt = "";
-  // for (let i = 0; i < leftInputs.length; i++) {
-  //   prompt += leftInputs[i].value() + " ";
-  // }
+// addWord("A")
+// addWord("Picture")
+// addWord("Of")
+// addWord("A")
+// addWord("Dog")
+// let prompt = "";
+// for (let i = 0; i < leftInputs.length; i++) {
+//   prompt += leftInputs[i].value() + " ";
+// }
 /*
 async function askBetweenPrompts() {
 

@@ -4,7 +4,7 @@ let inputBox;
 let mask1;
 let maskBase64 = "";
 let canvas;
-const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
+const NGrokAddress = "https://7d98-34-125-99-80.ngrok.io";
 
 let picture1;
 let picture2;
