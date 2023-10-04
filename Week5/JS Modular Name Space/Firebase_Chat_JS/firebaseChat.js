@@ -87,8 +87,10 @@ function subscribeToPosts() {
     });
 
     onChildChanged(commentsRef, (data) => {
-        console.log("changed", data.key, data.val());
 
+        const element = document.getElementById(data.key);
+        element.innerHTML = data.val().username + ": " + data.val().text;
+        console.log("changed", data.key, data.val(), element);
     });
 
     onChildRemoved(commentsRef, (data) => {
@@ -112,12 +114,14 @@ function addTextfield(key, data) {
         div.style.width = "90%";
         div.style.height = "100px";
         div.innerHTML = data.username + ": " + data.text;
-        div.addEventListener('blur', function (event) {
-            console.log("blur", this.id, event.target.innerHTML);
+        div.addEventListener('blur', function (event) {  //blur is when you click away from the textfield
+            let content = event.target.innerHTML.split(":")[1].trim();
+            console.log("blur", content);
             set(ref(db, 'text/posts/' + key), {
                 "username": name,
-                "text": event.target.innerHTML,
+                "text": content,
             });
+
         });
 
         textContainerDiv.append(div);
