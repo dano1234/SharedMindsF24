@@ -31,14 +31,14 @@ canvas {
 #leftWord {
   position: absolute;
   left: 0px;
-  width: 100px;
+  width: 150px;
   top: 600px;
 }
 
 #rightWord {
   position: absolute;
   left: 914px;
-  width: 100px;
+  width: 150px;
   top: 600px;
 }
 
