@@ -23,10 +23,14 @@ const analytics = getAnalytics(app);
 let inputField;
 let nameField;
 let name;
+let textContainerDiv
+let db;
+
 init()
 
 function init() {
     console.log("init");
+    db = getDatabase();
     nameField = document.createElement('input');
     nameField.style.position = "absolute";
     nameField.style.left = window.innerWidth - 50 + "px";
@@ -48,8 +52,8 @@ function init() {
     inputField = document.createElement('input');
     inputField = document.createElement('input');
     inputField.style.position = "absolute";
-    inputField.style.left = window.innerWidth / 2 + "px";
-    inputField.style.top = window.innerHeight - 30 + "px";
+    inputField.style.left = 50 + "px";
+    inputField.style.top = window.innerHeight / 2 + "px";
     inputField.style.width = "200px";
     inputField.style.height = "20px";
     inputField.addEventListener('keyup', function (event) {
@@ -58,32 +62,82 @@ function init() {
         }
 
     });
+
+    textContainerDiv = document.createElement('div');
+    textContainerDiv.style.position = "absolute";
+    textContainerDiv.style.left = window.innerWidth / 2 + "px";
+    textContainerDiv.style.top = 10 + "px";
+    textContainerDiv.style.width = window.innerWidth / 2 - 50 + "px";;
+    textContainerDiv.style.height = window.innerHeight + "px";;
+    textContainerDiv.id = "textContainerDiv";
+    textContainerDiv.style.border = "2px solid gray";
+    document.body.append(textContainerDiv);
     document.body.append(inputField);
 
     subscribeToPosts()
 }
 
 function subscribeToPosts() {
-    const db = getDatabase();
+
 
     const commentsRef = ref(db, 'text/posts/');
     onChildAdded(commentsRef, (data) => {
-        console.log("added", data.key, data.val());
+        //console.log("added", data.key, data.val());
+        addTextfield(data.key, data.val());
     });
 
     onChildChanged(commentsRef, (data) => {
-        console.log("changed", data.key, data.val());
+
+        const element = document.getElementById(data.key);
+        element.innerHTML = data.val().username + ": " + data.val().text;
+        console.log("changed", data.key, data.val(), element);
     });
 
     onChildRemoved(commentsRef, (data) => {
         console.log("removed", data.key, data.val());
     });
-    //get changes to users
-    // onValue(usersRef, (snapshot) => {   //onValue is a listener
-    //     const data = snapshot.val();
-    //     console.log("posts event", data);
-    // });
+
 }
+
+function addTextfield(key, data) {
+    let changedDiv = document.getElementById(key);
+    if (changedDiv) {
+        changedDiv.innerHTML = data.username + ": " + data.text;
+    } else {
+        let div = document.createElement('div');
+        div.id = key; //syncing the id with the key in the database
+        div.style.overflow = "auto";
+        div.style.resize = "both";
+        div.style.font = "medium - moz - fixed";
+        div.style.border = "2px solid gray";
+        div.setAttribute("contenteditable", true);
+        div.style.width = "90%";
+        div.style.height = "100px";
+        div.innerHTML = data.username + ": " + data.text;
+        div.addEventListener('blur', function (event) {  //blur is when you click away from the textfield
+            let content = event.target.innerHTML.split(":")[1].trim();
+            console.log("blur", content);
+            set(ref(db, 'text/posts/' + key), {
+                "username": name,
+                "text": content,
+            });
+
+        });
+
+        textContainerDiv.append(div);
+    }
+}
+
+function writeUserData(userId, name, email, imageUrl) {
+    const db = getDatabase();
+    set(ref(db, 'users/' + userId), {
+        username: name,
+        email: email,
+        profile_picture: imageUrl
+    });
+}
+
+
 
 function askForExistingUser(name) {
     const db = getDatabase();
