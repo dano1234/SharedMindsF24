@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -30,6 +30,7 @@ let mouseLocations = [];
 let name;
 init()
 
+
 function init() {
     console.log("init");
     inputField = document.createElement('input');
@@ -55,7 +56,7 @@ function init() {
 
 function subscribeToUsers() {
     const db = getDatabase();
-    const usersRef = ref(db, 'draw/users/');
+    const usersRef = query(ref(db, 'draw/users/'), limitToLast(10)); //get the last 10 users
     //get changes to users
     onValue(usersRef, (snapshot) => {   //onValue is a listener
         const data = snapshot.val();
@@ -67,10 +68,14 @@ function subscribeToUsers() {
             let userLocations = data[user].locations;
             if (userLocations) {
                 console.log("userLocations", userLocations);
-
+                ctx.font = "14px serif";
+                ctx.fillStyle = "black";
+                ctx.fillText(user, userLocations[0].x, userLocations[0].y);
                 for (let i = 0; i < userLocations.length; i++) {
                     let thisLoc = userLocations[i];
-                    ctx.fillStyle = "#000000";
+                    //ctx.fillStyle = myColor;
+                    ctx.fillStyle = "red";
+
                     ctx.fillRect(thisLoc.x, thisLoc.y, 5, 5);
                 }
             }
@@ -124,7 +129,6 @@ function listenForDrawing() {
                 lastX = x;
                 lastY = y;
                 console.log("x:" + x + " y:" + y);
-                ctx.fillStyle = "#000000aa";
                 ctx.fillRect(x, y, 5, 5);
                 mouseLocations.push({ x: x, y: y });
             }
