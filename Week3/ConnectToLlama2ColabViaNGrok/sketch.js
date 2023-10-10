@@ -14,8 +14,8 @@ input_image_field.addEventListener("keyup", function (event) {
 
 
 async function askForText(p_prompt) {
-    const imageDiv = document.getElementById("resulting_image");
-    imageDiv.innerHTML = "Waiting for reply from Colabs via NGrok...";
+    const textDiv = document.getElementById("resulting_text");
+    textDiv.innerHTML = "Waiting for reply from Colabs via NGrok...";
 
     let data = {
         input: {
@@ -38,5 +38,6 @@ async function askForText(p_prompt) {
     console.log("picture_response", picture_info);
     const result = await picture_info.json();
     console.log("json", result);
+    textDiv.innerHTML = result.response;
 
 }
