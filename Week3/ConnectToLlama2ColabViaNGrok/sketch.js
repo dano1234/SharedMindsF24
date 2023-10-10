@@ -1,4 +1,4 @@
-const NGrokAddress = "https://firm-honeybee-noticeably.ngrok-free.app";
+const NGrokAddress = "https://dano.ngrok.dev";
 
 const container = document.getElementById("container");
 var input_image_field = document.createElement("input");
@@ -8,12 +8,12 @@ input_image_field.value = "A student trying to learn how use a machine learning 
 container.appendChild(input_image_field);
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
-        askForPicture(input_image_field.value);
+        askForText(input_image_field.value);
     }
 });
 
 
-async function askForPicture(p_prompt) {
+async function askForText(p_prompt) {
     const imageDiv = document.getElementById("resulting_image");
     imageDiv.innerHTML = "Waiting for reply from Colabs via NGrok...";
 
@@ -25,7 +25,7 @@ async function askForPicture(p_prompt) {
         },
     };
 
-    console.log("Asking for Picture Info From Colabs via NGrok", data);
+    console.log("Asking for Text Info From Colabs via NGrok", data);
     let options = {
         method: "POST",
         headers: {
@@ -38,8 +38,5 @@ async function askForPicture(p_prompt) {
     console.log("picture_response", picture_info);
     const result = await picture_info.json();
     console.log("json", result);
-    imageDiv.innerHTML = "";
-    let img = document.createElement("img");
-    img.src = "data:image/jpeg;base64," + result.b64Image;
-    imageDiv.appendChild(img);
+
 }

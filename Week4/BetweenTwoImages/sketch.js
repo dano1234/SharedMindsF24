@@ -73,7 +73,6 @@ async function ask() {
   picture1Base64 = picture1Base64.split(",")[1];
   picture2Base64 = picture2Base64.split(",")[1];
   let postData = {
-    "version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
     input: {
       "prompt": inputBox.value(),
       "width": 512,
