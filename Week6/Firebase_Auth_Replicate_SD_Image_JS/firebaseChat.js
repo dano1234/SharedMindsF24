@@ -1,16 +1,9 @@
 
 // Import the functions you need from the SDKs you need
-//import firebase from "https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"; //'firebase/compat/app';
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
 import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-//import { getAuth } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-//import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-//import { AuthUI } from "https://www.gstatic.com/firebasejs/ui/4.8.0/firebase-ui-auth.js";
-//import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-//import { signInSuccessUrl, signInOptions, tosUrl, privacyPolicyUrl } from "https://www.gstatic.com/firebasejs/ui/4.8.1/firebase-ui-auth.js";
-
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
@@ -22,65 +15,120 @@ let auth;
 let db;
 let ui;
 let authUser
+let appName = "authImage";
 //let textContainerDiv
 
+const firebaseConfig = {
+    apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
+    authDomain: "shared-minds.firebaseapp.com",
+    projectId: "shared-minds",
+    storageBucket: "shared-minds.appspot.com",
+    messagingSenderId: "258871453280",
+    appId: "1:258871453280:web:4c103da9b230e982544505",
+    measurementId: "G-LN0GNWFZQQ"
+};
 
+var uiConfig = {
+    callbacks: {
+        signInSuccessWithAuthResult: function (authResult, redirectUrl) {
+            authUser = authResult;
+            console.log("succesfuly logged in", authResult.user.email);
+            if (loggedIn) location.reload(); //reboot if this is a change.
+            return false;
+        },
+        uiShown: function () {
+            document.getElementById('loader').style.display = 'none';
+        }
+    },
+    // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
+    signInFlow: 'popup',
+    // signInSuccessUrl: '<url-to-redirect-to-on-success>',
+    signInOptions: [
+        // Leave the lines as is for the providers you want to offer your netnauts.
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+        firebase.auth.EmailAuthProvider.PROVIDER_ID
+    ],
+    tosUrl: '<your-tos-url>',
+    privacyPolicyUrl: '<your-privacy-policy-url>'
+};
 
 function connectToFirebase() {
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-        authDomain: "shared-minds.firebaseapp.com",
-        projectId: "shared-minds",
-        storageBucket: "shared-minds.appspot.com",
-        messagingSenderId: "258871453280",
-        appId: "1:258871453280:web:4c103da9b230e982544505",
-        measurementId: "G-LN0GNWFZQQ"
-    };
     const app = initializeApp(firebaseConfig);
-    firebase.initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    // Initialize Firebase Authentication and get a reference to the service
-    //auth = getAuth(app);
-    //ui = new AuthUI(auth);
-    //ui = new firebaseui.auth.AuthUI(firebase.auth());
-    //auth = firebase.auth();
-    //this allowed seperate tabs to have seperate logins
-    //firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
     db = getDatabase();
-    //firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    const analytics = getAnalytics(app);
 
-
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
     firebase.auth().onAuthStateChanged((firebaseAuthUser) => {
         console.log("my goodness there has been an auth change");
-
         if (!firebaseAuthUser) {
             $("#name").hide();
             $("#signOut").hide();
             console.log("no valid login, sign in again?");
             var ui = new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
-
         } else {
-
             authUser = firebaseAuthUser
             $("#name").show();
             $("#signOut").show();
             console.log("valid login", firebaseAuthUser.email);
-            //checkForUserInDB(firebaseAuthUser);
+            checkForUserInDB(firebaseAuthUser);
         }
     });
 
 }
 
+document.getElementById("signOut").addEventListener("click", function () {
+    firebase.auth().signOut().then(function () {
+        console.log("User signed out");
+        location.reload();
+    }).catch(function (error) {
+        console.log("Error:", error);
+    });
+});
 
+function checkForUserInDB(user) {
+    console.log("checkForUserInDB", user);
+    const usersRef = ref(db, appName + '/users/').orderByChild("uid").equalTo(user.uid)
+    usersRef.once("value", snapshot => {
 
+        //ref(db, appName + '/users/').orderByChild("uid").equalTo(user.uid).once("value", snapshot => {
+        if (snapshot.exists()) {
+            let data = snapshot.val();
+            myDBID = Object.keys(data)[0];
+            console.log("someone by that id in db, let's go", myDBID, data);
+            $("#name").html(data[myDBID].displayName); // + " " + seed + " " + prompt);
 
+        } else {
+            //add to database
+            giveAuthUserDatabaseEntry(authUser);
+        }
 
+    }).catch(function (error) {
+        console.log("tried to get snapshot of existing", error);
+    });
+}
 
+function giveAuthUserDatabaseEntry(authUser) {
+    console.log("Authuser but no user info in DB yet", authUser, testUserTemplate);
+    if (!authUser.displayName) authUser.displayName = authUser.email.split("@")[0];
+    let displayName = authUser.displayName ?? testUserTemplate.displayName;
+    let photoURL = authUser.photoURL ?? testUserTemplate.photoURL;
+    if (!authUser.displayName) authUser.displayName = testUserTemplate.displayName;
+    if (!authUser.photoURL) authUser.photoURL = testUserTemplate.photoURL;
+    let mydata = {
+        'uid': authUser.uid,
+        'email': authUser.email,
+        'displayName': displayName,
+        'defaultProfileImage': photoURL,
+        'onlineStatus': "available",
+    };
+    $("#name").html(displayName); // + " " + seed + " " + prompt);
+    ref(db, appName + '/users/' + authUser.uid).set(mydata)
+    myDBID = authUser.uid;
+}
 
 init(); //same as setup but we call it ourselves
-
 
 function init() {
     console.log("init");
@@ -94,43 +142,6 @@ function init() {
     //askForExistingUser(name)
 
 }
-var uiConfig = {
-    callbacks: {
-        signInSuccessWithAuthResult: function (authResult, redirectUrl) {
-            authUser = authResult;
-            console.log("succesfuly logged in", authResult.user.email);
-            if (loggedIn) location.reload(); //reboot if this is a change.
-            //localUserEmail = authUser.user.email;
-            //localUserDisplayName = authResult.user.displayName;
-            // User successfully signed in.
-            // Return type determines whether we continue the redirect automatically
-            // or whether we leave that to developer to handle.
-            return false;
-        },
-        uiShown: function () {
-            // The widget is rendered.
-            // Hide the loader.
-            document.getElementById('loader').style.display = 'none';
-        }
-    },
-    // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
-    signInFlow: 'popup',
-    // signInSuccessUrl: '<url-to-redirect-to-on-success>',
-    signInOptions: [
-        // Leave the lines as is for the providers you want to offer your netnauts.
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        // firebase.auth.FacebookAuthProvider.PROVIDER_ID,
-        // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-        // firebase.auth.GithubAuthProvider.PROVIDER_ID,
-        firebase.auth.EmailAuthProvider.PROVIDER_ID
-        // firebase.auth.PhoneAuthProvider.PROVIDER_ID
-    ],
-    // Terms of service url.
-    tosUrl: '<your-tos-url>',
-    // Privacy policy url.
-
-    privacyPolicyUrl: '<your-privacy-policy-url>'
-};
 
 
 // window.addEventListener('mouseup', function (event) {
