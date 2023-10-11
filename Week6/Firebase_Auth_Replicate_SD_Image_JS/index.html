@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <meta charset="utf-8" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
+  <!--<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>-->
+  <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-auth-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
+  <style>
+
+  </style>
+</head>
+
+<body>
+  <script src='firebaseChat.js' type="module"></script>
+  <script src='firebaseFunctions.js' type="module"></script>
+  <div>Click to Relocate Yourself</div>
+  <div id="firebaseui-auth-container">
+    <div id="profile">
+      <div id='gProfile'><img id='profile-image' src="./emptyProfile.png" width="50" height="50" alt="" /></div>
+    </div>
+    <div contenteditable="true" class='auth_name' id='name'>No Name</div>
+    <button id='signOut'> Sign out</button>
+    <div id="loader"></div>
+
+  </div>
+  <!-- <div id="firebaseui-auth-container"></div>
+
+  <div id="auth-container">
+    <h2>Sign In</h2>
+    <label for="email-input">Email:</label>
+    <input type="email" id="email-input">
+    <label for="password-input">Password:</label>
+    <input type="password" id="password-input">
+    <button id="signin-button">Sign In</button>
+    <h2>Sign Up</h2>
+    <label for="new-email-input">Email:</label>
+    <input type="email" id="new-email-input">
+    <label for="new-password-input">Password:</label>
+    <input type="password" id="new-password-input">
+    <button id="signup-button">Sign Up</button>
+    <button id="signout-button">Sign Out</button>
+  </div>
+  <div id="firebaseui-auth-container">
+    <div id="profile">
+      <div id='gProfile'><img id='profile-image' src="./emptyProfile.png" width="50" height="50" alt="" /></div>
+    </div>
+    <div contenteditable="true" class='auth_name' id='name'>No Name</div>
+    <button id='signOut'> Sign out</button>
+    <div id="loader"></div>
+
+  </div>
+-->
+
+</body>
+
+
+
+
+</html>

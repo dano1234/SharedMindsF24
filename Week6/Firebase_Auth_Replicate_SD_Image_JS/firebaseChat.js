@@ -1,30 +1,83 @@
 
 // Import the functions you need from the SDKs you need
+//import firebase from "https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"; //'firebase/compat/app';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
 import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-// TODO: Add SDKs for Firebase products that you want to use
+//import { getAuth } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+//import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+//import { AuthUI } from "https://www.gstatic.com/firebasejs/ui/4.8.0/firebase-ui-auth.js";
+//import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+//import { signInSuccessUrl, signInOptions, tosUrl, privacyPolicyUrl } from "https://www.gstatic.com/firebasejs/ui/4.8.1/firebase-ui-auth.js";
+
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-    apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-    authDomain: "shared-minds.firebaseapp.com",
-    projectId: "shared-minds",
-    storageBucket: "shared-minds.appspot.com",
-    messagingSenderId: "258871453280",
-    appId: "1:258871453280:web:4c103da9b230e982544505",
-    measurementId: "G-LN0GNWFZQQ"
-};
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+
 let myContainer;
 let name;
-//let textContainerDiv
+let auth;
 let db;
+let ui;
+let authUser
+//let textContainerDiv
+
+
+
+function connectToFirebase() {
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
+        authDomain: "shared-minds.firebaseapp.com",
+        projectId: "shared-minds",
+        storageBucket: "shared-minds.appspot.com",
+        messagingSenderId: "258871453280",
+        appId: "1:258871453280:web:4c103da9b230e982544505",
+        measurementId: "G-LN0GNWFZQQ"
+    };
+    const app = initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    // Initialize Firebase Authentication and get a reference to the service
+    //auth = getAuth(app);
+    //ui = new AuthUI(auth);
+    //ui = new firebaseui.auth.AuthUI(firebase.auth());
+    //auth = firebase.auth();
+    //this allowed seperate tabs to have seperate logins
+    //firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    db = getDatabase();
+    //firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+
+    firebase.auth().onAuthStateChanged((firebaseAuthUser) => {
+        console.log("my goodness there has been an auth change");
+
+        if (!firebaseAuthUser) {
+            $("#name").hide();
+            $("#signOut").hide();
+            console.log("no valid login, sign in again?");
+            var ui = new firebaseui.auth.AuthUI(firebase.auth());
+            ui.start('#firebaseui-auth-container', uiConfig);
+
+        } else {
+
+            authUser = firebaseAuthUser
+            $("#name").show();
+            $("#signOut").show();
+            console.log("valid login", firebaseAuthUser.email);
+            //checkForUserInDB(firebaseAuthUser);
+        }
+    });
+
+}
+
+
+
+
+
+
 
 init(); //same as setup but we call it ourselves
 
@@ -33,37 +86,69 @@ function init() {
     console.log("init");
     let nameField = document.createElement('name');
     document.body.append(nameField);
-    db = getDatabase();
+    connectToFirebase()
+
     //let name = localStorage.getItem('fb_name');
-    if (!name) {
-        name = prompt("Enter Your Name Here");
-        //localStorage.setItem('fb_name', name);  //save name
-    }
-    console.log("name", name);
-    if (name) {
-        nameField.value = name;
-    }
+
     subscribeToUsers()
-    askForExistingUser(name)
+    //askForExistingUser(name)
 
 }
+var uiConfig = {
+    callbacks: {
+        signInSuccessWithAuthResult: function (authResult, redirectUrl) {
+            authUser = authResult;
+            console.log("succesfuly logged in", authResult.user.email);
+            if (loggedIn) location.reload(); //reboot if this is a change.
+            //localUserEmail = authUser.user.email;
+            //localUserDisplayName = authResult.user.displayName;
+            // User successfully signed in.
+            // Return type determines whether we continue the redirect automatically
+            // or whether we leave that to developer to handle.
+            return false;
+        },
+        uiShown: function () {
+            // The widget is rendered.
+            // Hide the loader.
+            document.getElementById('loader').style.display = 'none';
+        }
+    },
+    // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
+    signInFlow: 'popup',
+    // signInSuccessUrl: '<url-to-redirect-to-on-success>',
+    signInOptions: [
+        // Leave the lines as is for the providers you want to offer your netnauts.
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+        // firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+        // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+        // firebase.auth.GithubAuthProvider.PROVIDER_ID,
+        firebase.auth.EmailAuthProvider.PROVIDER_ID
+        // firebase.auth.PhoneAuthProvider.PROVIDER_ID
+    ],
+    // Terms of service url.
+    tosUrl: '<your-tos-url>',
+    // Privacy policy url.
 
-window.addEventListener('mouseup', function (event) {
-    console.log("mouse moved", event);
-    if (!myContainer.contains(event.target)) {
-        let x = event.clientX;
-        let y = event.clientY;
-        myContainer.style.left = x + "px";
-        myContainer.style.top = y + "px";
-        set(ref(db, 'image/users/' + name + "/location"), {
-            "x": x,
-            "y": y
-        });
-    }
-});
+    privacyPolicyUrl: '<your-privacy-policy-url>'
+};
+
+
+// window.addEventListener('mouseup', function (event) {
+//     console.log("mouse moved", event);
+//     if (!myContainer.contains(event.target)) {
+//         let x = event.clientX;
+//         let y = event.clientY;
+//         myContainer.style.left = x + "px";
+//         myContainer.style.top = y + "px";
+//         set(ref(db, 'authImage/users/' + name + "/location"), {
+//             "x": x,
+//             "y": y
+//         });
+//     }
+// });
 
 function subscribeToUsers() {
-    const commentsRef = ref(db, 'image/users/');
+    const commentsRef = ref(db, 'authImage/users/');
     onChildAdded(commentsRef, (data) => {
         let container = addDiv(data.key, data);
         fillContainer(container, data.key, data);
@@ -150,7 +235,7 @@ function addDiv(key, data) {
 
 function askForExistingUser(name) {
     const db = getDatabase();
-    const usersRef = ref(db, 'image/users/' + name);
+    const usersRef = ref(db, 'authImage/users/' + name);
     console.log("usersRef", usersRef);
     onValue(usersRef, (snapshot) => {
         const data = snapshot.val();
@@ -158,7 +243,7 @@ function askForExistingUser(name) {
             console.log("new user");
             let newX = Math.random() * window.innerWidth;
             let newY = Math.random() * window.innerHeight;
-            set(ref(db, 'image/users/' + name), {
+            set(ref(db, 'authImage/users/' + name), {
                 username: name,
                 prompt: "",
                 image: "",
@@ -204,7 +289,7 @@ async function askForImage(key, textField, imageElement, x, y) {
         let imageURL = proxy_said.output[0];
         imageElement.src = imageURL;
         textField.value = prompt;
-        set(ref(db, 'image/users/' + key), {
+        set(ref(db, 'authImage/users/' + key), {
             prompt: prompt,
             image: imageURL,
             username: key,
