@@ -13,14 +13,17 @@ let myContainer;
 let name;
 let auth;
 let db;
+let app;
 let ui;
 let authUser
+let loggedIn = false;
 let appName = "authImage";
 //let textContainerDiv
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
     authDomain: "shared-minds.firebaseapp.com",
+    databaseURL: "https://shared-minds-default-rtdb.firebaseio.com",
     projectId: "shared-minds",
     storageBucket: "shared-minds.appspot.com",
     messagingSenderId: "258871453280",
@@ -28,20 +31,32 @@ const firebaseConfig = {
     measurementId: "G-LN0GNWFZQQ"
 };
 
+
+//HOPEFULL??? https://firebaseopensource.com/projects/firebase/firebaseui-web/
+
 var uiConfig = {
     callbacks: {
         signInSuccessWithAuthResult: function (authResult, redirectUrl) {
             authUser = authResult;
             console.log("succesfuly logged in", authResult.user.email);
             if (loggedIn) location.reload(); //reboot if this is a change.
+            //localUserEmail = authUser.user.email;
+            //localUserDisplayName = authResult.user.displayName;
+            // User successfully signed in.
+            // Return type determines whether we continue the redirect automatically
+            // or whether we leave that to developer to handle.
             return false;
         },
         uiShown: function () {
+            // The widget is rendered.
+            // Hide the loader.
             document.getElementById('loader').style.display = 'none';
         }
     },
+
     // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
     signInFlow: 'popup',
+    credentialHelper: firebaseui.auth.CredentialHelper.NONE,
     // signInSuccessUrl: '<url-to-redirect-to-on-success>',
     signInOptions: [
         // Leave the lines as is for the providers you want to offer your netnauts.
@@ -52,11 +67,8 @@ var uiConfig = {
     privacyPolicyUrl: '<your-privacy-policy-url>'
 };
 
-function connectToFirebase() {
-    const app = initializeApp(firebaseConfig);
-    db = getDatabase();
-    const analytics = getAnalytics(app);
 
+function connectToFirebaseAuth() {
     firebase.initializeApp(firebaseConfig);
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
     firebase.auth().onAuthStateChanged((firebaseAuthUser) => {
@@ -65,7 +77,7 @@ function connectToFirebase() {
             $("#name").hide();
             $("#signOut").hide();
             console.log("no valid login, sign in again?");
-            var ui = new firebaseui.auth.AuthUI(firebase.auth());
+            ui = new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
         } else {
             authUser = firebaseAuthUser
@@ -130,14 +142,16 @@ function giveAuthUserDatabaseEntry(authUser) {
 
 init(); //same as setup but we call it ourselves
 
+
 function init() {
     console.log("init");
     let nameField = document.createElement('name');
     document.body.append(nameField);
-    connectToFirebase()
-
+    app = initializeApp(firebaseConfig);
+    db = getDatabase();
+    const analytics = getAnalytics(app);
+    connectToFirebaseAuth()
     //let name = localStorage.getItem('fb_name');
-
     subscribeToUsers()
     //askForExistingUser(name)
 
