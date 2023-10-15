@@ -77,6 +77,51 @@ function init() {
     subscribeToPosts()
 }
 
+function checkForUserInRegularDB(user) {
+    console.log("checkForUserInDB", user);
+    const usersRef = ref(db, appName + '/users/').orderByChild("uid").equalTo(user.uid)
+    usersRef.once("value", snapshot => {
+        //ref(db, appName + '/users/').orderByChild("uid").equalTo(user.uid).once("value", snapshot => {
+        if (snapshot.exists()) {
+            let data = snapshot.val();
+            myDBID = Object.keys(data)[0];
+            console.log("someone by that id in db, let's go", myDBID, data);
+            //  $("#name").html(data[myDBID].displayName); // + " " + seed + " " + prompt);
+        } else {
+            //add to database
+            giveAuthUserRegularDBEntry(authUser);
+        }
+    }).catch(function (error) {
+        console.log("tried to get snapshot of existing", error);
+    });
+}
+
+function giveAuthUserRegularDBEntry(authUser) {
+    let testUserTemplate = {
+        email: "dan@example.com",
+        displayName: "Test User",
+        photoURL: "emptyProfile.png"
+    };
+    console.log("Authuser but no user info in DB yet", authUser, testUserTemplate);
+    if (!authUser.displayName) authUser.displayName = authUser.email.split("@")[0];
+    let displayName = authUser.displayName ?? testUserTemplate.displayName;
+    let photoURL = authUser.photoURL ?? testUserTemplate.photoURL;
+    if (!authUser.displayName) authUser.displayName = testUserTemplate.displayName;
+    if (!authUser.photoURL) authUser.photoURL = testUserTemplate.photoURL;
+    let mydata = {
+        'uid': authUser.uid,
+        'email': authUser.email,
+        'displayName': displayName,
+        'defaultProfileImage': photoURL,
+        'onlineStatus': "available",
+    };
+    // $("#name").html(displayName); // + " " + seed + " " + prompt);
+    ref(db, appName + '/users/' + authUser.uid).set(mydata)
+    myDBID = authUser.uid;
+}
+
+
+
 function subscribeToPosts() {
 
 
@@ -121,9 +166,7 @@ function addTextfield(key, data) {
                 "username": name,
                 "text": content,
             });
-
         });
-
         textContainerDiv.append(div);
     }
 }

@@ -1,112 +1,119 @@
 <!DOCTYPE html>
+<link rel="shortcut icon" href="#">
 <html lang="en">
+<style>
+  body {
+    background-color: #ffffff;
+    height: 100%;
+    margin: 0px;
+  }
+
+  #firebaseui-auth-container {
+    position: fixed;
+    /* or absolute */
+    top: 10%;
+    left: 80%;
+    z-index: 9;
+
+    align-items: center;
+    justify-content: center;
+  }
+
+  #profile {
+    align-items: right;
+    justify-content: right;
+  }
+
+
+  #signOut {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: #EA4C89;
+    border-radius: 8px;
+    border-style: none;
+    box-sizing: border-box;
+    color: #FFFFFF;
+    cursor: pointer;
+
+    font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    height: 40px;
+    line-height: 20px;
+    list-style: none;
+    margin: 0;
+    outline: none;
+    padding: 10px 16px;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    transition: color 100ms;
+    vertical-align: baseline;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .button-1:hover,
+  .button-1:focus {
+    background-color: #F082AC;
+  }
+
+  .nameDiv {
+    font-size: 32px;
+    color: #01112a;
+    background-color: #FFF;
+
+    /* or */
+    line-height: 1.2em;
+    opacity: .7;
+  }
+</style>
 
 <head>
   <link rel="stylesheet" type="text/css" href="style.css">
   <meta charset="utf-8" />
+
+  <meta charset="UTF-8" />
+  <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 
 
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
-
-  <!--<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
-script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-auth-compat.js"></script>-->
-
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
   <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
-  <style>
-    #firebaseui-auth-container {
-      position: fixed;
-      /* or absolute */
-      top: 0%;
-      left: 85%;
-      z-index: 9;
 
-      align-items: center;
-      justify-content: center;
-    }
-
-    #profile {
-      align-items: center;
-      justify-content: center;
-    }
-
-
-    #signOut {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background-color: #EA4C89;
-      border-radius: 8px;
-      border-style: none;
-      box-sizing: border-box;
-      color: #FFFFFF;
-      cursor: pointer;
-
-      font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      height: 40px;
-      line-height: 20px;
-      list-style: none;
-      margin: 0;
-      outline: none;
-      padding: 10px 16px;
-      position: relative;
-      text-align: center;
-      text-decoration: none;
-      transition: color 100ms;
-      vertical-align: baseline;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: manipulation;
-    }
-  </style>
 </head>
 
 <body>
+  <div id="firebaseui-auth-container">
+    <!-- The surrounding HTML is left untouched by FirebaseUI.
+       Your app may use that space for branding, controls and other customizations.-->
+    <div id="firebaseui-auth-container">
+      <div id="profile">
+        <div id='gProfile'><img id='profile-image' src="./emptyProfile.png" width="50" height="50" alt="" /></div>
+      </div>
+      <div contenteditable="true" class='auth_name' id='name'></div>
+      <button id='signOut'> Sign out</button>
+      <div id="loader"></div>
+
+    </div>
+  </div>
   <script src='firebaseChat.js' type="module"></script>
+  <!--<script src='firebaseAuth.js'></script>-->
 
   <div>Click to Relocate Yourself</div>
-  <div id="firebaseui-auth-container">
-    <div id="profile">
-      <div id='gProfile'><img id='profile-image' src="./emptyProfile.png" width="50" height="50" alt="" /></div>
-    </div>
-    <div contenteditable="true" class='auth_name' id='name'>No Name</div>
-    <button id='signOut'> Sign out</button>
-    <div id="loader"></div>
 
-  </div>
-  <!-- <div id="firebaseui-auth-container"></div>
 
-  <div id="auth-container">
-    <h2>Sign In</h2>
-    <label for="email-input">Email:</label>
-    <input type="email" id="email-input">
-    <label for="password-input">Password:</label>
-    <input type="password" id="password-input">
-    <button id="signin-button">Sign In</button>
-    <h2>Sign Up</h2>
-    <label for="new-email-input">Email:</label>
-    <input type="email" id="new-email-input">
-    <label for="new-password-input">Password:</label>
-    <input type="password" id="new-password-input">
-    <button id="signup-button">Sign Up</button>
-    <button id="signout-button">Sign Out</button>
-  </div>
-  <div id="firebaseui-auth-container">
-    <div id="profile">
-      <div id='gProfile'><img id='profile-image' src="./emptyProfile.png" width="50" height="50" alt="" /></div>
-    </div>
-    <div contenteditable="true" class='auth_name' id='name'>No Name</div>
-    <button id='signOut'> Sign out</button>
-    <div id="loader"></div>
-
-  </div>
--->
 
 </body>
 
