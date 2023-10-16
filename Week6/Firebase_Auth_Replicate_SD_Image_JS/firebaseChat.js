@@ -11,7 +11,7 @@ let name;
 let db;
 let app;
 let myDBID;
-
+let myContainer;
 let appName = "authImage";
 
 const firebaseConfig = {
@@ -26,51 +26,44 @@ const firebaseConfig = {
 };
 
 
-
-
-
-
 init(); //same as setup but we call it ourselves
 
 
 function init() {
     console.log("init");
-    let nameField = document.createElement('name');
-    document.body.append(nameField);
-
     app = initializeApp(firebaseConfig);
     db = getDatabase();
     const analytics = getAnalytics(app);
     connectToFirebaseAuth()
-    //let name = localStorage.getItem('fb_name');
-    //subscribeToUsers()
-    //askForExistingUser(name)
 
 }
 
 
-// window.addEventListener('mouseup', function (event) {
-//     console.log("mouse moved", event);
-//     if (!myContainer.contains(event.target)) {
-//         let x = event.clientX;
-//         let y = event.clientY;
-//         myContainer.style.left = x + "px";
-//         myContainer.style.top = y + "px";
-//         set(ref(db, 'authImage/users/' + name + "/location"), {
-//             "x": x,
-//             "y": y
-//         });
-//     }
-// });
+window.addEventListener('mousedown', function (event) {
+    console.log("mouse moved", myContainer);
+    if (event.shiftKey) {
+
+        let x = event.clientX;
+        let y = event.clientY;
+        myContainer.style.left = x + "px";
+        myContainer.style.top = y + "px";
+        set(ref(db, 'authImage/users/' + myDBID + "/location"), {
+            "x": x,
+            "y": y
+        });
+    }
+    return true;
+});
 
 function subscribeToUsers() {
     const commentsRef = ref(db, 'authImage/users/');
     onChildAdded(commentsRef, (data) => {
+
         let container = addDiv(data.key, data);
         fillContainer(container, data.key, data);
         console.log("added", data.key, data);
-    });
 
+    });
     onChildChanged(commentsRef, (data) => {
         let container = document.getElementById(data.key);
         if (!container) {
@@ -83,8 +76,6 @@ function subscribeToUsers() {
     onChildRemoved(commentsRef, (data) => {
         console.log("removed", data.key, data.val());
     });
-
-
 }
 
 function fillContainer(container, key, data) {
@@ -107,14 +98,19 @@ function addDiv(key, data) {
     container.style.border = "2px solid black";
     container.style.width = "256px";
     container.style.height = "256px";
-    if (key == name) {
+    console.log("addDiv", "key", key, "myDBID", myDBID);
+    if (key == myDBID) {
         container.style.border = "2px solid red";
         myContainer = container;
     }
 
     container.id = key;
-    let x = data.val().location.x;
-    let y = data.val().location.y;
+    let x = Math.random() * window.innerWidth;
+    let y = Math.random() * window.innerHeight;
+    if (data.val().location) {
+        x = data.val().location.x;
+        y = data.val().location.y;
+    }
     container.style.position = "absolute";
     container.style.left = x + "px";
     container.style.top = y + "px";
@@ -136,7 +132,7 @@ function addDiv(key, data) {
     inputField.id = "input_element_" + key;
     inputField.addEventListener('keyup', function (event) {
         if (event.key == "Enter") {
-            askForImage(key, inputField, imageElement, x, y);
+            askReplicateForImage(key, inputField, imageElement, nameElement, x, y);
         }
 
     });
@@ -149,30 +145,12 @@ function addDiv(key, data) {
     return container;
 }
 
-function askForExistingUser(name) {
-    const db = getDatabase();
-    const usersRef = ref(db, 'authImage/users/' + name);
-    console.log("usersRef", usersRef);
-    onValue(usersRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            console.log("new user");
-            let newX = Math.random() * window.innerWidth;
-            let newY = Math.random() * window.innerHeight;
-            set(ref(db, 'authImage/users/' + name), {
-                username: name,
-                prompt: "",
-                image: "",
-                location: { "x": newX, "y": newY }
-            });
-        }
-        console.log("from database", data);
-    });
-}
 
 
-async function askForImage(key, textField, imageElement, x, y) {
+
+async function askReplicateForImage(key, textField, imageElement, nameField, x, y) {
     prompt = textField.value;
+    name = nameField.value;
     textField.value = "waiting: " + textField.value;
     //const imageDiv = document.getElementById("resulting_image");
     //imageDiv.innerHTML = "Waiting for reply from Replicate's Stable Diffusion API...";
@@ -208,19 +186,15 @@ async function askForImage(key, textField, imageElement, x, y) {
         set(ref(db, 'authImage/users/' + key), {
             prompt: prompt,
             image: imageURL,
-            username: key,
+            username: name,
             location: { "x": x, "y": y }
         });
 
     }
 }
 
-
-
 /////AUTH STUFF
-
-
-//the ui fo firebase doesn't use the modular appproach
+//the ui for firebase authentication doesn't use the modular syntax
 let authUser
 
 let uiConfig;
@@ -267,8 +241,6 @@ function connectToFirebaseAuth() {
             document.getElementById("name").display = "none";
             document.getElementById("profile-image").display = "none";
             document.getElementById("signOut").style.display = "none";
-            //$("#name").hide();
-            //$("#signOut").hide();
             console.log("no valid login, sign in again?");
             var ui = new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
@@ -276,17 +248,22 @@ function connectToFirebaseAuth() {
         } else {
             console.log("we have a user", firebaseAuthUser);
             authUser = firebaseAuthUser
-            console.log("authUser", authUser);
+
             document.getElementById("signOut").style.display = "block";
             localUserEmail = authUser.multiFactor.user.email;
+            myDBID = authUser.multiFactor.user.uid;
+            console.log("authUser", authUser, "myDBID", myDBID);
             document.getElementById("name").innerHTML = authUser.multiFactor.user.displayName;
             if (authUser.multiFactor.user.photoURL != null)
                 document.getElementById("profile-image").src = authUser.multiFactor.user.photoURL;
             checkForUserInRegularDB(authUser.multiFactor.user);
+            subscribeToUsers()
         }
     });
 }
 
+
+//// ALL THE UI AUTH STUFF IS DONE IN THE OLD WEB PAGE NAME SPACE STYLE, NOT MODULAR
 document.getElementById("signOut").addEventListener("click", function () {
     firebase.auth().signOut().then(function () {
         console.log("User signed out");
@@ -307,6 +284,7 @@ function checkForUserInRegularDB(user) {
         if (snapshot.exists()) {
             console.log(snapshot.val());
             let data = snapshot.val();
+
             console.log("someone by that id in db", myDBID, data);
         } else {
             giveAuthUserRegularDBEntry(authUser);
@@ -337,7 +315,7 @@ function giveAuthUserRegularDBEntry(authUser) {
         'defaultProfileImage': photoURL,
         'onlineStatus': "available",
     });
-    myDBID = authUser.uid;
+
 }
 
 
