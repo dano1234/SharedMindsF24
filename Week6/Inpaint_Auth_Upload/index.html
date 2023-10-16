@@ -40,7 +40,19 @@
     font-size: 14px;
     font-weight: 500;
     height: 40px;
-
+    line-height: 20px;
+    list-style: none;
+    margin: 0;
+    outline: none;
+    padding: 10px 16px;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    transition: color 100ms;
+    vertical-align: baseline;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
   }
 
   .button-1:hover,
@@ -63,12 +75,14 @@
   <link rel="stylesheet" type="text/css" href="style.css">
   <meta charset="utf-8" />
 
-  <meta charset="UTF-8" />
   <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+
 
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
@@ -92,7 +106,7 @@
 
     </div>
   </div>
-  <script src='firebaseChat.js' type="module"></script>
+  <script src='firebaseInpaintAuthUploadMod.js' type="module"></script>
   <!--<script src='firebaseAuth.js'></script>-->
 
   <div>Shift Click to Relocate Yourself</div>
