@@ -5,14 +5,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
 import { getDatabase, ref, set, query, orderByChild, equalTo, push, onValue, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 
+
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
-let name;
+
+
 let db;
 let app;
 let myDBID;
-let myContainer;
-let appName = "authImage";
+
+let appName = "authUploadInpaintImage";
+let img;
+let canvas
+let mask;
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -28,180 +33,144 @@ const firebaseConfig = {
 
 init(); //same as setup but we call it ourselves
 
-function setup() {
-    createCanvas(window.innerWidth, window.innerHeight);
-}
-function draw() {
-    background(127);
-    fill(255, 0, 0);
-    ellipse(mouseX, mouseY, 200, 200);
+let myp5 = new p5((p) => {
+    p.preload = () => {
+        img = p.loadImage('woods.png');
+    }
+    p.setup = () => {
+        canvas = p.createCanvas(512, 512);
+        mask = p.createGraphics(512, 512);
 
-}
+    }
+    p.draw = () => {
+        p.background(0, 255, 255);
+        if (img) {
+            p.image(img, 0, 0, 512, 512);
+        }
+        p.image(mask, 0, 0, img.width, 512);
+    }
+    p.mouseDragged = () => {
+        mask.fill(255, 255, 255);
+        mask.noStroke();
+        mask.ellipse(p.mouseX, p.mouseY, 30, 30);
+    }
+});
+
+
+
 function init() {
     console.log("init");
     app = initializeApp(firebaseConfig);
     db = getDatabase();
     const analytics = getAnalytics(app);
     connectToFirebaseAuth()
-
+    let prompter = document.createElement("input");
+    prompter.id = "prompter";
+    prompter.value = "Pink Dinosaur";
+    prompter.style.position = "absolute";
+    prompter.style.top = "520px";
+    prompter.style.left = "20px";
+    prompter.style.width = "500px";
+    prompter.style.height = "20px";
+    let asker = document.createElement("button");
+    asker.id = "asker";
+    asker.style.position = "absolute";
+    asker.style.top = "520px";
+    asker.style.left = "520px";
+    asker.innerHTML = "Ask";
+    asker.addEventListener("click", askInpaint);
+    document.body.appendChild(prompter);
+    document.body.appendChild(asker);
+    subscribeToImages();
 }
 
 
-window.addEventListener('mousedown', function (event) {
-    console.log("mouse moved", myContainer);
-    if (event.shiftKey) {
-
-        let x = event.clientX;
-        let y = event.clientY;
-        myContainer.style.left = x + "px";
-        myContainer.style.top = y + "px";
-        set(ref(db, 'authImage/users/' + myDBID + "/location"), {
-            "x": x,
-            "y": y
-        });
+function addImage(url) {
+    const imagesRef = push(ref(db, appName + '/images/'));
+    let newImage = {
+        "prompt": prompt,
+        "width": 512,
+        "height": 512,
+        "prompt_strength": 0.5,
+        "image": url
     }
-    return true;
-});
+    set(imagesRef, newImage);
+}
 
-function subscribeToUsers() {
-    const commentsRef = ref(db, 'authImage/users/');
-    onChildAdded(commentsRef, (data) => {
 
-        let container = addDiv(data.key, data);
-        fillContainer(container, data.key, data);
+
+
+function subscribeToImages() {
+    const imagesRef = ref(db, appName + '/images/');
+    onChildAdded(imagesRef, (data) => {
+        let imageURL = data.val().image;
+        myp5.loadImage(imageURL, function (newImage) {
+            console.log("image loaded", newImage);
+            mask = myp5.createGraphics(512, 512);
+            img = newImage;
+        });
+        ///let container = addDiv(data.key, data);
+        // fillContainer(container, data.key, data);
         console.log("added", data.key, data);
 
     });
-    onChildChanged(commentsRef, (data) => {
-        let container = document.getElementById(data.key);
-        if (!container) {
-            container = addDiv(data.key, data);
-        }
-        fillContainer(container, data.key, data);
+    onChildChanged(imagesRef, (data) => {
+
         console.log("changed", data.key, data);
     });
 
-    onChildRemoved(commentsRef, (data) => {
+    onChildRemoved(imagesRef, (data) => {
         console.log("removed", data.key, data.val());
     });
 }
 
-function fillContainer(container, key, data) {
-    let name = document.getElementById("name_element_" + key);
-    let input = document.getElementById("input_element_" + key);
-    let image = document.getElementById("image_element_" + key);
-    let x = data.val().location.x;
-    let y = data.val().location.y;
-    container.style.position = "absolute";
-    container.style.left = x + "px";
-    container.style.top = y + "px";
-    name.value = data.val().username;
-    input.value = data.val().prompt;
-    image.src = data.val().image;
-}
+async function askInpaint() {
+    myp5.image(img, 0, 0, 512, 512);
+    canvas.loadPixels();
+    mask.loadPixels();
+    let maskBase64 = mask.elt.toDataURL();
+    let imgBase64 = canvas.elt.toDataURL();
 
-function addDiv(key, data) {
-    //div holds two things
-    let container = document.createElement('div');
-    container.style.border = "2px solid black";
-    container.style.width = "256px";
-    container.style.height = "256px";
-    console.log("addDiv", "key", key, "myDBID", myDBID);
-    if (key == myDBID) {
-        container.style.border = "2px solid red";
-        myContainer = container;
-    }
-
-    container.id = key;
-    let x = Math.random() * window.innerWidth;
-    let y = Math.random() * window.innerHeight;
-    if (data.val().location) {
-        x = data.val().location.x;
-        y = data.val().location.y;
-    }
-    container.style.position = "absolute";
-    container.style.left = x + "px";
-    container.style.top = y + "px";
-
-    let imageElement = document.createElement('img');
-    imageElement.style.width = "256px";
-    imageElement.style.height = "256px";
-    imageElement.id = "image_element_" + key;
-
-    let nameElement = document.createElement('span');
-    nameElement.style.width = "25px";
-    nameElement.id = "name_element_" + key;
-    nameElement.innerHTML = data.val().username + ": ";
-
-    let inputField = document.createElement('input');
-    inputField = document.createElement('input');
-    inputField.style.width = "170px";
-    inputField.style.height = "20px";
-    inputField.id = "input_element_" + key;
-    inputField.addEventListener('keyup', function (event) {
-        if (event.key == "Enter") {
-            askReplicateForImage(key, inputField, imageElement, nameElement, x, y);
-        }
-
-    });
-
-    container.append(imageElement);
-    container.append(document.createElement('br'));
-    container.append(nameElement);
-    container.append(inputField);
-    document.body.append(container);
-    return container;
-}
-
-
-
-
-async function askReplicateForImage(key, textField, imageElement, nameField, x, y) {
-    prompt = textField.value;
-    name = nameField.value;
-    textField.value = "waiting: " + textField.value;
-    //const imageDiv = document.getElementById("resulting_image");
-    //imageDiv.innerHTML = "Waiting for reply from Replicate's Stable Diffusion API...";
-    let data = {
-        "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf",
+    prompt = document.getElementById("prompter").value;
+    let postData = {
+        "version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
         input: {
             "prompt": prompt,
             "width": 512,
             "height": 512,
+            "prompt_strength": 0.5,
+            "image": imgBase64,
+            "mask": maskBase64,
+
         },
     };
-    console.log("Asking for Picture Info From Replicate via Proxy", data);
-    let options = {
-        method: "POST",
+
+    let url = replicateProxy + "/create_n_get";
+    const options = {
         headers: {
-            "Content-Type": "application/json",
+            "Content-Type": `application/json`,
         },
-        body: JSON.stringify(data),
+        method: "POST",
+        body: JSON.stringify(postData), //p)
     };
-    const url = replicateProxy + "/create_n_get/"
-    console.log("url", url, "options", options);
-    const picture_info = await fetch(url, options);
-    //console.log("picture_response", picture_info);
-    const proxy_said = await picture_info.json();
+    console.log("Asking for Picture ", url, options);
+    const response = await fetch(url, options);
+    const result = await response.json();
+    console.log(result.output[0]);
+    const imageURL = result.output[0];
+    addImage(imageURL);
+    myp5.loadImage(imageURL, function (newImage) {
+        console.log("image loaded", newImage);
+        mask = myp5.createGraphics(512, 512);
+        img = newImage;
+    });
 
-    if (proxy_said.output.length == 0) {
-        textField.value = "Something went wrong, try it again";
-    } else {
-        console.log("proxy_said", proxy_said.output[0]);
-        let imageURL = proxy_said.output[0];
-        imageElement.src = imageURL;
-        textField.value = prompt;
-        set(ref(db, 'authImage/users/' + key), {
-            prompt: prompt,
-            image: imageURL,
-            username: name,
-            location: { "x": x, "y": y }
-        });
-
-    }
 }
 
-/////AUTH STUFF
+
+
+/////AUTH STUFF////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
 //the ui for firebase authentication doesn't use the modular syntax
 let authUser
 
@@ -309,7 +278,7 @@ function giveAuthUserRegularDBEntry(authUser) {
         photoURL: "emptyProfile.png"
     };
     console.log("Authuser but no user info in DB yet", authUser, testUserTemplate);
-    if (!authUser.displayName) authUser.displayName = authUser.email.split("@")[0];
+    // if (!authUser.displayName) authUser.displayName = authUser.email.split("@")[0];
     let displayName = authUser.displayName ?? testUserTemplate.displayName;
     let photoURL = authUser.photoURL ?? testUserTemplate.photoURL;
     if (!authUser.displayName) authUser.displayName = testUserTemplate.displayName;

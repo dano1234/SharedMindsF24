@@ -183,7 +183,7 @@ async function askReplicateForImage(key, textField, imageElement, nameField, x, 
         let imageURL = proxy_said.output[0];
         imageElement.src = imageURL;
         textField.value = prompt;
-        set(ref(db, 'authImage/users/' + key), {
+        set(ref(db, appName + '/users/' + key), {
             prompt: prompt,
             image: imageURL,
             username: name,

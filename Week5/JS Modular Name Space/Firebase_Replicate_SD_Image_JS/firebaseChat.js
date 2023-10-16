@@ -50,7 +50,7 @@ function init() {
 
 window.addEventListener('mouseup', function (event) {
     console.log("mouse moved", event);
-    if (!myContainer.contains(event.target)) {
+    if (event.shiftKey) {
         let x = event.clientX;
         let y = event.clientY;
         myContainer.style.left = x + "px";
