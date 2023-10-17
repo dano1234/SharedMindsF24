@@ -18,6 +18,8 @@ let appName = "authUploadInpaintImage";
 let img;
 let canvas
 let mask;
+let w = 512;
+let h = 512;
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -38,16 +40,16 @@ let myp5 = new p5((p) => {
         img = p.loadImage('woods.png');
     }
     p.setup = () => {
-        canvas = p.createCanvas(512, 512);
-        mask = p.createGraphics(512, 512);
+        canvas = p.createCanvas(w, h);
+        mask = p.createGraphics(w, h);
 
     }
     p.draw = () => {
         p.background(0, 255, 255);
         if (img) {
-            p.image(img, 0, 0, 512, 512);
+            p.image(img, 0, 0, w, h);
         }
-        p.image(mask, 0, 0, img.width, 512);
+        p.image(mask, 0, 0, w, h);
     }
     p.mouseDragged = () => {
         mask.fill(255, 255, 255);
@@ -68,14 +70,14 @@ function init() {
     prompter.id = "prompter";
     prompter.value = "Pink Dinosaur";
     prompter.style.position = "absolute";
-    prompter.style.top = "520px";
+    prompter.style.top = "540px";
     prompter.style.left = "20px";
-    prompter.style.width = "500px";
+    prompter.style.width = "480px";
     prompter.style.height = "20px";
     let asker = document.createElement("button");
     asker.id = "asker";
     asker.style.position = "absolute";
-    asker.style.top = "520px";
+    asker.style.top = "540px";
     asker.style.left = "520px";
     asker.innerHTML = "Ask";
     asker.addEventListener("click", askInpaint);
@@ -89,13 +91,95 @@ function addImage(url) {
     const imagesRef = push(ref(db, appName + '/images/'));
     let newImage = {
         "prompt": prompt,
-        "width": 512,
-        "height": 512,
+        "width": w,
+        "height": h,
         "prompt_strength": 0.5,
         "image": url
     }
     set(imagesRef, newImage);
 }
+
+function setLastQueryForUser(mask, prompt) {
+    set(ref(db, appName + '/users/' + myDBID + "/images/"), {
+        "mask": mask,
+        "prompt": prompt
+    });
+}
+
+
+
+function subscribeToImages() {
+    const imagesRef = ref(db, appName + '/images/');
+    onChildAdded(imagesRef, (data) => {
+        let imageURL = data.val().image;
+        myp5.loadImage(imageURL, function (newImage) {
+            console.log("image loaded", newImage);
+            mask = myp5.createGraphics(w, h);
+            img = newImage;
+        });
+        ///let container = addDiv(data.key, data);
+        // fillContainer(container, data.key, data);
+        console.log("added", data.key, data);
+
+    });
+    onChildChanged(imagesRef, (data) => {
+
+        console.log("changed", data.key, data);
+    });
+
+    onChildRemoved(imagesRef, (data) => {
+        console.log("removed", data.key, data.val());
+    });
+}
+
+async function askInpaint() {
+    myp5.image(img, 0, 0, w, h);
+    canvas.loadPixels();
+    mask.loadPixels();
+    let maskBase64 = mask.elt.toDataURL();
+    let imgBase64 = canvas.elt.toDataURL();
+
+    prompt = document.getElementById("prompter").value;
+    let postData = {
+        "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
+        input: {
+            "prompt": prompt,
+            "width": w,
+            "height": h,
+            "num_inference_steps": 25,
+            "prompt_strength": 1,
+            "guidance_scale": 9.5,
+            "image": imgBase64,
+            "mask": maskBase64,
+            "seed": 32,
+
+        },
+    };
+    setLastQueryForUser(maskBase64, prompt);
+    let url = replicateProxy + "/create_n_get";
+    const options = {
+        headers: {
+            "Content-Type": `application/json`,
+        },
+        method: "POST",
+        body: JSON.stringify(postData), //p)
+    };
+    console.log("Asking for Picture ", url, options);
+    const response = await fetch(url, options);
+    const result = await response.json();
+    console.log(result.output[0]);
+    const imageURL = result.output[0];
+    addImage(imageURL);
+    myp5.loadImage(imageURL, function (newImage) {
+        console.log("image loaded", newImage);
+        mask = myp5.createGraphics(w, h);
+        img = newImage;
+        //storeImageInFirebaseStorage(newImage);
+    });
+
+}
+
+
 
 function uploadImageToFirebaseStorage() {
     //get the image from the canvas
@@ -133,81 +217,20 @@ function uploadImageToFirebaseStorage() {
             });
         }
     );
-
-
-
-
 }
 
-
-function subscribeToImages() {
-    const imagesRef = ref(db, appName + '/images/');
-    onChildAdded(imagesRef, (data) => {
-        let imageURL = data.val().image;
-        myp5.loadImage(imageURL, function (newImage) {
-            console.log("image loaded", newImage);
-            mask = myp5.createGraphics(512, 512);
-            img = newImage;
-        });
-        ///let container = addDiv(data.key, data);
-        // fillContainer(container, data.key, data);
-        console.log("added", data.key, data);
-
+function subscribeToUsers() {
+    const commentsRef = ref(db, appName + '/users/');
+    onChildAdded(commentsRef, (data) => {
+        console.log("user added", data.key, data);
     });
-    onChildChanged(imagesRef, (data) => {
-
-        console.log("changed", data.key, data);
+    onChildChanged(commentsRef, (data) => {
+        console.log("user changed", data.key, data);
     });
-
-    onChildRemoved(imagesRef, (data) => {
-        console.log("removed", data.key, data.val());
+    onChildRemoved(commentsRef, (data) => {
+        console.log("user removed", data.key, data.val());
     });
 }
-
-async function askInpaint() {
-    myp5.image(img, 0, 0, 512, 512);
-    canvas.loadPixels();
-    mask.loadPixels();
-    let maskBase64 = mask.elt.toDataURL();
-    let imgBase64 = canvas.elt.toDataURL();
-
-    prompt = document.getElementById("prompter").value;
-    let postData = {
-        "version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
-        input: {
-            "prompt": prompt,
-            "width": 512,
-            "height": 512,
-            "prompt_strength": 0.5,
-            "image": imgBase64,
-            "mask": maskBase64,
-
-        },
-    };
-
-    let url = replicateProxy + "/create_n_get";
-    const options = {
-        headers: {
-            "Content-Type": `application/json`,
-        },
-        method: "POST",
-        body: JSON.stringify(postData), //p)
-    };
-    console.log("Asking for Picture ", url, options);
-    const response = await fetch(url, options);
-    const result = await response.json();
-    console.log(result.output[0]);
-    const imageURL = result.output[0];
-    addImage(imageURL);
-    myp5.loadImage(imageURL, function (newImage) {
-        console.log("image loaded", newImage);
-        mask = myp5.createGraphics(512, 512);
-        img = newImage;
-    });
-
-}
-
-
 
 /////AUTH STUFF////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -325,6 +348,7 @@ function giveAuthUserRegularDBEntry(authUser) {
     if (!authUser.photoURL) authUser.photoURL = testUserTemplate.photoURL;
 
     const db = getDatabase();
+    console.log("authuser", authUser);
     set(ref(db, appName + '/users/' + authUser.uid + "/"), {
         'uid': authUser.uid,
         'email': authUser.email,

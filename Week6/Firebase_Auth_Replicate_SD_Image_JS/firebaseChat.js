@@ -47,7 +47,7 @@ window.addEventListener('mousedown', function (event) {
         let y = event.clientY;
         myContainer.style.left = x + "px";
         myContainer.style.top = y + "px";
-        set(ref(db, 'authImage/users/' + myDBID + "/location"), {
+        set(ref(db, appName + '/users/' + myDBID + "/location"), {
             "x": x,
             "y": y
         });
@@ -56,7 +56,7 @@ window.addEventListener('mousedown', function (event) {
 });
 
 function subscribeToUsers() {
-    const commentsRef = ref(db, 'authImage/users/');
+    const commentsRef = ref(db, appName + '/users/');
     onChildAdded(commentsRef, (data) => {
 
         let container = addDiv(data.key, data);
