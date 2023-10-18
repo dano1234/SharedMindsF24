@@ -3,7 +3,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
-import { getDatabase, ref, set, query, orderByChild, equalTo, push, onValue, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { getDatabase, ref, set, query, limitToLast, orderByChild, equalTo, push, onValue, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
@@ -20,6 +20,7 @@ let canvas
 let mask;
 let w = 512;
 let h = 512;
+
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -40,8 +41,8 @@ let myp5 = new p5((p) => {
         img = p.loadImage('woods.png');
     }
     p.setup = () => {
-        canvas = p.createCanvas(w, h);
-        mask = p.createGraphics(w, h);
+        canvas = p.createCanvas(512, 512);
+        mask = p.createGraphics(512, 512);
 
     }
     p.draw = () => {
@@ -94,23 +95,23 @@ function addImage(url) {
         "width": w,
         "height": h,
         "prompt_strength": 0.5,
-        "image": url
+        "image": url,
+        "timestamp": Date.now(),
     }
     set(imagesRef, newImage);
 }
 
 function setLastQueryForUser(mask, prompt) {
-    set(ref(db, appName + '/users/' + myDBID + "/images/"), {
+    set(ref(db, appName + '/users/' + myDBID + "/lastQuery/"), {
         "mask": mask,
         "prompt": prompt
     });
 }
 
-
-
 function subscribeToImages() {
-    const imagesRef = ref(db, appName + '/images/');
-    onChildAdded(imagesRef, (data) => {
+    const recentPostsRef = query(ref(db, appName + '/images/'), limitToLast(1));
+    // const imagesRef = ref(db, appName + '/images/');
+    onChildAdded(recentPostsRef, (data) => {
         let imageURL = data.val().image;
         myp5.loadImage(imageURL, function (newImage) {
             console.log("image loaded", newImage);
@@ -122,12 +123,12 @@ function subscribeToImages() {
         console.log("added", data.key, data);
 
     });
-    onChildChanged(imagesRef, (data) => {
+    onChildChanged(recentPostsRef, (data) => {
 
         console.log("changed", data.key, data);
     });
 
-    onChildRemoved(imagesRef, (data) => {
+    onChildRemoved(recentPostsRef, (data) => {
         console.log("removed", data.key, data.val());
     });
 }
@@ -136,26 +137,27 @@ async function askInpaint() {
     myp5.image(img, 0, 0, w, h);
     canvas.loadPixels();
     mask.loadPixels();
-    let maskBase64 = mask.elt.toDataURL();
-    let imgBase64 = canvas.elt.toDataURL();
-
+    let maskBase64 = mask.elt.toDataURL("image/jpeg", 1.0);
+    let imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
+    console.log("c", canvas.width, canvas.height, "m", mask.width, mask.height);
     prompt = document.getElementById("prompter").value;
     let postData = {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
+        //"version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
         input: {
             "prompt": prompt,
             "width": w,
             "height": h,
             "num_inference_steps": 25,
-            "prompt_strength": 1,
-            "guidance_scale": 9.5,
+            "prompt_strength": .9,
+            //"guidance_scale": 9.5,
             "image": imgBase64,
             "mask": maskBase64,
             "seed": 32,
-
         },
     };
-    setLastQueryForUser(maskBase64, prompt);
+
+    //setLastQueryForUser(maskBase64, prompt);
     let url = replicateProxy + "/create_n_get";
     const options = {
         headers: {
@@ -176,10 +178,7 @@ async function askInpaint() {
         img = newImage;
         //storeImageInFirebaseStorage(newImage);
     });
-
 }
-
-
 
 function uploadImageToFirebaseStorage() {
     //get the image from the canvas

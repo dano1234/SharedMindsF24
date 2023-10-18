@@ -3,7 +3,8 @@ let button;
 let inputBox;
 let mask;
 let maskBase64 = "";
-let canvas; const replicateProxy = "https://replicate-api-proxy.glitch.me"
+let canvas;
+const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
 let canvas2;
 
