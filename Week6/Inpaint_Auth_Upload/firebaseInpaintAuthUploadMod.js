@@ -150,7 +150,7 @@ async function askInpaint() {
             "height": h,
             "num_inference_steps": 25,
             "prompt_strength": .9,
-            //"guidance_scale": 9.5,
+            "guidance_scale": 10.5,
             "image": imgBase64,
             "mask": maskBase64,
             "seed": 32,
