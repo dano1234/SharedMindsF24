@@ -20,6 +20,8 @@ let canvas
 let mask;
 let w = 512;
 let h = 512;
+let prompter;
+let cleanImage;
 
 
 const firebaseConfig = {
@@ -38,11 +40,12 @@ init(); //same as setup but we call it ourselves
 
 let myp5 = new p5((p) => {
     p.preload = () => {
-        img = p.loadImage('woods.png');
+        img = p.loadImage('jacob.jpeg');
     }
     p.setup = () => {
         canvas = p.createCanvas(512, 512);
         mask = p.createGraphics(512, 512);
+        cleanImage = p.createGraphics(512, 512);
 
     }
     p.draw = () => {
@@ -67,7 +70,7 @@ function init() {
     db = getDatabase();
     const analytics = getAnalytics(app);
     connectToFirebaseAuth()
-    let prompter = document.createElement("input");
+    prompter = document.createElement("input");
     prompter.id = "prompter";
     prompter.value = "Pink Dinosaur";
     prompter.style.position = "absolute";
@@ -94,7 +97,7 @@ function addImage(url) {
         "prompt": prompt,
         "width": w,
         "height": h,
-        "prompt_strength": 0.5,
+        "prompt_strength": 0.9,
         "image": url,
         "timestamp": Date.now(),
     }
@@ -112,12 +115,12 @@ function subscribeToImages() {
     const recentPostsRef = query(ref(db, appName + '/images/'), limitToLast(1));
     // const imagesRef = ref(db, appName + '/images/');
     onChildAdded(recentPostsRef, (data) => {
-        let imageURL = data.val().image;
-        myp5.loadImage(imageURL, function (newImage) {
-            console.log("image loaded", newImage);
-            mask = myp5.createGraphics(w, h);
-            img = newImage;
-        });
+        // let imageURL = data.val().image;
+        // myp5.loadImage(imageURL, function (newImage) {
+        //     console.log("image loaded", newImage);
+        //     mask = myp5.createGraphics(w, h);
+        //       img = newImage;
+        // });
         ///let container = addDiv(data.key, data);
         // fillContainer(container, data.key, data);
         console.log("added", data.key, data);
@@ -134,26 +137,29 @@ function subscribeToImages() {
 }
 
 async function askInpaint() {
-    myp5.image(img, 0, 0, w, h);
-    canvas.loadPixels();
+    //myp5.image(img, 0, 0, w, h);
+    cleanImage.image(img, 0, 0, w, h);
+    //canvas.loadPixels();
+    cleanImage.loadPixels();
     mask.loadPixels();
-    let maskBase64 = mask.elt.toDataURL("image/jpeg", 1.0);
-    let imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
+    let maskBase64 = mask.elt.toDataURL();
+    let imgBase64 = cleanImage.elt.toDataURL(); //"image/jpeg", 1.0)
     console.log("c", canvas.width, canvas.height, "m", mask.width, mask.height);
-    prompt = document.getElementById("prompter").value;
+    prompt = prompter.value;
     let postData = {
-        "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
-        //"version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
+        "version": "c11bac58203367db93a3c552bd49a25a5418458ddffb7e90dae55780765e26d6",
+        //"version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",  //xl
+        //"version": "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",  //week2
         input: {
             "prompt": prompt,
             "width": w,
             "height": h,
-            "num_inference_steps": 25,
-            "prompt_strength": .9,
-            "guidance_scale": 10.5,
+            //"num_inference_steps": 50,
+            "prompt_strength": .5,
+            //"guidance_scale": 10.0,
             "image": imgBase64,
             "mask": maskBase64,
-            "seed": 32,
+            // "seed": 32,
         },
     };
 
