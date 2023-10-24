@@ -1,7 +1,7 @@
 
 let camera3D, scene, renderer, cube;
 let texts = [];
-let  in_front_of_you;
+let in_front_of_you;
 
 
 init3D();
@@ -14,8 +14,8 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     ///document.body.appendChild(renderer.domElement);
 
-//this puts the three.js stuff in a particular div
-document.getElementById('container').appendChild(renderer.domElement)
+    //this puts the three.js stuff in a particular div
+    document.getElementById('container').appendChild(renderer.domElement)
 
 
     let bgGeometery = new THREE.SphereGeometry(1000, 60, 40);
@@ -37,7 +37,7 @@ document.getElementById('container').appendChild(renderer.domElement)
     in_front_of_you.position.set(0, 0, -600);
 
     //convenience function for getting coordinates
-    
+
     moveCameraWithMouse();
 
     camera3D.position.z = 0;
@@ -47,18 +47,18 @@ document.getElementById('container').appendChild(renderer.domElement)
 
 function animate() {
     requestAnimationFrame(animate);
-    for (var i = 0; i < texts.length; i++){
+    for (var i = 0; i < texts.length; i++) {
         texts[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM
-    textInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
+textInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
         createNewText(textInput.value);
-        }
-    });
+    }
+});
 
 function createNewText(text_msg) {
     console.log("Created New Text");
@@ -74,48 +74,53 @@ function createNewText(text_msg) {
     context.fillText(text_msg, canvas.width / 2, canvas.height / 2);
     var textTexture = new THREE.Texture(canvas);
     textTexture.needsUpdate = true;
-    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent:false });
+    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: false });
     var geo = new THREE.PlaneGeometry(1, 1);
     var mesh = new THREE.Mesh(geo, material);
 
     const posInWorld = new THREE.Vector3();
     //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
-    in_front_of_you.position.set(0,0,-(600-camera3D.fov*7));  //base the the z position on camera field of view
+    in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
     in_front_of_you.getWorldPosition(posInWorld);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
     console.log(posInWorld);
-    mesh.lookAt(0,0,0);
-    mesh.scale.set(10,10, 10);
+    mesh.lookAt(0, 0, 0);
+    mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    texts.push({"object":mesh, "texture":textTexture, "text":text_msg});
+    texts.push({ "object": mesh, "texture": textTexture, "text": text_msg });
 }
 
 function onDocumentKeyDown(event) {
     //console.log(event.key);
-   // if (event.key == " ") {
-   //     
-   // }
+    // if (event.key == " ") {
+    //     
+    // }
 }
 
 
 
 /////MOUSE STUFF
 
-var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
-var onPointerDownPointerX = 0, onPointerDownPointerY = 0;
-var lon = -90, onMouseDownLon = 0;
-var lat = 0, onMouseDownLat = 0;
-var isUserInteracting = false;
+//let onMouseDownMouseX = 0;
+//let onMouseDownMouseY = 0;
+let onPointerDownPointerX = 0;
+let onPointerDownPointerY = 0;
+let lon = -90;
+let onMouseDownLon = 0;
+let lat = 0;
+let onMouseDownLat = 0;
+let isUserInteracting = false;
 
 
 function moveCameraWithMouse() {
     //document.addEventListener('keydown', onDocumentKeyDown, false);
-    document.addEventListener('mousedown', onDocumentMouseDown, false);
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    document.addEventListener('mouseup', onDocumentMouseUp, false);
+    let threeContainer = document.getElementById('container')
+    threeContainer.addEventListener('mousedown', onDocumentMouseDown, false);
+    threeContainer.addEventListener('mousemove', onDocumentMouseMove, false);
+    threeContainer.addEventListener('mouseup', onDocumentMouseUp, false);
     document.addEventListener('wheel', onDocumentMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);

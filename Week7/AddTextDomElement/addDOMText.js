@@ -1,9 +1,10 @@
 
 
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js';
-import { CSS3DObject } from 'https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js';
-import { CSS3DRenderer } from 'https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/renderers/CSS3DRenderer.js';
 
+//import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/build/three.module.js';
+//import { CSS3DRenderer, CSS3DObject } from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/renderers/CSS3DRenderer.js';
+import * as THREE from 'three';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
 let camera3D, scene, renderer;
 let texts = [];
@@ -23,8 +24,6 @@ function init3D() {
     document.getElementById('container').appendChild(renderer.domElement);
 
 
-
-
     //tiny little dot (could be invisible) for placing things in front of you
     var geometryFront = new THREE.BoxGeometry(1, 1, 1);
     var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -32,14 +31,11 @@ function init3D() {
     camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
     in_front_of_you.position.set(0, 0, -600);
 
-    //convenience function for getting coordinates
-
     moveCameraWithMouse();
 
     camera3D.position.z = 0;
     animate();
 }
-
 
 function animate() {
     requestAnimationFrame(animate);
@@ -58,12 +54,13 @@ textInput.addEventListener("keydown", function (e) {
 
 function createNewText(text_msg) {
     console.log("Created New Text");
+
     const details = document.createElement('div');
     details.className = 'details';
-    details.innerHTML = table[i + 1] + '<br>' + table[i + 2];
-    element.appendChild(details);
+    details.innerHTML = text_msg;
+    //element.appendChild(details);
 
-    const objectCSS = new CSS3DObject(element);
+    const objectCSS = new CSS3DObject(details);
 
 
     const posInWorld = new THREE.Vector3();
@@ -88,22 +85,25 @@ function onDocumentKeyDown(event) {
     // }
 }
 
-
-
 /////MOUSE STUFF
 
-var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
-var onPointerDownPointerX = 0, onPointerDownPointerY = 0;
-var lon = -90, onMouseDownLon = 0;
-var lat = 0, onMouseDownLat = 0;
-var isUserInteracting = false;
+
+
+let onPointerDownPointerX = 0;
+let onPointerDownPointerY = 0;
+let lon = -90;
+let onPointerDownLon = 0;
+let lat = 0;
+let onPointerDownLat = 0;
+let isUserInteracting = false;
 
 
 function moveCameraWithMouse() {
+    let threeContainer = document.getElementById("container")
     //document.addEventListener('keydown', onDocumentKeyDown, false);
-    document.addEventListener('mousedown', onDocumentMouseDown, false);
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    document.addEventListener('mouseup', onDocumentMouseUp, false);
+    threeContainer.addEventListener('mousedown', onDocumentMouseDown, false);
+    threeContainer.addEventListener('mousemove', onDocumentMouseMove, false);
+    threeContainer.addEventListener('mouseup', onDocumentMouseUp, false);
     document.addEventListener('wheel', onDocumentMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);
@@ -137,8 +137,8 @@ function onDocumentMouseWheel(event) {
 
 function computeCameraOrientation() {
     lat = Math.max(- 30, Math.min(30, lat));  //restrict movement
-    let phi = THREE.Math.degToRad(90 - lat);  //restrict movement
-    let theta = THREE.Math.degToRad(lon);
+    let phi = THREE.MathUtils.degToRad(90 - lat);  //restrict movement
+    let theta = THREE.MathUtils.degToRad(lon);
     camera3D.target.x = 100 * Math.sin(phi) * Math.cos(theta);
     camera3D.target.y = 100 * Math.cos(phi);
     camera3D.target.z = 100 * Math.sin(phi) * Math.sin(theta);
@@ -152,4 +152,6 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     console.log('Resized');
 }
+
+
 
