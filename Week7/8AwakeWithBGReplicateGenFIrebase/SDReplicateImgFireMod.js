@@ -34,7 +34,15 @@ var input_image_field = document.createElement("input");
 input_image_field.type = "text";
 input_image_field.id = "input_image_prompt";
 input_image_field.value = "Nice picture of a dog";
-input_image_field.size = 100;
+input_image_field.style.position = "absolute";
+input_image_field.style.fontSize = "20px";
+input_image_field.style.width = "400px";
+input_image_field.style.top = "50%";
+input_image_field.style.left = "50%";
+input_image_field.style.transform = "translate(-50%, -50%)";
+
+
+
 document.getElementById("webInterfaceContainer").append(input_image_field);
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
@@ -47,8 +55,6 @@ input_image_field.addEventListener("keyup", function (event) {
 async function askForPicture(inputField) {
     prompt = inputField.value;
     inputField.value = "Waiting for reply for:" + prompt;
-
-
     let data = {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
@@ -84,7 +90,7 @@ async function askForPicture(inputField) {
             canvas.height = incomingImage.naturalHeight;
             canvas.width = incomingImage.naturalWidth;
             ctx.drawImage(incomingImage, 0, 0);
-            const b64Image = canvas.toDataURL();
+            const base64Image = canvas.toDataURL();
 
             sendImageToFirebase(base64Image, prompt);
         };
@@ -116,19 +122,13 @@ function subscribeToImages() {
     onChildAdded(commentsRef, (data) => {
         console.log("added", data.key, data.val().image, data.val().location);
         placeImage(data.val().image, data.val().location);
-
     });
-
     onChildChanged(commentsRef, (data) => {
-
         console.log("changed", data.key, data);
     });
-
     onChildRemoved(commentsRef, (data) => {
         console.log("removed", data.key, data.val());
     });
-
-
 }
 
 function sendImageToFirebase(base64Image, prompt) {
@@ -157,19 +157,6 @@ function init3D() {
     in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
     camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
 
-
-
-    // let bgGeometry = new THREE.SphereGeometry(950, 60, 40);
-    // // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
-    // bgGeometry.scale(-1, 1, 1);
-    // // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
-    // let panotexture = new THREE.TextureLoader().load("./itp.jpg");
-    // // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
-    // let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
-    // let back = new THREE.Mesh(bgGeometry, backMaterial);
-    // scene.add(back);
-
-
     moveCameraWithMouse();
 
     camera3D.position.z = 5;
@@ -186,23 +173,21 @@ function getPositionInFrontOfCamera() {
 
 function placeImage(img, pos) {
     console.log("placeImage", img, pos);
-
-    const loader = new THREE.TextureLoader();
-
-    //loading texture
-    const texture = loader.load(img)
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    canvas.height = img.height;
+    canvas.width = img.width;
+    ctx.drawImage(img, 0, 0);
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
     console.log(img, texture);
     var material = new THREE.MeshBasicMaterial({ map: texture, transparent: false });
 
     var geo = new THREE.PlaneGeometry(512, 512);
     var mesh = new THREE.Mesh(geo, material);
-
-
-    //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
     mesh.position.x = pos.x;
     mesh.position.y = pos.y;
     mesh.position.z = pos.z;
-
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
