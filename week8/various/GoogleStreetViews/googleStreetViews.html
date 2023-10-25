@@ -1,0 +1,78 @@
+<html>
+
+<head>
+    <title>Google Street View</title>
+    <link rel="shortcut icon" href="#">
+
+
+
+
+    <!-- This is the librarie for the google street views which loads and then calls function
+within our code. You get your own api key at the creditial part of https://console.developers.google.com -->
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi_F0gaMWtXi8Ngerunlwe1vRFkjy8cdI">
+    // with call back at end  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi_F0gaMWtXi8Ngerunlwe1vRFkjy8cdI&callback=initializeGoogleMaps">
+            </script>
+                <script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.js"></script>
+                <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.min.js"></script>
+                <script type="text/javascript" src="https://p5livemedia.itp.io/simplepeer.min.js"></script>
+                <script type="text/javascript" src="https://p5livemedia.itp.io/socket.io.js"></script>
+                <script type="text/javascript" src="https://p5livemedia.itp.io/p5livemedia.js"></script>
+    <style>
+        body {
+            background-color: #000000;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #pano {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1600px;
+            height: 900px;
+            z-index: 0;
+        }
+
+        #container {
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            z-index: 1;
+            position: absolute;
+            background-color: transparent;
+        }
+
+        #textFieldInterface {
+            background-color: #00000000;
+            position: absolute;
+            top: 0px;
+            width: 30%;
+            color: #ffffff;
+            padding: 5px;
+            font-family: Monospace;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: left;
+            z-index: 2;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id='container'></div>
+    <div id="pano"></div>
+    <!--These are the user interface boxes-->
+    <div id="textFieldInterface">
+        Google Street In A Div:<input type="input" style="text-align:center;" value="Paris" size="35" id="street">
+        <div size="50" id='loading_feedback'></div>
+    </div>
+    <script src="p5LiveMediaStuff.js"></script>
+    <script src="googleStreetViews.js"></script>
+
+</body>
+
+</html>
