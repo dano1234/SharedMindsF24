@@ -120,8 +120,13 @@ function initFirebase() {
 function subscribeToImages() {
     const commentsRef = ref(db, appName + '/images/');
     onChildAdded(commentsRef, (data) => {
-        console.log("added", data.key, data.val().image, data.val().location);
-        placeImage(data.val().image, data.val().location);
+        console.log("added", data.key, data.val().location);
+        var image = new Image();
+        image.onload = function () {
+            placeImage(image, data.val().location);
+        };
+        image.src = data.val().base64Image
+
     });
     onChildChanged(commentsRef, (data) => {
         console.log("changed", data.key, data);
@@ -138,7 +143,7 @@ function sendImageToFirebase(base64Image, prompt) {
         base64Image: base64Image,
         location: { "x": pos.x, "y": pos.y, "z": pos.z }
     }
-    console.log("dataToSet", dataToSet);
+    //console.log("dataToSet", dataToSet);
     push(ref(db, appName + '/images/'), dataToSet);
 }
 
@@ -172,15 +177,16 @@ function getPositionInFrontOfCamera() {
 
 
 function placeImage(img, pos) {
-    console.log("placeImage", img, pos);
+    //console.log("placeImage", img, pos);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     canvas.height = img.height;
     canvas.width = img.width;
     ctx.drawImage(img, 0, 0);
+    //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    console.log(img, texture);
+    //console.log(img, texture);
     var material = new THREE.MeshBasicMaterial({ map: texture, transparent: false });
 
     var geo = new THREE.PlaneGeometry(512, 512);
@@ -205,11 +211,14 @@ function animate() {
 
 /////MOUSE STUFF
 
-var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
-var onPointerDownPointerX = 0, onPointerDownPointerY = 0;
-var lon = -90, onMouseDownLon = 0;
-var lat = 0, onMouseDownLat = 0;
-var isUserInteracting = false;
+
+let onPointerDownPointerX = 0
+let onPointerDownPointerY = 0;
+let lon = -90
+let onPointerDownLon = 0;
+let lat = 0
+let onPointerDownLat = 0;
+let isUserInteracting = false;
 
 
 function moveCameraWithMouse() {

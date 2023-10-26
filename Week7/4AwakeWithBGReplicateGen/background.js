@@ -36,8 +36,6 @@ function init3D() {
     cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
-
-
     let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
     // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
