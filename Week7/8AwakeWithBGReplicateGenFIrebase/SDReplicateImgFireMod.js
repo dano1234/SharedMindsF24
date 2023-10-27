@@ -7,18 +7,7 @@ import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onC
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 
-const firebaseConfig = {
-    apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-    authDomain: "shared-minds.firebaseapp.com",
-    projectId: "shared-minds",
-    storageBucket: "shared-minds.appspot.com",
-    messagingSenderId: "258871453280",
-    appId: "1:258871453280:web:4c103da9b230e982544505",
-    measurementId: "G-LN0GNWFZQQ"
-};
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 let db;
 let appName = "360BGReplicateGenFirebase";
 
@@ -28,27 +17,55 @@ const replicateProxy = "https://replicate-api-proxy.glitch.me"
 let images = [];
 let in_front_of_you;
 
+initWedInterface();
 init3D();
-
-var input_image_field = document.createElement("input");
-input_image_field.type = "text";
-input_image_field.id = "input_image_prompt";
-input_image_field.value = "Nice picture of a dog";
-input_image_field.style.position = "absolute";
-input_image_field.style.fontSize = "20px";
-input_image_field.style.width = "400px";
-input_image_field.style.top = "50%";
-input_image_field.style.left = "50%";
-input_image_field.style.transform = "translate(-50%, -50%)";
+initFirebase();
 
 
+function initWedInterface() {
+    var input_image_field = document.createElement("input");
+    input_image_field.type = "text";
+    input_image_field.id = "input_image_prompt";
+    input_image_field.value = "Nice picture of a dog";
+    input_image_field.style.position = "absolute";
+    input_image_field.style.fontSize = "20px";
+    input_image_field.style.width = "400px";
+    input_image_field.style.top = "20%";
+    input_image_field.style.left = "50%";
+    input_image_field.style.transform = "translate(-50%, -50%)";
+    document.getElementById("webInterfaceContainer")
+    input_image_field.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") {
+            askForPicture(input_image_field);
+        }
+    });
 
-document.getElementById("webInterfaceContainer").append(input_image_field);
-input_image_field.addEventListener("keyup", function (event) {
-    if (event.key === "Enter") {
-        askForPicture(input_image_field);
-    }
-});
+    input_image_field.style.transform = "translate(-50%, -50%)";
+    var webInterfaceContainer = document.createElement("div");
+    webInterfaceContainer.id = "webInterfaceContainer";
+
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.zIndex = "200";
+    webInterfaceContainer.style.top = "15%";
+    webInterfaceContainer.style.left = "50%";
+    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.height = "10%";
+    webInterfaceContainer.append(input_image_field);
+    document.body.append(webInterfaceContainer);
+
+    let ThreeJSContainer = document.createElement("div");
+    ThreeJSContainer.style.zIndex = "1";
+    ThreeJSContainer.id = "ThreeJSContainer";
+    ThreeJSContainer.style.position = "absolute";
+    ThreeJSContainer.style.top = "0px";
+    ThreeJSContainer.style.left = "0px";
+    ThreeJSContainer.style.width = "100%";
+    ThreeJSContainer.style.height = "100%";
+    document.body.append(ThreeJSContainer);
+}
+
+
 
 
 
@@ -97,14 +114,13 @@ async function askForPicture(inputField) {
         incomingImage.src = proxy_said.output[0];
     }
 }
-init3D();
-initFirebase();
+
 
 function initFirebase() {
     console.log("init");
-    let nameField = document.createElement('name');
-    document.body.append(nameField);
-    db = getDatabase();
+    //let nameField = document.createElement('name');
+    //document.body.append(nameField);
+    //
     // //let name = localStorage.getItem('fb_name');
     // if (!name) {
     //     name = prompt("Enter Your Name Here");
@@ -114,20 +130,33 @@ function initFirebase() {
     // if (name) {
     //     nameField.value = name;
     // }
+    const firebaseConfig = {
+        apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
+        authDomain: "shared-minds.firebaseapp.com",
+        projectId: "shared-minds",
+        storageBucket: "shared-minds.appspot.com",
+        messagingSenderId: "258871453280",
+        appId: "1:258871453280:web:4c103da9b230e982544505",
+        measurementId: "G-LN0GNWFZQQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    db = getDatabase();
     subscribeToImages()
 }
 
 function subscribeToImages() {
     const commentsRef = ref(db, appName + '/images/');
     onChildAdded(commentsRef, (data) => {
-        // console.log("added", data.key, data.val().image, data.val().location);
+        console.log("added", data.val().location);
         var incomingImage = new Image();
         incomingImage.crossOrigin = "anonymous";
         incomingImage.onload = function () {
             placeImage(incomingImage, data.val().location);
         };
-        let b64 = data.val().base64Image; //.split(',')[1];
-        console.log("source data.val().base64Image", b64);
+        let b64 = data.val().base64Image;
+
         incomingImage.src = b64;
 
     });
@@ -158,6 +187,17 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById("ThreeJSContainer").append(renderer.domElement);
 
+    let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
+    // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
+    bgGeometery.scale(-1, 1, 1);
+    // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
+    let panotexture = new THREE.TextureLoader().load("itp.jpg");
+    // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
+    let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
+
+    let back = new THREE.Mesh(bgGeometery, backMaterial);
+    scene.add(back);
+
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
     var geometryFront = new THREE.BoxGeometry(1, 1, 1);
@@ -173,18 +213,18 @@ function init3D() {
 
 function getPositionInFrontOfCamera() {
     const posInWorld = new THREE.Vector3();
-    in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 3));  //base the the z position on camera field of view
+    in_front_of_you.position.set(0, 0, -600);  //base the the z position on camera field of view
     in_front_of_you.getWorldPosition(posInWorld);
     return posInWorld;
 }
 
 
 function placeImage(img, pos) {
-    //console.log("placeImage", img, pos);
+    console.log("placeImage", pos);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
-    canvas.height = img.height;
-    canvas.width = img.width;
+    canvas.height = img.naturalHeight;
+    canvas.width = img.naturalWidth;
     ctx.drawImage(img, 0, 0);
     //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
@@ -227,7 +267,7 @@ function moveCameraWithMouse() {
     ThreeJSContainer.addEventListener('mousedown', onDocumentMouseDown, false);
     ThreeJSContainer.addEventListener('mousemove', onDocumentMouseMove, false);
     ThreeJSContainer.addEventListener('mouseup', onDocumentMouseUp, false);
-    ThreeJSContainer.addEventListener('wheel', onDocumentMouseWheel, false);
+    window.addEventListener('wheel', onDocumentMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);
 }
