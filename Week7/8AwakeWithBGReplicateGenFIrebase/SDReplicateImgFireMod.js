@@ -120,8 +120,16 @@ function initFirebase() {
 function subscribeToImages() {
     const commentsRef = ref(db, appName + '/images/');
     onChildAdded(commentsRef, (data) => {
-        console.log("added", data.key, data.val().image, data.val().location);
-        placeImage(data.val().image, data.val().location);
+        // console.log("added", data.key, data.val().image, data.val().location);
+        var incomingImage = new Image();
+        incomingImage.crossOrigin = "anonymous";
+        incomingImage.onload = function () {
+            placeImage(incomingImage, data.val().location);
+        };
+        let b64 = data.val().base64Image; //.split(',')[1];
+        console.log("source data.val().base64Image", b64);
+        incomingImage.src = b64;
+
     });
     onChildChanged(commentsRef, (data) => {
         console.log("changed", data.key, data);
@@ -205,10 +213,10 @@ function animate() {
 
 /////MOUSE STUFF
 
-var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
+//var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
 var onPointerDownPointerX = 0, onPointerDownPointerY = 0;
-var lon = -90, onMouseDownLon = 0;
-var lat = 0, onMouseDownLat = 0;
+var lon = -90, onPointerDownLon = 0;
+var lat = 0, onPointerDownLat = 0;
 var isUserInteracting = false;
 
 
