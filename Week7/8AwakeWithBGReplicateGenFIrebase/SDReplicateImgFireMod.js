@@ -146,7 +146,7 @@ function sendImageToFirebase(base64Image, prompt) {
         base64Image: base64Image,
         location: { "x": pos.x, "y": pos.y, "z": pos.z }
     }
-    console.log("dataToSet", dataToSet);
+    //console.log("dataToSet", dataToSet);
     push(ref(db, appName + '/images/'), dataToSet);
 }
 
@@ -180,15 +180,16 @@ function getPositionInFrontOfCamera() {
 
 
 function placeImage(img, pos) {
-    console.log("placeImage", img, pos);
+    //console.log("placeImage", img, pos);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     canvas.height = img.height;
     canvas.width = img.width;
     ctx.drawImage(img, 0, 0);
+    //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    console.log(img, texture);
+    //console.log(img, texture);
     var material = new THREE.MeshBasicMaterial({ map: texture, transparent: false });
 
     var geo = new THREE.PlaneGeometry(512, 512);
