@@ -12,15 +12,25 @@ input_image_field.addEventListener("mousedown", function (event) {
     event.stopPropagation();
 });
 
+
+
 input_image_field.id = "input_image_prompt";
 input_image_field.value = "A beautiful picture of a sunset over the alps";
 input_image_field.size = 100;
-document.getElementById("webInterfaceContainer").append(input_image_field);
+input_image_field.style.position = "absolute";
+input_image_field.style.top = "10%";
+input_image_field.style.left = "50%";
+input_image_field.style.transform = "translate(-50%, -50%)";
+input_image_field.style.zIndex = "100";
+input_image_field.style.fontSize = "20px";
+input_image_field.style.fontFamily = "Arial";
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
         askForPicture(input_image_field);
     }
 });
+
+document.body.append(input_image_field);
 
 
 function init3D() {
@@ -37,7 +47,7 @@ function init3D() {
     scene.add(cube);
 
     let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
-    // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
+    //let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
     let canvasTexture = document.createElement("CANVAS");
     canvasTexture.width = 1024;
@@ -54,7 +64,7 @@ function init3D() {
         textureCtx.drawImage(bgImg, 0, 0);
         panoTexture.needsUpdate = true;
     };
-    bgImg.src = "./itp.jpg";
+    bgImg.src = "./itp_low_res.jpg";
     // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
 
     moveCameraWithMouse();
@@ -69,7 +79,7 @@ function init3D() {
 async function askForPicture(inputField) {
     p_prompt = inputField.value;
     inputField.value = "Waiting for reply for:" + p_prompt;
-    prompt = "360 degree equirectangular panorama seamless wrapping" + p_prompt;
+    prompt = "360 degree equirectangular spherical panorama seamless wrapping" + p_prompt;
 
     let data = {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
