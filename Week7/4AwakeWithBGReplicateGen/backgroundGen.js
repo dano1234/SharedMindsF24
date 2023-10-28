@@ -1,6 +1,6 @@
 
 let camera3D, scene, renderer, cube;
-let dir = 0.01;
+let dir = 1;
 let panoTexture, textureCtx;
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
@@ -24,6 +24,7 @@ input_image_field.style.transform = "translate(-50%, -50%)";
 input_image_field.style.zIndex = "100";
 input_image_field.style.fontSize = "20px";
 input_image_field.style.fontFamily = "Arial";
+input_image_field.style.textAlign = "center";
 input_image_field.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
         askForPicture(input_image_field);
@@ -44,6 +45,8 @@ function init3D() {
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     cube = new THREE.Mesh(geometry, material);
+    cube.position.set(0, 0, -30);
+    cube.scale.set(10, 10, 10);
     scene.add(cube);
 
     let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
@@ -124,10 +127,10 @@ async function askForPicture(inputField) {
 
 function animate() {
     requestAnimationFrame(animate);
-    cube.scale.x += dir;
-    cube.scale.y += dir;
-    cube.scale.z += dir;
-    if (cube.scale.x > 4 || cube.scale.x < -4) {
+    cube.position.setZ(cube.position.z + dir);
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    if (cube.position.z < -100 || cube.position.z > -10) {
         dir = -dir;
     }
     renderer.render(scene, camera3D);

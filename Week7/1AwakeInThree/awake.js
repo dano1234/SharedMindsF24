@@ -1,6 +1,6 @@
 let camera3D, scene, renderer;
 let cube, light
-let dir = 0.01;
+let dir = 1;
 
 init3D(); //have to call the setup yourself
 
@@ -11,10 +11,13 @@ function init3D() { //like setup
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-   const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshBasicMaterial({ color: 0x008888 });
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     cube = new THREE.Mesh(geometry, material);
+    cube.position.set(0, 0, -30);
+    cube.scale.set(10, 10, 10);
     scene.add(cube);
+
 
     light = new THREE.PointLight(0xFF00);
     /* position the light so it shines on the cube (x, y, z) */
@@ -26,16 +29,12 @@ function init3D() { //like setup
 
 function animate() {  //like draw
     requestAnimationFrame(animate);  //call it self, almost recursive
-    cube.scale.x += dir;
-    cube.scale.y += dir;
-    cube.scale.z += dir;
+    cube.position.setZ(cube.position.z + dir);
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
-
-    if (cube.scale.x > 4 || cube.scale.x < -4) {
+    if (cube.position.z < -100 || cube.position.z > -10) {
         dir = -dir;
     }
-  
     renderer.render(scene, camera3D);
 }
 
