@@ -7,46 +7,106 @@ let currentObject;
 let handProxy;
 let myTimer;
 let video;
+let p5Canvas;
+let p5Texture;
+let lastFewHands = [];
+let handIsReset = true;
 
-let predictions = [];
+let hands = [];
+
+function preload() {
+    // Load the handpose model.
+    handpose = ml5.handpose();
+
+}
 
 
 function setup() {
+    console.log("Model Loaded!");
     video = createCapture(VIDEO);
-    video.size(640,480);
-    // Create a new handpose method
-    const handpose = ml5.handpose(video, modelLoaded);
-    // Listen to new 'predict' events
-    handpose.on('predict', results => {
-        predictions = results;
-        //console.log(results);
-        if (results.length > 0 && results[0].handInViewConfidence > 0.8){
-        let left = results[0].boundingBox.topLeft[0];
-        let top = results[0].boundingBox.topLeft[1];
-        let right = results[0].boundingBox.bottomRight[0];
-        let bottom = results[0].boundingBox.bottomRight[1];
-        let centerx = parseInt(left + (right-left)/2);
-        let centery = parseInt(top + (bottom-top)/2);
-        let thumbx = results[0].annotations.thumb[3][0];
-        let thumby = results[0].annotations.thumb[3][1];
-        let awayFromCenter = dist(thumbx,thumby,centerx,centery);
-        //let tallerThanWide = (bottom-top)/(right-left);
-        let openHand = false;
-        if(awayFromCenter > 100) openHand = true;
-        let x = map(centerx, 0,video.width, 1, -1); //turn 0-640 to -320 to 320 
-        let y = map(centery, 0,video.height, 1, -1); //turn 0-640 to -320 to 320 
-        var mouse = { "x": x, "y": y };
+    video.size(512, 512);
+    video.hide();
+    p5Canvas = createCanvas(512, 512);
+    handpose.detectStart(video, gotHands);
+    init3D();
+}
+
+function draw() {
+    clear();
+    // Draw all the tracked hand points
+    for (let i = 0; i < hands.length; i++) {
+        let hand = hands[i];
+        for (let j = 0; j < hand.keypoints.length; j++) {
+            let keypoint = hand.keypoints[j];
+            fill(0, 255, 0);
+            noStroke();
+            circle(keypoint.x, keypoint.y, 10);
+        }
+    }
+
+}
+
+
+function gotHands(results) {
+    hands = results;
+    if (hands[1]) {
+        lon = lon + .1;
+        computeCameraOrientation()
+        //if there are two hand move the carmera
+    }
+    if (hands[0] && hands[0].score > 0.9) {//&& hands[0].handedness == "Left" 
+        let indexZ = hands[0].index_finger_tip.z3D;
+        let indexX = hands[0].index_finger_tip.x3D;
+        let indexY = hands[0].index_finger_tip.y3D;
+
+
+        //if (awayFromCenter > 100) openHand = true;
+        let x = map(indexX, 0, 0.07, 64, -64); //turn 0-640 to -320 to 320 
+        let y = map(indexY, 0, 0.07, 32, -64); //turn 0-640 to -320 to 320 
+        var mouse = { "x": x, "y": y, "z": indexZ };
+        //average last few to smooth it out
+        lastFewHands.push(mouse);
+        if (lastFewHands.length > 10) {
+            lastFewHands.shift();
+        }
+        let xTotal = 0;
+        let yTotal = 0;
+        let zTotal = 0;
+        for (var i = 0; i < lastFewHands.length; i++) {
+            xTotal += lastFewHands[i].x;
+            yTotal += lastFewHands[i].y;
+            zTotal += lastFewHands[i].z;
+        }
+        x = xTotal / lastFewHands.length;
+        y = yTotal / lastFewHands.length;
+        z = zTotal / lastFewHands.length;
+        handProxy.position.x = x;
+        handProxy.position.y = y;
+        // console.log(indexZ);
+        z = Math.abs(z);
+        //console.log(z);
+
+        if (z < 0.01) {
+            if (handIsReset) {
+                console.log("create shape", z)
+                //let loc = { "x": x, "y": y, "z": 200 };
+                createNewShape();
+                handIsReset = false;
+            }
+        } else {
+            handIsReset = true;
+        }
+
         var raycaster = new THREE.Raycaster(); // create once
         raycaster.near = 10;
         raycaster.far = 1000;
         raycaster.setFromCamera(mouse, camera3D);
         var intersects = raycaster.intersectObjects(hitTestableOjects, false);
-        handProxy.position.x = x* 100;
-        handProxy.position.y = y* 100;
-      //  console.log( handProxy.position);
-        if(intersects.length > 0){
-         
-             if (openHand == false){
+
+        //  console.log( handProxy.position);
+        if (intersects.length > 0) {
+
+            if (openHand == false) {
                 console.log(intersects[0]);
                 var posInWorld = new THREE.Vector3();
                 handProxy.getWorldPosition(posInWorld);
@@ -55,54 +115,18 @@ function setup() {
             }
         }
     }
-    });
-
-}
-
-// When the model is loaded
-function modelLoaded() {
-    console.log('Model Loaded!');
 }
 
 
 
-window.onload = (event) => {
-    let stored = localStorage.getItem("texts");
-    console.log(stored);
-    if (stored) {
-        let incomingTexts = JSON.parse(stored);
-        console.log(incomingTexts);
-        for (var i = 0; i < incomingTexts.length; i++) {
-            createNewText(incomingTexts[i].text, incomingTexts[i].location)
-            console.log("new ", incomingTexts[i].text, incomingTexts[i].location);
-        }
-
-    }
-};
-
-window.onbeforeunload = function () {
-    console.log("saved");
-    let ouput = JSON.stringify(texts);
-    localStorage.setItem("texts", ouput);
-}
 
 
-function createNewText(text_msg, location) {
-    console.log("Created New Text");
-    var canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-    var context = canvas.getContext("2d");
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    var fontSize = Math.max(camera3D.fov / 2, 72);
-    context.font = fontSize + "pt Arial";
-    context.textAlign = "center";
-    context.fillStyle = "white";
-    context.fillText(text_msg, canvas.width / 2, canvas.height / 2);
-    var textTexture = new THREE.Texture(canvas);
-    textTexture.needsUpdate = true;
-    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: false });
-    var geo = new THREE.PlaneGeometry(1, 1);
+
+
+function createNewShape(location) {
+
+    var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    var geo = new THREE.SphereGeometry(1, 32, 32);
     var mesh = new THREE.Mesh(geo, material);
     if (location) { //came in from database
         mesh.position.x = location.x;
@@ -116,30 +140,17 @@ function createNewText(text_msg, location) {
         mesh.position.x = posInWorld.x;
         mesh.position.y = posInWorld.y;
         mesh.position.z = posInWorld.z;
-        //add it to firebase database
+
         location = { "x": mesh.position.x, "y": mesh.position.y, "z": mesh.position.z, "xrot": mesh.rotation.x, "yrot": mesh.rotation.y, "zrot": mesh.rotation.z }
 
     }
     // console.log(posInWorld);
     mesh.lookAt(0, 0, 0);
-
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    //two id's one for Three and one for the database
-    texts.push({ "object": mesh, "canvas": canvas, "location": location, "texture": textTexture, "text": text_msg, "Threeid": mesh.uuid, "location": location });
     hitTestableOjects.push(mesh);
 }
 
-function updateText(text, note) {
-    note.text = text;
-    var context = note.canvas.getContext("2d");
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    var fontSize = 72; //Math.max(camera3D.fov / 2, 72);
-    context.font = fontSize + "pt Arial";
-    context.textAlign = "center";
-    context.fillStyle = "white";
-    context.fillText(text, canvas.width / 2, canvas.height / 2);
-}
 
 function onDocumentKeyDown(e) {
     clearTimeout(myTimer);
@@ -160,7 +171,7 @@ function onDocumentKeyDown(e) {
 }
 
 
-init3D();
+
 
 function init3D() {
     scene = new THREE.Scene();
@@ -185,6 +196,9 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
+
+
+
     //tiny little dot (could be invisible) for placing things in front of you
     var geometryFront = new THREE.BoxGeometry(1, 1, 1);
     var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -199,6 +213,15 @@ function init3D() {
     camera3D.add(handProxy);  //add this relative to the camera
     scene.add(camera3D);  //add the camera to the scene so we can see the dot
     handProxy.position.z = -50;
+
+
+    var planeGeo = new THREE.PlaneGeometry(512, 512);
+    p5Texture = new THREE.Texture(p5Canvas.elt);  // pull the canvas out of the p5 sketch
+    let mat = new THREE.MeshBasicMaterial({ map: p5Texture, transparent: true, opacity: 1, side: THREE.DoubleSide });
+    let p5OverLay = new THREE.Mesh(planeGeo, mat);
+    p5OverLay.lookAt(0, 0, 0);
+    p5OverLay.position.z = -450;
+    camera3D.add(p5OverLay);
 
     moveCameraWithMouse();
 
@@ -236,27 +259,13 @@ function hitTest(x, y) {  //called from onDocumentMouseDown()
 
 function animate() {
     requestAnimationFrame(animate);
+    p5Texture.needsUpdate = true;
     for (var i = 0; i < texts.length; i++) {
         texts[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
 
-var textInput = document.getElementById("text");  //get a hold of something in the DOM
-textInput.addEventListener("mousedown", function (e) {
-    e.stopImmediatePropagation();
-    //don't let it go to the elements under the text box
-});
-
-textInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-        if (currentObject) { //hit test returned somethigng
-            updateText(textInput.value, currentNote);
-        } else {
-            createNewText(textInput.value);
-        }
-    }
-});
 
 
 
