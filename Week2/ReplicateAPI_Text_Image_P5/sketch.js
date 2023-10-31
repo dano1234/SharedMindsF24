@@ -1,4 +1,3 @@
-
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
 function setup() {

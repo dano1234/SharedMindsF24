@@ -15,9 +15,7 @@ let handIsReset = true;
 let hands = [];
 
 function preload() {
-    // Load the handpose model.
     handpose = ml5.handpose();
-
 }
 
 
@@ -59,37 +57,16 @@ function gotHands(results) {
         let indexX = hands[0].index_finger_tip.x3D;
         let indexY = hands[0].index_finger_tip.y3D;
 
-
-        //if (awayFromCenter > 100) openHand = true;
         let x = map(indexX, 0, 0.07, 64, -64); //turn 0-640 to -320 to 320 
         let y = map(indexY, 0, 0.07, 32, -64); //turn 0-640 to -320 to 320 
         var mouse = { "x": x, "y": y, "z": indexZ };
-        //average last few to smooth it out
-        lastFewHands.push(mouse);
-        if (lastFewHands.length > 10) {
-            lastFewHands.shift();
-        }
-        let xTotal = 0;
-        let yTotal = 0;
-        let zTotal = 0;
-        for (var i = 0; i < lastFewHands.length; i++) {
-            xTotal += lastFewHands[i].x;
-            yTotal += lastFewHands[i].y;
-            zTotal += lastFewHands[i].z;
-        }
-        x = xTotal / lastFewHands.length;
-        y = yTotal / lastFewHands.length;
-        z = zTotal / lastFewHands.length;
-        handProxy.position.x = x;
-        handProxy.position.y = y;
-        // console.log(indexZ);
-        z = Math.abs(z);
-        //console.log(z);
 
-        if (z < 0.01) {
+        mouse = averageLastFewHands(mouse);
+        mouse.z = Math.abs(mouse.z);
+
+        if (mouse.z < 0.01) {
             if (handIsReset) {
-                console.log("create shape", z)
-                //let loc = { "x": x, "y": y, "z": 200 };
+                console.log("create shape", mouse.z)
                 createNewShape();
                 handIsReset = false;
             }
@@ -97,80 +74,67 @@ function gotHands(results) {
             handIsReset = true;
         }
 
+        ///hitTest(mouse.x, mouse.y);
         var raycaster = new THREE.Raycaster(); // create once
         raycaster.near = 10;
         raycaster.far = 1000;
         raycaster.setFromCamera(mouse, camera3D);
         var intersects = raycaster.intersectObjects(hitTestableOjects, false);
 
-        //  console.log( handProxy.position);
+        // //  console.log( handProxy.position);
         if (intersects.length > 0) {
-
-            if (openHand == false) {
-                console.log(intersects[0]);
-                var posInWorld = new THREE.Vector3();
-                handProxy.getWorldPosition(posInWorld);
-                intersects[0].object.position.x = posInWorld.x;
-                intersects[0].object.position.y = posInWorld.y;
-            }
+            console.log("intersetion", intersects[0]);
         }
+
+        //     if (openHand == false) {
+        //         console.log(intersects[0]);
+        //         var posInWorld = new THREE.Vector3();
+        //         handProxy.getWorldPosition(posInWorld);
+        //         intersects[0].object.position.x = posInWorld.x;
+        //         intersects[0].object.position.y = posInWorld.y;
+        //     }
+        // }
+        //}
     }
 }
 
-
-
-
-
-
-
-function createNewShape(location) {
-
-    var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    var geo = new THREE.SphereGeometry(1, 32, 32);
-    var mesh = new THREE.Mesh(geo, material);
-    if (location) { //came in from database
-        mesh.position.x = location.x;
-        mesh.position.y = location.y;
-        mesh.position.z = location.z;
-    } else { //local and needs location and to be put in the database
-        const posInWorld = new THREE.Vector3();
-        //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
-        in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
-        in_front_of_you.getWorldPosition(posInWorld);
-        mesh.position.x = posInWorld.x;
-        mesh.position.y = posInWorld.y;
-        mesh.position.z = posInWorld.z;
-
-        location = { "x": mesh.position.x, "y": mesh.position.y, "z": mesh.position.z, "xrot": mesh.rotation.x, "yrot": mesh.rotation.y, "zrot": mesh.rotation.z }
-
+function averageLastFewHands(mouse) {
+    //average last few to smooth it out
+    lastFewHands.push(mouse);
+    if (lastFewHands.length > 5) {
+        lastFewHands.shift();  //remove first
     }
+    let xTotal = 0;
+    let yTotal = 0;
+    let zTotal = 0;
+    for (var i = 0; i < lastFewHands.length; i++) {
+        xTotal += lastFewHands[i].x;
+        yTotal += lastFewHands[i].y;
+        zTotal += lastFewHands[i].z;
+    }
+    mouse.x = xTotal / lastFewHands.length;
+    mouse.y = yTotal / lastFewHands.length;
+    mouse.z = zTotal / lastFewHands.length;
+    handProxy.position.x = mouse.x;
+    handProxy.position.y = mouse.y;
+    return mouse;
+}
+
+
+function createNewShape() {
+
+    var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    var geo = new THREE.SphereGeometry(1, 16, 32);
+    var mesh = new THREE.Mesh(geo, material);
+    mesh.position.x = handProxy.position.x;
+    mesh.position.y = handProxy.position.y;
+    mesh.position.z = handProxy.position.z;
     // console.log(posInWorld);
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
     hitTestableOjects.push(mesh);
 }
-
-
-function onDocumentKeyDown(e) {
-    clearTimeout(myTimer);
-    if (currentObject) {
-        if (e.key == "ArrowRight") {
-            console.log(e.key);
-            currentObject.object.position.x = currentObject.object.position.x + 1;
-        } else if (e.key == "ArrowLeft") {
-            currentObject.object.position.x = currentObject.object.position.x - 1;
-        } else if (e.key == "ArrowUp") {
-            currentObject.object.position.y = currentObject.object.position.y - 1;
-        } else if (e.key == "ArrowDown") {
-            currentObject.object.position.y = currentObject.object.position.y + 1;
-        }
-        currentObject.location = { "x": currentObject.object.position.x, "y": currentObject.object.position.y, "z": currentObject.object.position.z, "xrot": currentObject.object.rotation.x, "yrot": currentObject.object.rotation.y, "zrot": currentObject.object.rotation.z }
-    }
-
-}
-
-
 
 
 function init3D() {
@@ -192,19 +156,16 @@ function init3D() {
     let panotexture = new THREE.TextureLoader().load("itp.jpg");
     // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
-
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
 
-
-
     //tiny little dot (could be invisible) for placing things in front of you
-    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
-    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
-    camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
-    in_front_of_you.position.set(0, 0, -600);
+    // var geometryFront = new THREE.BoxGeometry(1, 1, 1);
+    // var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    // in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
+    // camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
+    // in_front_of_you.position.set(0, 0, -600);
 
 
     var geometry = new THREE.BoxGeometry(2, 2, 2);
@@ -230,30 +191,21 @@ function init3D() {
 }
 
 function hitTest(x, y) {  //called from onDocumentMouseDown()
-    var mouse = { "x": 0, "y": 0 };
+    let mouser = { "x": 0, "y": 0 };
     var raycaster = new THREE.Raycaster(); // create once
     //var mouse = new THREE.Vector2(); // create once
-    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
-    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera3D);
+    mouser.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+    mouser.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouser, camera3D);
     var intersects = raycaster.intersectObjects(hitTestableOjects, false);
     // if there is one (or more) intersections
     currentObject = null;
     if (intersects.length > 0) {
-        let hitObjID = intersects[0].object.uuid; //closest object
-        for (var i = 0; i < texts.length; i++) {
-
-            if (texts[i].Threeid == hitObjID) {
-                currentObject = texts[i];
-                $("#text").val(texts[i].text);
-
-                $("#text").css({ position: "absolute", left: x, top: y });
-                //do some hightlighting and put text in input box.
-                break;
-            }
-        }
+        let hitObj = intersects[0].object; //closest object
+        hitObj.material.color.setHex(Math.random() * 0xffffff);
+        console.log("hit", hitObjID);
     }
-    console.log(currentObject);
+    // console.log(currentObject);
 
 }
 
@@ -267,6 +219,25 @@ function animate() {
 }
 
 
+
+
+function onDocumentKeyDown(e) {
+    clearTimeout(myTimer);
+    if (currentObject) {
+        if (e.key == "ArrowRight") {
+            console.log(e.key);
+            currentObject.object.position.x = currentObject.object.position.x + 1;
+        } else if (e.key == "ArrowLeft") {
+            currentObject.object.position.x = currentObject.object.position.x - 1;
+        } else if (e.key == "ArrowUp") {
+            currentObject.object.position.y = currentObject.object.position.y - 1;
+        } else if (e.key == "ArrowDown") {
+            currentObject.object.position.y = currentObject.object.position.y + 1;
+        }
+        currentObject.location = { "x": currentObject.object.position.x, "y": currentObject.object.position.y, "z": currentObject.object.position.z, "xrot": currentObject.object.rotation.x, "yrot": currentObject.object.rotation.y, "zrot": currentObject.object.rotation.z }
+    }
+
+}
 
 
 
