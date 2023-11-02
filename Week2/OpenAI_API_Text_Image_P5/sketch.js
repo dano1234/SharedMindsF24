@@ -1,6 +1,8 @@
 
 const openAIProxy = "https://openai-api-proxy.glitch.me"
 
+let img;
+
 function setup() {
     createCanvas(512, 512);
     let input_image_field = createInput("A student trying to learn how use a machine learning API");
@@ -24,11 +26,11 @@ function setup() {
     button2.mousePressed(() => {
         askForWords(input_field.value());
     });
-
-
 }
 
-
+function draw() {
+    if (img) image(img, 0, 0);
+}
 
 
 async function askForWords(p_prompt) {
@@ -77,8 +79,9 @@ async function askForImage(p_prompt) {
     const textDiv = select("#resulting_text");
     textDiv.html("Waiting for reply from OpenAi...");
     const data = {
-        "prompt": "A cute baby sea otter",
+        "prompt": "A cute baby sea horse",
         "n": 2,
+        "response_format": "b64_json",
         "size": "1024x1024"
     };
     console.log("Asking Images From OpenAI via Proxy", data);
@@ -95,7 +98,24 @@ async function askForImage(p_prompt) {
     const response = await fetch(url, options);
     console.log("words_response", response);
     const openAI_json = await response.json();
-    console.log("openAI_json", openAI_json);
+    console.log("openAI_json", openAI_json.data[0].b64_json);
+    //allow cross origin loading of images
+
+
+
+    loadImage("data:image/jpeg;base64," + openAI_json.data[0].b64_json, function (incomingImage) {
+        img = incomingImage;
+        console.log("img", img);
+    });
+
+    // //javascript way of loading images
+    // var newImg = new Image;
+    // newImg.onload = function (incomingImage) {
+    //     img = incomingImage;
+    //     console.log("img", img);
+    // }
+    // newImg.src = openAI_json.data[0].url;
+
 
     document.body.style.cursor = "auto";
 }
