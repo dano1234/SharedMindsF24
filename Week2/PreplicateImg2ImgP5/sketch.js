@@ -18,10 +18,10 @@ function setup() {
   inputBox = createInput("Old Man");
   inputBox.position(530, 10);
 
-  video = createCapture(VIDEO);  //simpler if you don't need to pick between cameras
+  //video = createCapture(VIDEO);  //simpler if you don't need to pick between cameras
   //if you want to pick a different camera than default
-  //let captureConstraints = allowCameraSelection(canvas.width, canvas.height);
-  //video = createCapture(captureConstraints);//, captureLoaded);
+  let captureConstraints = allowCameraSelection(canvas.width, canvas.height);
+  video = createCapture(captureConstraints);//, captureLoaded);
 
   video.size(512, 512);
   video.hide();
@@ -40,13 +40,16 @@ async function ask() {
   let imgBase64 = canvas.elt.toDataURL();
 
   let postData = {
-    "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf",
+    version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
     input: {
-      "prompt": inputBox.value(),
-      "width": 512,
-      "height": 512,
-      "prompt_strength": 0.5,
-      "image": imgBase64,
+
+
+      prompt: inputBox.value(),
+      negative_prompt: "",
+      width: 512,
+      height: 512,
+      prompt_strength: 0.5,
+      image: imgBase64,
     },
   };
 
