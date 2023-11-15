@@ -3,6 +3,7 @@ let prompt_field;
 const replicateProxy = "https://replicate-api-proxy.glitch.me";
 let imgs = [];
 
+//everyone should look like Dano
 const myLoraUrl =
   "https://replicate.delivery/pbxt/0KIe8eZNXTuPeIe89ye2U2qRaxClHID7yobYA3cfqiAuV1AeIA/tmptyicwiwqdano_lora_itpzip.safetensors";
 
@@ -12,7 +13,9 @@ function setup() {
   lora_field.size(550);
   lora_field.position(0, 0);
 
-  prompt_field = createInput("a photo of a man next to his horse");
+  prompt_field = createInput(
+    "a photo of an astronaut riding a horse in the style of <1>"
+  );
   prompt_field.size(550);
   prompt_field.position(0, 20);
   //add a button to ask for words
@@ -26,22 +29,23 @@ function setup() {
 
 function draw() {
   background(255);
-  if (img[0]) image(img, 0, 0);
+  if (imgs[0]) image(imgs[0], 0, 0);
+  if (imgs[1]) image(imgs[1], 512, 0);
+  if (imgs[2]) image(imgs[2], 0, 512);
+  if (imgs[3]) image(imgs[3], 512, 512);
 }
 
 async function askForLora(prompt, loraUrl) {
   let data = {
     version: "bb149dd20427beccf1b9f6332c7d5c233d914173fd463faa2c4a011080133afc",
     input: {
-      //     width: 512,
-      //     height: 512,
       prompt: prompt,
       lora_urls: loraUrl,
       //     scheduler: "DPMSolverMultistep",
-      lora_scales: "0.5", //string?
-      //     num_outputs: 1,    //string?
+      lora_scales: "0.5",
+      num_outputs: 4,
       guidance_scale: 7.5,
-      //     negative_prompt: "frame",
+      negative_prompt: "hat helmet",
       num_inference_steps: 50,
     },
   };
@@ -59,10 +63,10 @@ async function askForLora(prompt, loraUrl) {
   const proxy_said = await raw.json();
   let output = proxy_said.output;
   console.log("Proxy Returned", output);
-  for (let i = 0; i < 4; i++) {
-    if (output.length > 0) {
-      loadImage(output[0], (incomingImage) => {
-        img = incomingImage;
+  if (output.length > 0) {
+    for (let i = 0; i < output.length; i++) {
+      loadImage(output[i], (incomingImage) => {
+        imgs[i] = incomingImage;
       });
     }
   }
