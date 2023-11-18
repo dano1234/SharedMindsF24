@@ -7,6 +7,8 @@ let faceMesh;
 let angleOnCircle;
 let p5lm;
 let progress = "loading Face ML";
+let inputField;
+let listener;
 
 let myName; //= prompt("name?");
 function setup() {
@@ -14,8 +16,26 @@ function setup() {
     //  document.body.append(myCanvas.elt);
     myCanvas.hide();
     myMask = createGraphics(width, height); //this is for the setting the alpha layer around face
-    myMask.fill(0,0,0,255); //opaque to start
-    myMask.rect(0, 0, width,height);
+    myMask.fill(0, 0, 0, 255); //opaque to start
+    myMask.rect(0, 0, width, height);
+
+    inputField = createInput("Grateful Dead meets Hip Hop");
+    inputField.position(windowWidth / 2 - 100, 50);
+    inputField.size(200, 20);
+    let askButton = createButton("Ask For Sound");
+    askButton.position(windowWidth / 2 - 100, 80);
+    askButton.mousePressed(function () {
+        askForSound(inputField.value());
+    });
+    let pauseButton = createButton("Pause");
+    pauseButton.position(windowWidth / 2 - 100, 110);
+    pauseButton.mousePressed(function () {
+        if (listener.context.state === 'suspended') {
+            listener.context.resume();
+        } else
+            listener.context.suspend();
+    });
+
 
     //myMask.rect(0, 0, width,height);
     let captureConstraints = allowCameraSelection(myCanvas.width, myCanvas.height);
@@ -59,6 +79,73 @@ function gotData(data, id) {
 
 }
 
+async function askForSound(p_prompt) {
+    const replicateProxy = "https://replicate-api-proxy.glitch.me"
+
+    //const imageDiv = select("#resulting_image");
+    //imageDiv.html("Waiting for reply from Replicate's API...");
+    let data = {
+        //replicate / riffusion / riffusion
+        "version": "8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+        input: {
+            "prompt_a": p_prompt,
+        },
+    };
+    console.log("Asking for Sound Info From Replicate via Proxy", data);
+    let options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    };
+    const url = replicateProxy + "/create_n_get/"
+    console.log("url", url, "options", options);
+    const picture_info = await fetch(url, options);
+    //console.log("picture_response", picture_info);
+    const proxy_said = await picture_info.json();
+    console.log("proxy_said", proxy_said.output.audio);
+    // const ctx = new AudioContext();
+    // let incomingData = await fetch(proxy_said.output.audio);
+    // let arrayBuffer = await incomingData.arrayBuffer();
+    // let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
+    // const playSound = ctx.createBufferSource();
+    // playSound.buffer = decodedAudio;;
+    // playSound.connect(ctx.destination);
+    // playSound.start(ctx.currentTime);
+    attachSoundToMe(proxy_said.output.audio)
+    //playSound.loop = true;
+
+}
+
+function attachSoundToMe(url) {
+    const sound = new THREE.PositionalAudio(listener);
+    sound.setVolume(1);
+    sound.setRefDistance(20);
+    sound.setRolloffFactor(1);
+    sound.setDistanceModel('linear');
+    sound.setMaxDistance(1000);
+    sound.setDirectionalCone(90, 180, 0.1);
+    sound.setLoop(true);
+
+    // load a sound and set it as the PositionalAudio object's buffer
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load(url, function (buffer) {
+        sound.setBuffer(buffer);
+        sound.setRefDistance(20);
+        sound.play();
+        sound.setLoop(true);
+    });
+    for (var i = 0; i < people.length; i++) {
+        if (people[i].id == "me") {
+            people[i].object.add(sound);
+            break;
+        }
+    }
+
+
+}
+
 function gotFaceResults(results) {
     if (results && results.length > 0) {
         progress = "";
@@ -83,14 +170,18 @@ function gotFaceResults(results) {
         //console.log(headAngle);
         if (headAngle > 12) {
             angleOnCircle -= 0.05;
-            positionOnCircle(angleOnCircle, myAvatarObj);
+            //  positionOnCircle(angleOnCircle, myAvatarObj);
+            lon -= 0.5;
+            computeCameraOrientation();
             let dataToSend = { "angleOnCircle": angleOnCircle };
             // Send it
             p5lm.send(JSON.stringify(dataToSend));
         }
         if (headAngle < -12) {
             angleOnCircle += 0.05;
-            positionOnCircle(angleOnCircle, myAvatarObj);
+            lon += 0.5;
+            computeCameraOrientation();
+            //  positionOnCircle(angleOnCircle, myAvatarObj);
             // Package as JSON to send
 
             let dataToSend = { "angleOnCircle": angleOnCircle };
@@ -121,8 +212,9 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     } else {
         myTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
     }
-    let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture , transparent: true});
-        //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
+
+    let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture, transparent: true });
+    //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
     //instead should be able to use custom blending to do this in the GPU
     //https://threejs.org/docs/#api/en/constants/CustomBlendingEquations
     videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
@@ -168,6 +260,7 @@ function draw() {
             //remove background that became black and not transparent  in transmission
             people[i].extraGraphicsStage.image(people[i].videoObject, 0, 0);
             people[i].extraGraphicsStage.loadPixels();
+            //ugly way to remove black background
             for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
                 let r = people[i].extraGraphicsStage.pixels[j];
                 let g = people[i].extraGraphicsStage.pixels[j + 1];
@@ -216,6 +309,10 @@ function init3D() {
     scene.add(back);
 
     moveCameraWithMouse();
+
+    //add a listener to the camera
+    listener = new THREE.AudioListener();
+    camera3D.add(listener);
 
     camera3D.position.z = 0;
     animate();
