@@ -2,7 +2,7 @@ const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
 function setup() {
     createCanvas(512, 512);
-    let input_image_field = createInput("A student trying to learn how use a machine learning API");
+    let input_image_field = createInput("Grateful Dead meets Hip Hop");
     input_image_field.size(600);
     input_image_field.id("input_image_prompt");
     //add a button to ask for picture
@@ -38,14 +38,14 @@ async function askForSound(p_prompt) {
     const proxy_said = await picture_info.json();
     console.log("proxy_said", proxy_said.output.audio);
     const ctx = new AudioContext();
-    let audio;
     let incomingData = await fetch(proxy_said.output.audio);
     let arrayBuffer = await incomingData.arrayBuffer();
     let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
-    audio = decodedAudio;
     const playSound = ctx.createBufferSource();
-    playSound.buffer = audio;
+    playSound.buffer = decodedAudio;;
     playSound.connect(ctx.destination);
     playSound.start(ctx.currentTime);
+    //make the sound loop
+    playSound.loop = true;
 
 }
