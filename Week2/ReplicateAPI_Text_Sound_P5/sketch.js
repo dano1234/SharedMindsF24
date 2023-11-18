@@ -45,7 +45,7 @@ async function askForSound(p_prompt) {
     playSound.buffer = decodedAudio;;
     playSound.connect(ctx.destination);
     playSound.start(ctx.currentTime);
-    //make the sound loop
-    playSound.loop = true;
+
+    //playSound.loop = true;
 
 }
