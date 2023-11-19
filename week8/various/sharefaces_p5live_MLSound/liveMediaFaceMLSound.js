@@ -2,6 +2,7 @@
 let camera3D, scene, renderer
 let myCanvas, myVideo, myMask;
 let people = [];
+let sounds = [];
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
 let faceMesh;
 let angleOnCircle;
@@ -60,15 +61,17 @@ function setup() {
         progress = "ML model loaded";
         console.log('face mesh model ready!')
     });
-
     facemesh.on("predict", gotFaceResults);
 
     init3D();
 }
 
+function connectedToRoom(room) {
+    console.log("connected to room", room);
+}
+
 function gotData(data, id) {
     // If it is JSON, parse it
-
     let d = JSON.parse(data);
     for (var i = 0; i < people.length; i++) {
         if (people[i].id == id) {
@@ -76,7 +79,6 @@ function gotData(data, id) {
             break;
         }
     }
-
 }
 
 async function askForSound(p_prompt) {
@@ -118,6 +120,11 @@ async function askForSound(p_prompt) {
 
 }
 
+function createSoundObject(person) {
+
+
+}
+
 function attachSoundToMe(url) {
     const sound = new THREE.PositionalAudio(listener);
     sound.setVolume(1);
@@ -142,8 +149,6 @@ function attachSoundToMe(url) {
             break;
         }
     }
-
-
 }
 
 function gotFaceResults(results) {
@@ -267,6 +272,8 @@ function draw() {
                 let b = people[i].extraGraphicsStage.pixels[j + 2];
                 if (r + g + b < 10) {
                     people[i].extraGraphicsStage.pixels[j + 3] = 0;
+                } else {
+                    // people[i].extraGraphicsStage.pixels[j + 3] = 127;
                 }
             }
             people[i].extraGraphicsStage.updatePixels();
