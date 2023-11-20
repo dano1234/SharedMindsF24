@@ -66,9 +66,7 @@ function setup() {
     init3D();
 }
 
-function connectedToRoom(room) {
-    console.log("connected to room", room);
-}
+
 
 function gotData(data, id) {
     // If it is JSON, parse it
@@ -174,7 +172,7 @@ function gotFaceResults(results) {
         headAngle = THREE.Math.radToDeg(headAngle);
         //console.log(headAngle);
         if (headAngle > 12) {
-            angleOnCircle -= 0.05;
+            // angleOnCircle -= 0.05;
             //  positionOnCircle(angleOnCircle, myAvatarObj);
             lon -= 0.5;
             computeCameraOrientation();
@@ -183,7 +181,7 @@ function gotFaceResults(results) {
             p5lm.send(JSON.stringify(dataToSend));
         }
         if (headAngle < -12) {
-            angleOnCircle += 0.05;
+            //  angleOnCircle += 0.05;
             lon += 0.5;
             computeCameraOrientation();
             //  positionOnCircle(angleOnCircle, myAvatarObj);
@@ -224,13 +222,28 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     //https://threejs.org/docs/#api/en/constants/CustomBlendingEquations
     videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
     myAvatarObj = new THREE.Mesh(videoGeometry, videoMaterial);
+    angleOnCircle = Math.random() * Math.PI * 2;
+    if (id == "me") {
+        camera3D.add(myAvatarObj);
+        myAvatarObj.position.set(0, 0, -600);
+        lon = angleOnCircle;
+        //computeCameraOrientation();
+        // myAvatarObj.lookAt(0, 0, 0)
+        //scene.add(myAvatarObj);
+    } else {
+        scene.add(myAvatarObj);
+        positionOnCircle(angleOnCircle, myAvatarObj);
+        //hopefully they will update quickly
+    }
 
-    scene.add(myAvatarObj);
+
+
+
     //position them to start based on how many people but we will let them move around
-    let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
+    //let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
 
-    angleOnCircle = people.length * radiansPerPerson + Math.PI;
-    positionOnCircle(angleOnCircle, myAvatarObj);
+    //angleOnCircle = people.length * radiansPerPerson + Math.PI;
+
 
     people.push({ "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage });
 }
@@ -298,7 +311,7 @@ function draw() {
 function init3D() {
     scene = new THREE.Scene();
     camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
+    scene.add(camera3D);
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
@@ -320,7 +333,8 @@ function init3D() {
     //add a listener to the camera
     listener = new THREE.AudioListener();
     camera3D.add(listener);
-
+    camera3D.position.x = 0;
+    camera3D.position.y = 0;
     camera3D.position.z = 0;
     animate();
 }
