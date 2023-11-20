@@ -10,6 +10,7 @@ let p5lm;
 let progress = "loading Face ML";
 let inputField;
 let listener;
+let distanceFromCenter = 600;
 
 let myName; //= prompt("name?");
 function setup() {
@@ -80,6 +81,7 @@ function gotData(data, id) {
 }
 
 async function askForSound(p_prompt) {
+    document.body.style.cursor = "progress";
     const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
     //const imageDiv = select("#resulting_image");
@@ -113,40 +115,60 @@ async function askForSound(p_prompt) {
     // playSound.buffer = decodedAudio;;
     // playSound.connect(ctx.destination);
     // playSound.start(ctx.currentTime);
-    attachSoundToMe(proxy_said.output.audio)
+    placeMySound(p_prompt, proxy_said.output.audio)
     //playSound.loop = true;
+    document.body.style.cursor = "default";
 
 }
 
-function createSoundObject(person) {
+function placeMySound(prompt, url) {
+    console.log("placeMySound", prompt, url);
+    let me;  //find me
+    for (var i = 0; i < people.length; i++) {
+        if (people[i].id == "me") {
+            me = people[i];
+            break;
+        }
+    }
+    if (me.soundAvatar == undefined) {
+        me.soundAvatarGraphics = createGraphics(512, 512);
+        me.soundAvatarTexture = new THREE.Texture(me.soundAvatarGraphics.elt);
+        var material = new THREE.MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
+        var geo = new THREE.PlaneGeometry(512, 512);
+        me.soundAvatar = new THREE.Mesh(geo, material);
+        scene.add(me.soundAvatar);
+    }
+    me.soundAvatarGraphics.clear();
+    me.soundAvatarGraphics.fill(255, 0, 0);
+    me.soundAvatarGraphics.image(myCanvas, 0, 0);
+    me.soundAvatarGraphics.textSize(32);
+    me.soundAvatarGraphics.text(prompt, 0, 0);
 
+    const posInWorld = new THREE.Vector3();
+    //place it where ever you are
+    me.object.getWorldPosition(posInWorld);
+    me.soundAvatar.position.set(posInWorld.x, posInWorld.y, posInWorld.z + 10);
+    me.soundAvatar.lookAt(0, 0, 0);
 
-}
-
-function attachSoundToMe(url) {
-    const sound = new THREE.PositionalAudio(listener);
-    sound.setVolume(1);
-    sound.setRefDistance(20);
-    sound.setRolloffFactor(1);
-    sound.setDistanceModel('linear');
-    sound.setMaxDistance(1000);
-    sound.setDirectionalCone(90, 180, 0.1);
-    sound.setLoop(true);
+    me.sound = new THREE.PositionalAudio(listener);
+    me.sound.setVolume(1);
+    me.sound.setRefDistance(20);
+    me.sound.setRolloffFactor(1);
+    me.sound.setDistanceModel('linear');
+    me.sound.setMaxDistance(1000);
+    me.sound.setDirectionalCone(90, 180, 0.1);
+    me.sound.setLoop(true);
 
     // load a sound and set it as the PositionalAudio object's buffer
     const audioLoader = new THREE.AudioLoader();
     audioLoader.load(url, function (buffer) {
-        sound.setBuffer(buffer);
-        sound.setRefDistance(20);
-        sound.play();
-        sound.setLoop(true);
+        me.sound.setBuffer(buffer);
+        me.sound.setRefDistance(20);
+        me.sound.play();
+        me.sound.setLoop(true);
     });
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == "me") {
-            people[i].object.add(sound);
-            break;
-        }
-    }
+    me.soundAvatar.add(me.sound);
+    me.soundAvatarTexture.needsUpdate = true;
 }
 
 function gotFaceResults(results) {
@@ -171,20 +193,20 @@ function gotFaceResults(results) {
         headAngle = Math.atan2(yDiff, xDiff);
         headAngle = THREE.Math.radToDeg(headAngle);
         //console.log(headAngle);
-        if (headAngle > 12) {
-            // angleOnCircle -= 0.05;
-            //  positionOnCircle(angleOnCircle, myAvatarObj);
-            lon -= 0.5;
+        if (headAngle > 10) {
+            //angleOnCircle -= 0.05;
+            //positionOnCircle(angleOnCircle, myAvatarObj);
+            lon += 0.5;
             computeCameraOrientation();
             let dataToSend = { "angleOnCircle": angleOnCircle };
             // Send it
             p5lm.send(JSON.stringify(dataToSend));
         }
-        if (headAngle < -12) {
-            //  angleOnCircle += 0.05;
-            lon += 0.5;
+        if (headAngle < -10) {
+            //angleOnCircle += 0.05;
+            lon -= 0.5;
             computeCameraOrientation();
-            //  positionOnCircle(angleOnCircle, myAvatarObj);
+            //positionOnCircle(angleOnCircle, myAvatarObj);
             // Package as JSON to send
 
             let dataToSend = { "angleOnCircle": angleOnCircle };
@@ -225,9 +247,9 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     angleOnCircle = Math.random() * Math.PI * 2;
     if (id == "me") {
         camera3D.add(myAvatarObj);
-        myAvatarObj.position.set(0, 0, -600);
+        myAvatarObj.position.set(0, 0, -distanceFromCenter);
         lon = angleOnCircle;
-        //computeCameraOrientation();
+        computeCameraOrientation();
         // myAvatarObj.lookAt(0, 0, 0)
         //scene.add(myAvatarObj);
     } else {
@@ -235,17 +257,11 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
         positionOnCircle(angleOnCircle, myAvatarObj);
         //hopefully they will update quickly
     }
-
-
-
-
     //position them to start based on how many people but we will let them move around
     //let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
-
     //angleOnCircle = people.length * radiansPerPerson + Math.PI;
-
-
     people.push({ "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage });
+    return (myAvatarObj);
 }
 
 function gotDisconnect(id) {
@@ -261,7 +277,7 @@ function gotDisconnect(id) {
 }
 function positionOnCircle(angle, mesh) {
     //imagine a circle looking down on the world and do High School math
-    let distanceFromCenter = 600;
+
     x = distanceFromCenter * Math.sin(angle);
     z = distanceFromCenter * Math.cos(angle);
     mesh.position.set(x, 0, z);
@@ -311,13 +327,21 @@ function draw() {
 function init3D() {
     scene = new THREE.Scene();
     camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera3D.position.x = 0;
+    camera3D.position.y = 0;
+    camera3D.position.z = 0;
     scene.add(camera3D);
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    creatNewVideoObject(myCanvas, "me");
+    moveCameraWithMouse();
 
+    let myAvatar = creatNewVideoObject(myCanvas, "me");
+    //add a listener to the camera
+    listener = new THREE.AudioListener();
+    myAvatar.add(listener);
+    camera3D.add(myAvatar);
     let bgGeometery = new THREE.SphereGeometry(900, 100, 40);
     //let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
@@ -328,14 +352,6 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-    moveCameraWithMouse();
-
-    //add a listener to the camera
-    listener = new THREE.AudioListener();
-    camera3D.add(listener);
-    camera3D.position.x = 0;
-    camera3D.position.y = 0;
-    camera3D.position.z = 0;
     animate();
 }
 
