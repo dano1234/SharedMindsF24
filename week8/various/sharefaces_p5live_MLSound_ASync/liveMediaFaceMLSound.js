@@ -81,6 +81,7 @@ function gotData(data, id) {
 }
 
 async function askForSound(p_prompt) {
+    inputField.value("Getting Results for: " + p_prompt);
     document.body.style.cursor = "progress";
     const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
@@ -118,10 +119,11 @@ async function askForSound(p_prompt) {
     placeMySound(p_prompt, proxy_said.output.audio)
     //playSound.loop = true;
     document.body.style.cursor = "default";
-
+    inputField.value(p_prompt);
 }
 
 function placeMySound(prompt, url) {
+
     console.log("placeMySound", prompt, url);
     let me;  //find me
     for (var i = 0; i < people.length; i++) {
@@ -133,6 +135,7 @@ function placeMySound(prompt, url) {
     if (me.soundAvatar == undefined) {
         me.soundAvatarGraphics = createGraphics(512, 512);
         me.soundAvatarTexture = new THREE.Texture(me.soundAvatarGraphics.elt);
+        me.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
         var material = new THREE.MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
         var geo = new THREE.PlaneGeometry(512, 512);
         me.soundAvatar = new THREE.Mesh(geo, material);
@@ -237,7 +240,7 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     } else {
         myTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
     }
-
+    myTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
     let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture, transparent: true });
     //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
     //instead should be able to use custom blending to do this in the GPU
