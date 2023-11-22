@@ -5,11 +5,14 @@ function setup() {
     let input_image_field = createInput("Grateful Dead meets Hip Hop");
     input_image_field.size(600);
     input_image_field.id("input_image_prompt");
+    input_image_field.position(10, 10);
+
     //add a button to ask for picture
     let button1 = createButton("Ask For Sound");
     button1.mousePressed(() => {
         askForSound(input_image_field.value());
     });
+    button1.position(10, 40);
 
 }
 
@@ -46,6 +49,6 @@ async function askForSound(p_prompt) {
     playSound.connect(ctx.destination);
     playSound.start(ctx.currentTime);
 
-    //playSound.loop = true;
+    playSound.loop = true;
 
 }
