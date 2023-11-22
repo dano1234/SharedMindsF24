@@ -1,6 +1,7 @@
 
 let camera3D, scene, renderer
 let myCanvas
+let myAvatar;
 let people = [];
 let sounds = [];
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
@@ -73,21 +74,25 @@ async function askForSound(p_prompt) {
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
     console.log("proxy_said", proxy_said.output.audio);
-    // const ctx = new AudioContext();
-    // let incomingData = await fetch(proxy_said.output.audio);
-    // let arrayBuffer = await incomingData.arrayBuffer();
-    // let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
-    // const playSound = ctx.createBufferSource();
-    // playSound.buffer = decodedAudio;;
-    // playSound.connect(ctx.destination);
-    // playSound.start(ctx.currentTime);
-    placeMySound(p_prompt, proxy_said.output.audio)
+    const ctx = new AudioContext();
+    let incomingData = await fetch(proxy_said.output.audio);
+    let arrayBuffer = await incomingData.arrayBuffer();
+    let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
+    const playSound = ctx.createBufferSource();
+    playSound.buffer = decodedAudio;;
+    playSound.connect(ctx.destination);
+    playSound.start(ctx.currentTime);
+    console.log("myAvatar", myAvatar.object.position);
+    let location = { x: myAvatar.object.position.x, y: myAvatar.object.position.y, z: myAvatar.object.position.z };
+    sendToFirebase(p_prompt, location, playSound);
+    //weirdly send it to firebase before instantiating it locally.  firebase will send it back to us
+    //playSound.play();//
     //playSound.loop = true;
     document.body.style.cursor = "default";
     inputField.value(p_prompt);
 }
 
-function placeMySound(prompt, url) {
+function place3DSound(prompt, location, url) {
 
     console.log("placeMySound", prompt, url);
     let me;  //find me
@@ -112,10 +117,8 @@ function placeMySound(prompt, url) {
     me.soundAvatarGraphics.textSize(32);
     me.soundAvatarGraphics.text(prompt, 0, 0);
 
-    const posInWorld = new THREE.Vector3();
-    //place it where ever you are
-    me.object.getWorldPosition(posInWorld);
-    me.soundAvatar.position.set(posInWorld.x, posInWorld.y, posInWorld.z + 10);
+
+    me.soundAvatar.position.set(location.x, location.y, location.z + 10);
     me.soundAvatar.lookAt(0, 0, 0);
 
     me.sound = new THREE.PositionalAudio(listener);
@@ -139,6 +142,38 @@ function placeMySound(prompt, url) {
     me.soundAvatarTexture.needsUpdate = true;
 }
 
+function load3DSound(key, data) {
+    if (allLocal[data.key] == undefined) {
+        place3DSound(data.prompt, data.location, data.sound);
+    } else {
+        allLocal[key].soundAvatarGraphics.clear();
+        allLocal[key].soundAvatarGraphics.fill(255, 0, 0);
+        allLocal[key].soundAvatarGraphics.image(myCanvas, 0, 0);
+        allLocal[key].soundAvatarGraphics.textSize(32);
+        allLocal[key].soundAvatarGraphics.textMode(CENTER);
+        let promptParts = data.prompt.split(" ");
+        for (var i = 0; i < promptParts.length; i++) {
+            allLocal[key].soundAvatarGraphics.text(promptParts[i], width / 2, 50 + 50 * i);
+        }
+        allLocal[key].soundAvatarTexture.needsUpdate = true;
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load(data.sound, function (buffer) {
+            allLocal[key].setBuffer(buffer);
+            allLocal[key].setRefDistance(20);
+            allLocal[key].play();
+            allLocal[key].setLoop(true);
+        });
+        me.soundAvatar.position.set(data.location.x, data.location.y, data.z + 10);
+        me.soundAvatar.lookAt(0, 0, 0);
+    }
+
+}
+
+function kill3DSound(key, data) {
+    if (allLocal[data.key] == undefined) return;
+    scene.remove(allLocal[data.key].soundAvatar);
+    delete allLocal[data.key];
+}
 
 
 function creatNewVideoObject(videoObject, id) {  //this is for remote and local
@@ -175,8 +210,7 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     //position them to start based on how many people but we will let them move around
     //let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
     //angleOnCircle = people.length * radiansPerPerson + Math.PI;
-    people.push({ "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage });
-    return (myAvatarObj);
+    return { "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
 }
 
 
@@ -229,6 +263,8 @@ function draw() {
     text(progress, 100, 100);
 }
 
+
+
 function init3D() {
     scene = new THREE.Scene();
     camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -242,17 +278,21 @@ function init3D() {
 
     moveCameraWithMouse();
 
-    let myAvatar = creatNewVideoObject(myCanvas, "me");
+    myAvatar = creatNewVideoObject(myCanvas, "me");
     //add a listener to the camera
     listener = new THREE.AudioListener();
-    myAvatar.add(listener);
-    camera3D.add(myAvatar);
+    myAvatar.object.add(listener);
+    camera3D.add(myAvatar.object);
     let bgGeometery = new THREE.SphereGeometry(900, 100, 40);
     //let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
     // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
     let panotexture = new THREE.TextureLoader().load("itp.jpg");
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
+
+    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
+    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
 
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);

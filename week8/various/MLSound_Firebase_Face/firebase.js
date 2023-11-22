@@ -14,52 +14,18 @@ let group = "mySillyLocalizedMLSoundRoom";
 let typeOfThing = "sounds";
 let db;
 
-function gotDisconnect(id) {
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == id) {
-            people[i].canvas.remove(); //dom version
-            scene.remove(people[i].object); //three.js version
-            people.splice(i, 1);  //remove from our variable
-            break;
-        }
-    }
 
-}
-
-function gotStream(stream, id) {
-
-    myName = id;
-    //this gets called when there is someone else in the room, new or existing
-    //don't want the dom object, will use in p5 and three.js instead
-    //get a network id from each person who joins
-
-    stream.hide();
-    creatNewVideoObject(stream, id);
-}
-
-function gotData(data, id) {
-    // If it is JSON, parse it
-    let d = JSON.parse(data);
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == id) {
-            positionOnCircle(d.angleOnCircle, people[i].object);
-            break;
-        }
-    }
-}
-
-
+sendToFirebase
 
 /////FIREBASE STUFF
-function sendTextToDB(thisSound) {
-    let pos = thisSound.position();
+function sendToFirebase(prompt, position, sound) {
 
-    video.loadPixels();
-    let base64Image = thisSound.toDataURL();
+
+    let base64Sound = sound.toDataURL();
     let mydata = {
-        location: { x: pos.x, y: pos.y },
-        prompt: thisSound.prompt,
-        sound: base64Image,
+        location: position,
+        prompt: prompt,
+        sound: base64Sound,
     };
     if (!thisSound.dbKey) {
         //new one
@@ -82,21 +48,19 @@ function connectToFirebase() {
         let key = data.key;
         let value = data.val();
         //update our local variable
-        allLocal[key] = value;
-        drawAll();
+        load3DSound(key, value);
     });
 
     myRef.on("child_changed", (data) => {
         console.log("changed");
         let key = data.key;
         let value = data.val();
-        allLocal[key] = value;
-        drawAll();
+        load3DSound(key, value);
     });
 
     myRef.on("child_removed", (data) => {
         console.log("removed");
-        delete allLocal[data.key];
-        drawAll();
+
+        kill3DSound(key, value);
     });
 }

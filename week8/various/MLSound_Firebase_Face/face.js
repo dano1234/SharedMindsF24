@@ -54,20 +54,12 @@ function gotFaceResults(results) {
             //positionOnCircle(angleOnCircle, myAvatarObj);
             lon += 0.5;
             computeCameraOrientation();
-            let dataToSend = { "angleOnCircle": angleOnCircle };
-            // Send it
-            p5lm.send(JSON.stringify(dataToSend));
         }
         if (headAngle < -10) {
             //angleOnCircle += 0.05;
             lon -= 0.5;
             computeCameraOrientation();
             //positionOnCircle(angleOnCircle, myAvatarObj);
-            // Package as JSON to send
-
-            let dataToSend = { "angleOnCircle": angleOnCircle };
-            // Send it
-            p5lm.send(JSON.stringify(dataToSend));
         }
     }
 }
