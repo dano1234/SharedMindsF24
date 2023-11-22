@@ -2,8 +2,9 @@
 let camera3D, scene, renderer
 let myCanvas
 let myAvatar;
-let people = [];
-let sounds = [];
+
+let sounds = {};
+let mySound = {};
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
 
 let angleOnCircle;
@@ -84,7 +85,7 @@ async function askForSound(p_prompt) {
     playSound.start(ctx.currentTime);
     console.log("myAvatar", myAvatar.object.position);
     let location = { x: myAvatar.object.position.x, y: myAvatar.object.position.y, z: myAvatar.object.position.z };
-    sendToFirebase(p_prompt, location, playSound);
+    sendToFirebase(p_prompt, location, playSound, proxy_said.output.audio);
     //weirdly send it to firebase before instantiating it locally.  firebase will send it back to us
     //playSound.play();//
     //playSound.loop = true;
@@ -226,29 +227,29 @@ function positionOnCircle(angle, mesh) {
 function draw() {
     //other people
     //go through all the people an update their texture, animate would be another place for this
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == "me") {
-            people[i].texture.needsUpdate = true;
-        } else if (people[i].videoObject.elt.readyState == people[i].videoObject.elt.HAVE_ENOUGH_DATA) {
-            //remove background that became black and not transparent  in transmission
-            people[i].extraGraphicsStage.image(people[i].videoObject, 0, 0);
-            people[i].extraGraphicsStage.loadPixels();
-            //ugly way to remove black background
-            for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
-                let r = people[i].extraGraphicsStage.pixels[j];
-                let g = people[i].extraGraphicsStage.pixels[j + 1];
-                let b = people[i].extraGraphicsStage.pixels[j + 2];
-                if (r + g + b < 10) {
-                    people[i].extraGraphicsStage.pixels[j + 3] = 0;
-                } else {
-                    // people[i].extraGraphicsStage.pixels[j + 3] = 127;
-                }
-            }
-            people[i].extraGraphicsStage.updatePixels();
-            people[i].texture.needsUpdate = true;
-        }
+    // for (var i = 0; i < people.length; i++) {
+    //     if (people[i].id == "me") {
+    //         people[i].texture.needsUpdate = true;
+    //     } else if (people[i].videoObject.elt.readyState == people[i].videoObject.elt.HAVE_ENOUGH_DATA) {
+    //         //remove background that became black and not transparent  in transmission
+    //         people[i].extraGraphicsStage.image(people[i].videoObject, 0, 0);
+    //         people[i].extraGraphicsStage.loadPixels();
+    //         //ugly way to remove black background
+    //         for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
+    //             let r = people[i].extraGraphicsStage.pixels[j];
+    //             let g = people[i].extraGraphicsStage.pixels[j + 1];
+    //             let b = people[i].extraGraphicsStage.pixels[j + 2];
+    //             if (r + g + b < 10) {
+    //                 people[i].extraGraphicsStage.pixels[j + 3] = 0;
+    //             } else {
+    //                 // people[i].extraGraphicsStage.pixels[j + 3] = 127;
+    //             }
+    //         }
+    //         people[i].extraGraphicsStage.updatePixels();
+    //         people[i].texture.needsUpdate = true;
+    //     }
 
-    }
+    // }
     //now daw me on  the canvas I am sending out to the group
     //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
     //myMask was drawn when ML5 face mesh returned the sillouette

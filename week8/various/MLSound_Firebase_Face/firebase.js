@@ -18,16 +18,17 @@ let db;
 sendToFirebase
 
 /////FIREBASE STUFF
-function sendToFirebase(prompt, position, sound) {
+function sendToFirebase(prompt, position, sound, url) {
 
 
-    let base64Sound = sound.toDataURL();
+    // let base64Sound = sound.toDataURL();
+    //let url = sound;
     let mydata = {
         location: position,
         prompt: prompt,
-        sound: base64Sound,
+        sound: url,
     };
-    if (!thisSound.dbKey) {
+    if (!mySound.dbKey) {
         //new one
         let placeInDB = "group/" + group + "/" + typeOfThing + "/";
         thisSound.dbKey = db.ref(placeInDB).push(mydata);
