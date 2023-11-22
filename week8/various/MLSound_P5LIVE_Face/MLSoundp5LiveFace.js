@@ -2,7 +2,7 @@
 let camera3D, scene, renderer
 let myCanvas, myVideo, myMask;
 let people = [];
-let sounds = [];
+let sounds = {};
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
 let faceMesh;
 let angleOnCircle;
@@ -68,6 +68,16 @@ function setup() {
 }
 
 
+function gotStream(stream, id) {
+
+    myName = id;
+    //this gets called when there is someone else in the room, new or existing
+    //don't want the dom object, will use in p5 and three.js instead
+    //get a network id from each person who joins
+
+    stream.hide();
+    creatNewVideoObject(stream, id);
+}
 
 function gotData(data, id) {
     // If it is JSON, parse it
@@ -75,6 +85,16 @@ function gotData(data, id) {
     for (var i = 0; i < people.length; i++) {
         if (people[i].id == id) {
             positionOnCircle(d.angleOnCircle, people[i].object);
+            break;
+        }
+    }
+}
+function gotDisconnect(id) {
+    for (var i = 0; i < people.length; i++) {
+        if (people[i].id == id) {
+            people[i].canvas.remove(); //dom version
+            scene.remove(people[i].object); //three.js version
+            people.splice(i, 1);  //remove from our variable
             break;
         }
     }
@@ -218,16 +238,7 @@ function gotFaceResults(results) {
         }
     }
 }
-function gotStream(stream, id) {
 
-    myName = id;
-    //this gets called when there is someone else in the room, new or existing
-    //don't want the dom object, will use in p5 and three.js instead
-    //get a network id from each person who joins
-
-    stream.hide();
-    creatNewVideoObject(stream, id);
-}
 
 function creatNewVideoObject(videoObject, id) {  //this is for remote and local
 
@@ -267,17 +278,7 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     return (myAvatarObj);
 }
 
-function gotDisconnect(id) {
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == id) {
-            people[i].canvas.remove(); //dom version
-            scene.remove(people[i].object); //three.js version
-            people.splice(i, 1);  //remove from our variable
-            break;
-        }
-    }
 
-}
 function positionOnCircle(angle, mesh) {
     //imagine a circle looking down on the world and do High School math
 
