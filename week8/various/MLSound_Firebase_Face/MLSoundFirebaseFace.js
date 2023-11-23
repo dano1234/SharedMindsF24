@@ -20,7 +20,7 @@ function setup() {
     myCanvas = createCanvas(512, 512);
     //  document.body.append(myCanvas.elt);
     myCanvas.hide();
-
+    connectToFirebase();
     inputField = createInput("Grateful Dead meets Hip Hop");
     inputField.position(windowWidth / 2 - 100, 50);
     inputField.size(200, 20);
@@ -93,80 +93,58 @@ async function askForSound(p_prompt) {
     inputField.value(p_prompt);
 }
 
-function place3DSound(prompt, location, url) {
+function create3DSoundAvatar(prompt, location, url) {
 
-    console.log("placeMySound", prompt, url);
-    let me;  //find me
-    for (var i = 0; i < people.length; i++) {
-        if (people[i].id == "me") {
-            me = people[i];
-            break;
-        }
-    }
-    if (me.soundAvatar == undefined) {
-        me.soundAvatarGraphics = createGraphics(512, 512);
-        me.soundAvatarTexture = new THREE.Texture(me.soundAvatarGraphics.elt);
-        me.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
-        var material = new THREE.MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
-        var geo = new THREE.PlaneGeometry(512, 512);
-        me.soundAvatar = new THREE.Mesh(geo, material);
-        scene.add(me.soundAvatar);
-    }
-    me.soundAvatarGraphics.clear();
-    me.soundAvatarGraphics.fill(255, 0, 0);
-    me.soundAvatarGraphics.image(myCanvas, 0, 0);
-    me.soundAvatarGraphics.textSize(32);
-    me.soundAvatarGraphics.text(prompt, 0, 0);
+    console.log("creatSound Avatar", prompt, url);
+    let thisPerson = {};  //find me
+
+    thisPerson.soundAvatarGraphics = createGraphics(512, 512);
+    thisPerson.soundAvatarTexture = new THREE.Texture(thisPerson.soundAvatarGraphics.elt);
+    thisPerson.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
+    var material = new THREE.MeshBasicMaterial({ map: thisPerson.soundAvatarTexture, transparent: true });
+    var geo = new THREE.PlaneGeometry(512, 512);
+    thisPerson.soundAvatar = new THREE.Mesh(geo, material);
+    scene.add(thisPerson.soundAvatar);
 
 
-    me.soundAvatar.position.set(location.x, location.y, location.z + 10);
-    me.soundAvatar.lookAt(0, 0, 0);
+    thisPerson.sound = new THREE.PositionalAudio(listener);
 
-    me.sound = new THREE.PositionalAudio(listener);
-    me.sound.setVolume(1);
-    me.sound.setRefDistance(20);
-    me.sound.setRolloffFactor(1);
-    me.sound.setDistanceModel('linear');
-    me.sound.setMaxDistance(1000);
-    me.sound.setDirectionalCone(90, 180, 0.1);
-    me.sound.setLoop(true);
 
-    // load a sound and set it as the PositionalAudio object's buffer
-    const audioLoader = new THREE.AudioLoader();
-    audioLoader.load(url, function (buffer) {
-        me.sound.setBuffer(buffer);
-        me.sound.setRefDistance(20);
-        me.sound.play();
-        me.sound.setLoop(true);
-    });
-    me.soundAvatar.add(me.sound);
-    me.soundAvatarTexture.needsUpdate = true;
+    thisPerson.soundAvatar.add(thisPerson.sound);
+
+    return thisPerson;
 }
 
 function load3DSound(key, data) {
-    if (allLocal[data.key] == undefined) {
-        place3DSound(data.prompt, data.location, data.sound);
-    } else {
-        allLocal[key].soundAvatarGraphics.clear();
-        allLocal[key].soundAvatarGraphics.fill(255, 0, 0);
-        allLocal[key].soundAvatarGraphics.image(myCanvas, 0, 0);
-        allLocal[key].soundAvatarGraphics.textSize(32);
-        allLocal[key].soundAvatarGraphics.textMode(CENTER);
-        let promptParts = data.prompt.split(" ");
-        for (var i = 0; i < promptParts.length; i++) {
-            allLocal[key].soundAvatarGraphics.text(promptParts[i], width / 2, 50 + 50 * i);
-        }
-        allLocal[key].soundAvatarTexture.needsUpdate = true;
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load(data.sound, function (buffer) {
-            allLocal[key].setBuffer(buffer);
-            allLocal[key].setRefDistance(20);
-            allLocal[key].play();
-            allLocal[key].setLoop(true);
-        });
-        me.soundAvatar.position.set(data.location.x, data.location.y, data.z + 10);
-        me.soundAvatar.lookAt(0, 0, 0);
+    let thisPerson = sounds[key];
+    if (thisPerson == undefined) {
+        thisPerson = create3DSoundAvatar(data.prompt, data.location, data.sound);
+        sounds[key] = thisPerson;
     }
+    thisPerson.soundAvatarGraphics.clear();
+    thisPerson.soundAvatarGraphics.fill(255, 0, 0);
+    thisPerson.soundAvatarGraphics.image(myCanvas, 0, 0);
+    thisPerson.soundAvatarGraphics.textSize(32);
+    //thisPerson.soundAvatarGraphics.textMode(CENTER);
+    let promptParts = data.prompt.split(" ");
+    for (var i = 0; i < promptParts.length; i++) {
+        thisPerson.soundAvatarGraphics.text(promptParts[i], width / 2, 50 + 50 * i);
+    }
+    thisPerson.soundAvatarTexture.needsUpdate = true;
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load(data.sound, function (buffer) {
+        thisPerson.sound.setBuffer(buffer);
+        thisPerson.sound.setRefDistance(20);
+        thisPerson.sound.setVolume(1);
+        thisPerson.sound.setRolloffFactor(1);
+        thisPerson.sound.setDistanceModel('linear');
+        thisPerson.sound.setMaxDistance(1000);
+        thisPerson.sound.setDirectionalCone(90, 180, 0.1);
+        thisPerson.sound.play();
+        thisPerson.sound.setLoop(true);
+    });
+    thisPerson.soundAvatar.position.set(data.location.x, data.location.y, data.z + 10);
+    thisPerson.soundAvatar.lookAt(0, 0, 0);
 
 }
 

@@ -31,7 +31,7 @@ function sendToFirebase(prompt, position, sound, url) {
     if (!mySound.dbKey) {
         //new one
         let placeInDB = "group/" + group + "/" + typeOfThing + "/";
-        thisSound.dbKey = db.ref(placeInDB).push(mydata);
+        mySound.dbKey = db.ref(placeInDB).push(mydata);
     } else {
         //update
         let placeInDB = "group/" + group + "/" + typeOfThing + "/" + thisSound.dbKey;
@@ -49,6 +49,7 @@ function connectToFirebase() {
         let key = data.key;
         let value = data.val();
         //update our local variable
+        create3DSoundAvatar(key, value);
         load3DSound(key, value);
     });
 
