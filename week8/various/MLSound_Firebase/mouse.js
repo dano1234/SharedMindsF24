@@ -50,8 +50,8 @@ function onDocumentMouseWheel(event) {
 
 function computeCameraOrientation() {
     lat = Math.max(- 30, Math.min(30, lat));  //restrict movement
-    let phi = THREE.Math.degToRad(90 - lat);  //restrict movement
-    let theta = THREE.Math.degToRad(lon);
+    let phi = THREE.MathUtils.degToRad(90 - lat);  //restrict movement
+    let theta = THREE.MathUtils.degToRad(lon);
     camera3D.target.x = 10000 * Math.sin(phi) * Math.cos(theta);
     camera3D.target.y = 10000 * Math.cos(phi);
     camera3D.target.z = 10000 * Math.sin(phi) * Math.sin(theta);

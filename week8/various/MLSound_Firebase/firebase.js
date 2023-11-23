@@ -1,14 +1,15 @@
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCIQal3LFcsD_rpMI2Bw1qsscjjq6WvYaM",
-    authDomain: "mind-media-8c547.firebaseapp.com",
-    databaseURL: "https://mind-media-8c547-default-rtdb.firebaseio.com",
-    projectId: "mind-media-8c547",
-    storageBucket: "mind-media-8c547.appspot.com",
-    messagingSenderId: "531193870122",
-    appId: "1:531193870122:web:ab26cb2a8f9c0999029053",
-    measurementId: "G-SQ0DKJZEKJ",
+    apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
+    authDomain: "shared-minds.firebaseapp.com",
+    databaseURL: "https://shared-minds-default-rtdb.firebaseio.com",
+    projectId: "shared-minds",
+    storageBucket: "shared-minds.appspot.com",
+    messagingSenderId: "258871453280",
+    appId: "1:258871453280:web:4c103da9b230e982544505",
+    measurementId: "G-LN0GNWFZQQ"
 };
+
 
 let group = "mySillyLocalizedMLSoundRoom";
 let typeOfThing = "sounds";
@@ -18,7 +19,7 @@ let db;
 sendToFirebase
 
 /////FIREBASE STUFF
-function sendToFirebase(prompt, position, sound, url) {
+function sendToFirebase(prompt, position, url) {
 
 
     // let base64Sound = sound.toDataURL();
@@ -30,11 +31,11 @@ function sendToFirebase(prompt, position, sound, url) {
     };
     if (!mySound.dbKey) {
         //new one
-        let placeInDB = "group/" + group + "/" + typeOfThing + "/";
+        let placeInDB = group + "/" + typeOfThing + "/";
         mySound.dbKey = db.ref(placeInDB).push(mydata);
     } else {
         //update
-        let placeInDB = "group/" + group + "/" + typeOfThing + "/" + thisSound.dbKey;
+        let placeInDB = group + "/" + typeOfThing + "/" + thisSound.dbKey;
         db.ref(placeInDB).update(mydata);
     }
 }
@@ -43,18 +44,16 @@ function connectToFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
     db = app.database();
 
-    var myRef = db.ref("group/" + group + "/" + typeOfThing + "/");
+    var myRef = db.ref(group + "/" + typeOfThing + "/");
     myRef.on("child_added", (data) => {
-        //console.log("add", data.key, data.val());
+        console.log("add", data.key, data.val());
         let key = data.key;
         let value = data.val();
-        //update our local variable
-        create3DSoundAvatar(key, value);
         load3DSound(key, value);
     });
 
     myRef.on("child_changed", (data) => {
-        console.log("changed");
+        console.log("changed" + data.key + data.val());
         let key = data.key;
         let value = data.val();
         load3DSound(key, value);
@@ -62,7 +61,6 @@ function connectToFirebase() {
 
     myRef.on("child_removed", (data) => {
         console.log("removed");
-
-        kill3DSound(key, value);
+        kill3DSound(data.key, data.value);
     });
 }
