@@ -15,8 +15,7 @@ let group = "mySillyLocalizedMLSoundRoom";
 let typeOfThing = "sounds";
 let db;
 
-
-sendToFirebase
+let mySound = {};
 
 /////FIREBASE STUFF
 function sendToFirebase(prompt, position, url) {
@@ -32,10 +31,11 @@ function sendToFirebase(prompt, position, url) {
     if (!mySound.dbKey) {
         //new one
         let placeInDB = group + "/" + typeOfThing + "/";
-        mySound.dbKey = db.ref(placeInDB).push(mydata);
+        let ref = db.ref(placeInDB).push(mydata);
+        mySound.dbKey = ref.key;
     } else {
         //update
-        let placeInDB = group + "/" + typeOfThing + "/" + thisSound.dbKey;
+        let placeInDB = group + "/" + typeOfThing + "/" + mySound.dbKey;
         db.ref(placeInDB).update(mydata);
     }
 }

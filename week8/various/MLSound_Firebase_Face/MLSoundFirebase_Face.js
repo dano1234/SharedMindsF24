@@ -6,7 +6,7 @@ let myCanvas
 let in_front_of_you;
 
 let sounds = {};
-let mySound = {};
+
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
 
 //let angleOnCircle;
@@ -27,8 +27,13 @@ function init() {
     inputField.style.top = "50px";
     inputField.style.left = "50%";
     inputField.style.transform = "translate(-50%, -50%)";
-    inputField.style.width = "300px";
+    inputField.style.width = "400px";
     inputField.style.height = "20px";
+    inputField.style.fontSize = "20px";
+
+
+
+
     document.body.appendChild(inputField);
 
     let askButton = document.createElement("button");
@@ -63,13 +68,10 @@ function init() {
 }
 
 async function askForSound(p_prompt) {
-    //inputField.value("Getting Results for: " + p_prompt);
+
     inputField.value = "Getting Results for: " + p_prompt;
     document.body.style.cursor = "progress";
     const replicateProxy = "https://replicate-api-proxy.glitch.me"
-
-    //const imageDiv = select("#resulting_image");
-    //imageDiv.html("Waiting for reply from Replicate's API...");
     let data = {
         //replicate / riffusion / riffusion
         "version": "8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
@@ -92,8 +94,8 @@ async function askForSound(p_prompt) {
     const proxy_said = await picture_info.json();
     console.log("proxy_said", proxy_said.output.audio);
 
-    const ctx = new AudioContext();
     let incomingData = await fetch(proxy_said.output.audio);
+    //const ctx = new AudioContext();
     // let arrayBuffer = await incomingData.arrayBuffer();
     // let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
     // const playSound = ctx.createBufferSource();
@@ -101,13 +103,13 @@ async function askForSound(p_prompt) {
     // playSound.connect(ctx.destination);
     // playSound.start(ctx.currentTime);
     //in_front_of_you.position.set(0, 0, -distanceFromCenter);
-    const posInWorld = new THREE.Vector3();
-    //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
+    //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
+    const posInWorld = new THREE.Vector3();
     in_front_of_you.position.set(0, 0, -distanceFromCenter);
     in_front_of_you.getWorldPosition(posInWorld);
-
     let location = { x: posInWorld.x, y: posInWorld.y, z: posInWorld.z };
+
     sendToFirebase(p_prompt, location, proxy_said.output.audio);
     document.body.style.cursor = "default";
     inputField.value = p_prompt;
@@ -121,21 +123,20 @@ function load3DSound(key, data) {
         thisPerson.canvas.width = 512;
         thisPerson.canvas.height = 512;
         thisPerson.ctx = thisPerson.canvas.getContext("2d");
-        //thisPerson.soundAvatarGraphics = createGraphics(512, 512);
         thisPerson.soundAvatarTexture = new THREE.Texture(thisPerson.canvas);
         thisPerson.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
         var material = new THREE.MeshBasicMaterial({ map: thisPerson.soundAvatarTexture, transparent: true });
         var geo = new THREE.PlaneGeometry(512, 512);
         thisPerson.soundAvatar = new THREE.Mesh(geo, material);
         scene.add(thisPerson.soundAvatar); //add to scene
-        sounds[data.key] = thisPerson;  //add to overall list
+        sounds[key] = thisPerson;  //add to overall list
+
     }
+    //draw the prompt
+    thisPerson.ctx.clearRect(0, 0, 512, 512);
     thisPerson.ctx.textAlign = "center";
     thisPerson.ctx.textBaseline = "middle";
     thisPerson.ctx.font = "32px Arial";
-    thisPerson.ctx.fillText(data.prompt, 256, 256);
-    thisPerson.ctx.fillStyle = "rgba(255, 0, 255, 0.5)";
-    thisPerson.ctx.rect(0, 0, 512, 512);
 
     let promptParts = data.prompt.split(" ");
     for (var i = 0; i < promptParts.length; i++) {
@@ -147,30 +148,33 @@ function load3DSound(key, data) {
     if (!thisPerson.sound) {
         thisPerson.sound = new THREE.PositionalAudio(listener);
         thisPerson.sound.setVolume(1);
-        thisPerson.sound.setRefDistance(10);
+        thisPerson.sound.setRefDistance(5);
         thisPerson.sound.setRolloffFactor(1);
         thisPerson.sound.setDistanceModel('linear');
         thisPerson.sound.setMaxDistance(1000);
         thisPerson.sound.setDirectionalCone(90, 180, 0.1);
         thisPerson.sound.setLoop(true);
         thisPerson.soundAvatar.add(thisPerson.sound);
+    } else {
+        thisPerson.sound.stop();
     }
     const audioLoader = new THREE.AudioLoader();
     audioLoader.load(data.sound, function (buffer) {
         thisPerson.sound.setBuffer(buffer);
-        //thisPerson.sound.play();
+        thisPerson.sound.play();
         thisPerson.sound.setLoop(true);
     });
-
-    thisPerson.soundAvatar.position.set(data.location.x, data.location.y, data.z + 10);
+    thisPerson.soundAvatar.position.set(data.location.x, data.location.y, data.location.z);
+    // thisPerson.soundAvatar.position.set(0, 0, -600);
     thisPerson.soundAvatar.lookAt(0, 0, 0);
-
 }
 
 function kill3DSound(key, data) {
-    if (allLocal[data.key] == undefined) return;
-    scene.remove(allLocal[data.key].soundAvatar);
-    delete allLocal[data.key];
+    if (sounds[key] == undefined) return;
+    sounds[key].sound.stop();
+    scene.remove(sounds[key].soundAvatar);
+
+    delete sounds[key];
 }
 
 
