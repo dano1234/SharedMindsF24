@@ -107,7 +107,7 @@ function animate() {
 
 async function askForSound(p_prompt) {
 
-    inputField.value = "Getting Results for: " + p_prompt;
+    inputField.value = "Waiting on Results for: " + p_prompt;
     document.body.style.cursor = "progress";
     const replicateProxy = "https://replicate-api-proxy.glitch.me"
     let data = {
@@ -167,11 +167,7 @@ function base64ToBuffer(buffer) {
     return buffer;
 };
 
-// function stopSound() {
-//     if (source) {
-//         source.noteOff(0);
-//     }
-// }
+
 
 async function load3DSound(key, data) {
     let thisPerson = sounds[key];
@@ -190,12 +186,11 @@ async function load3DSound(key, data) {
         sounds[key] = thisPerson;  //add to overall list
 
     }
-    //draw the prompt
+    //draw the prompt on a canvas from the texture
     thisPerson.ctx.clearRect(0, 0, 512, 512);
     thisPerson.ctx.textAlign = "center";
     thisPerson.ctx.textBaseline = "middle";
     thisPerson.ctx.font = "32px Arial";
-
     let promptParts = data.prompt.split(" ");
     for (var i = 0; i < promptParts.length; i++) {
         thisPerson.ctx.fillText(promptParts[i], 512 / 2, 50 + 50 * i);
