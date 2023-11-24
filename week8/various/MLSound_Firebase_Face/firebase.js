@@ -18,7 +18,7 @@ let db;
 let mySound = {};
 
 /////FIREBASE STUFF
-function sendToFirebase(prompt, position, url) {
+function sendToFirebase(prompt, position, url, soundBufferb64) {
 
 
     // let base64Sound = sound.toDataURL();
@@ -26,7 +26,8 @@ function sendToFirebase(prompt, position, url) {
     let mydata = {
         location: position,
         prompt: prompt,
-        sound: url,
+        url: url,
+        soundBufferb64: soundBufferb64,
     };
     if (!mySound.dbKey) {
         //new one
