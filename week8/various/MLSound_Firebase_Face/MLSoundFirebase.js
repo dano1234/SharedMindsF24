@@ -136,15 +136,6 @@ async function askForSound(p_prompt) {
     const ctx = new AudioContext();
     let arrayBuffer = await incomingData.arrayBuffer();
     let b64 = bufferToBase64(arrayBuffer);
-    // console.log(b64);
-    // arrayBuffer = base64ToBuffer(b64);
-    // let decodedAudio = await ctx.decodeAudioData(arrayBuffer);
-    // const playSound = ctx.createBufferSource();
-    // playSound.buffer = decodedAudio;;
-    // playSound.connect(ctx.destination);
-    // playSound.start(ctx.currentTime);
-
-    //in_front_of_you.position.set(0, 0, -distanceFromCenter);
 
     //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
     const posInWorld = new THREE.Vector3();
@@ -226,30 +217,12 @@ async function load3DSound(key, data) {
         thisPerson.sound.stop();
     }
 
-    //if you are storing the actual data in firebase as base64
-    //let buffer = base64ToBuffer(data.soundBufferb64);
-    //let decodedAudio = await ctx.decodeAudioData(buffer);
-    //buffer = "data:audio/wav;base64" + data.soundBufferb64;
+    //if you are storing the actual data in firebase as base64- I think replicated does not host indefinitely
+    buffer = "data:audio/wav;base64," + data.soundBufferb64;
+    //otherwise buffer = data.url;
 
-    // thisPerson.sound.setBuffer(buffer);
-    // thisPerson.sound.play();
-    // thisPerson.sound.setLoop(true);
-
-    // const ctx = new AudioContext();
-    // let decodedAudio = await ctx.decodeAudioData(buffer);
-    // thisPerson.sound = ctx.createBufferSource();
-    // thisPerson.sound.buffer = decodedAudio;;
-
-
-    // thisPerson.sound.connect(ctx.destination);
-    // thisPerson.sound.start(ctx.currentTime);
-    // thisPerson.sound.loop = true;
-
-
-
-    //if you are storing the url in firebase - I think replicated does not host indefinitely
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load(data.url, function (buffer) {
+    audioLoader.load(buffer, function (buffer) {
         thisPerson.sound.setBuffer(buffer);
         thisPerson.sound.play();
         thisPerson.sound.setLoop(true);
