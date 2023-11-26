@@ -2,7 +2,4 @@
   # You may pin to the exact commit or the version.
   # uses: jayanta525/github-pages-directory-listing@624ac8c4e56893256d3772f61a88e3b14d54314e
   uses: jayanta525/github-pages-directory-listing@v4.0.0
-  with:
-    # folder to start index generations
-    FOLDER: /Week2/
-          
+
