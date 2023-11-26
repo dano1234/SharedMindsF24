@@ -71,6 +71,7 @@ function setup() {
 function gotStream(stream, id) {
 
     myName = id;
+    console.log("gotStream", id, stream);
     //this gets called when there is someone else in the room, new or existing
     //don't want the dom object, will use in p5 and three.js instead
     //get a network id from each person who joins
@@ -136,8 +137,8 @@ async function askForSound(p_prompt) {
     // playSound.buffer = decodedAudio;;
     // playSound.connect(ctx.destination);
     // playSound.start(ctx.currentTime);
-    placeMySound(p_prompt, proxy_said.output.audio)
     //playSound.loop = true;
+    placeMySound(p_prompt, proxy_said.output.audio)
     document.body.style.cursor = "default";
     inputField.value(p_prompt);
 }
@@ -189,6 +190,7 @@ function placeMySound(prompt, url) {
         me.sound.setRefDistance(20);
         me.sound.play();
         me.sound.setLoop(true);
+        sendSoundToP5LiveMedia(me.sound);
     });
     me.soundAvatar.add(me.sound);
     me.soundAvatarTexture.needsUpdate = true;
@@ -239,6 +241,19 @@ function gotFaceResults(results) {
     }
 }
 
+function sendSoundToP5LiveMedia(sound) {
+    //get a stream to send out with p5live
+    soundCtx = sound.context;
+    let audioStream = soundCtx.createMediaStreamDestination();
+    const newStream = audioStream.stream
+    let audioTracks = newStream.getAudioTracks();
+    // Use the first audio track
+    if (audioTracks.length > 0) {
+        // Add it to the stream
+        p5lm.addStream(audioTracks[0])
+    }
+
+}
 
 function creatNewVideoObject(videoObject, id) {  //this is for remote and local
 
@@ -270,6 +285,18 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
         scene.add(myAvatarObj);
         positionOnCircle(angleOnCircle, myAvatarObj);
         //hopefully they will update quickly
+    }
+    if (id != "me") {
+        let sound = new THREE.PositionalAudio(listener);
+        sound.setVolume(1);
+        sound.setRefDistance(20);
+        sound.setRolloffFactor(1);
+        sound.setDistanceModel('linear');
+        sound.setMaxDistance(1000);
+        sound.setDirectionalCone(90, 180, 0.1);
+        sound.setLoop(true);
+        myAvatarObj.add(sound);
+        sound.setMediaElementSource(videoObject.elt);
     }
     //position them to start based on how many people but we will let them move around
     //let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?

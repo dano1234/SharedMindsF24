@@ -31,9 +31,6 @@ function init() {
     inputField.style.height = "20px";
     inputField.style.fontSize = "20px";
 
-
-
-
     document.body.appendChild(inputField);
 
     let askButton = document.createElement("button");
@@ -224,7 +221,6 @@ async function load3DSound(key, data) {
     });
 
     thisPerson.soundAvatar.position.set(data.location.x, data.location.y, data.location.z);
-    // thisPerson.soundAvatar.position.set(0, 0, -600/2);
     thisPerson.soundAvatar.lookAt(0, 0, 0);
 }
 
