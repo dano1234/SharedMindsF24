@@ -81,7 +81,7 @@ function createNewText(text_msg) {
     const posInWorld = new THREE.Vector3();
     //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
-    in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
+    in_front_of_you.position.set(0, 0, -100);// -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
     in_front_of_you.getWorldPosition(posInWorld);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
