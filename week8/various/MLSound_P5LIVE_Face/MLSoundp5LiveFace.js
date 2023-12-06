@@ -4,13 +4,21 @@ let myCanvas, myVideo, myMask;
 let people = [];
 let sounds = {};
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
-let faceMesh;
+//let faceMesh;
 let angleOnCircle;
 let p5lm;
 let progress = "loading Face ML";
 let inputField;
 let listener;
 let distanceFromCenter = 600;
+
+let options = { maxFaces: 1, refineLandmarks: false, flipHorizontal: false };
+
+function preload() {
+    // Load the facemesh model
+    facemesh = ml5.facemesh(options);
+}
+
 
 let myName; //= prompt("name?");
 function setup() {
@@ -57,12 +65,13 @@ function setup() {
 
     //ALSO ADD AUDIO STREAM
     //addAudioStream() ;
-
-    facemesh = ml5.facemesh(myVideo, function () {
-        progress = "ML model loaded";
-        console.log('face mesh model ready!')
-    });
-    facemesh.on("predict", gotFaceResults);
+    // Start detecting faces from the webcam video
+    facemesh.detectStart(myVideo, gotFaceResults);
+    // facemesh = ml5.facemesh(myVideo, function () {
+    //     progress = "ML model loaded";
+    //     console.log('face mesh model ready!')
+    // });
+    // facemesh.on("predict", gotFaceResults);
 
     init3D();
 }
@@ -202,19 +211,26 @@ function gotFaceResults(results) {
         //  console.log(results[0]);
         //DRAW THE ALPHA MASK FROM THE OUTLINE OF MASK
 
-        outline = results[0].annotations.silhouette;
+        //outline = results[0].annotations.silhouette;
         myMask.clear();
         myMask.noStroke();
         myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-        myMask.beginShape();
-        for (var i = 0; i < outline.length - 1; i++) {
-            myMask.curveVertex(outline[i][0], outline[i][1]);
-
+        for (var i = 0; i < results[0].faceOval.keypoints.length; i++) {
+            myMask.curveVertex(results[0].faceOval.keypoints[i].x, results[0].faceOval.keypoints[i].y);
         }
         myMask.endShape(CLOSE);
+        // myMask.beginShape();
+        // for (var i = 0; i < outline.length - 1; i++) {
+        //     myMask.curveVertex(outline[i][0], outline[i][1]);
+
+        // }
+        // myMask.endShape(CLOSE);
         //Get the angle between eyes
-        let xDiff = results[0].annotations.leftEyeLower0[0][0] - results[0].annotations.rightEyeLower0[0][0];
-        let yDiff = results[0].annotations.leftEyeLower0[0][1] - results[0].annotations.rightEyeLower0[0][1]
+        // let xDiff = results[0].annotations.leftEyeLower0[0][0] - results[0].annotations.rightEyeLower0[0][0];
+        // let yDiff = results[0].annotations.leftEyeLower0[0][1] - results[0].annotations.rightEyeLower0[0][1]
+        let xDiff = results[0].leftEye.x - results[0].rightEye.x;
+        let yDiff = results[0].leftEye.y - results[0].rightEye.y;
+
         headAngle = Math.atan2(yDiff, xDiff);
         headAngle = THREE.Math.radToDeg(headAngle);
         //console.log(headAngle);
