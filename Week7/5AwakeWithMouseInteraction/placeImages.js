@@ -2,24 +2,28 @@
 let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
-let images = [];
+let textures = [];
+let hitTestableThings = [];
 let in_front_of_you;
 let distanceFromCamera = -800;
+let image1;
+let image2;
 
-init3D();
 
-var input_image_field = document.createElement("input");
-input_image_field.type = "text";
-input_image_field.id = "input_image_prompt";
-input_image_field.value = "Nice picture of a dog";
-input_image_field.size = 100;
-document.getElementById("webInterfaceContainer").append(input_image_field);
-input_image_field.addEventListener("keyup", function (event) {
-    if (event.key === "Enter") {
-        askForPicture(input_image_field);
-    }
-});
+function preload() {
+    image1 = loadImage('banksy.jpg');
+    image2 = loadImage('hektad.jpg');
+}
+function setup() {
+    let mainCanvas = createCanvas(512, 512);
+    mainCanvas.hide();
+    //placeImage(image1);
+    //placeImage(image2);
+    init3D();
+}
 
+function draw() {
+}
 
 function init3D() {
     scene = new THREE.Scene();
@@ -29,16 +33,8 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById("ThreeJSContainer").append(renderer.domElement);
 
-    //just a place holder the follows the camera and marks location to drop incoming  pictures
-    //tiny little dot (could be invisible) 
-    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
-    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
-    in_front_of_you.position.set(0, 0, distanceFromCamera); //set it in front of the camera
-    camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
 
-
-
+    //Background
     let bgGeometry = new THREE.SphereGeometry(950, 60, 40);
     // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometry.scale(-1, 1, 1);
@@ -49,81 +45,49 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometry, backMaterial);
     scene.add(back);
 
+    placeImage(image1, 0);
+    placeImage(image2, 90);
 
     moveCameraWithMouse();
 
-    camera3D.position.z = 5;
+    //camera3D.position.z = 0;
     animate();
 }
 
-function placeImage(img) {
-    var texture = new THREE.Texture(img);
+function placeImage(img, degrees) {
+    let thisCanvas = createGraphics(512, 512); //make a new p5 canvas
+    thisCanvas.image(img, 0, 0, 512, 512); //draw on it
+
+    var texture = new THREE.Texture(thisCanvas.elt);  //turrn p5 thing into a regular canvas
     console.log(img, texture);
     var material = new THREE.MeshBasicMaterial({ map: texture, transparent: false });
     var geo = new THREE.PlaneGeometry(512, 512);
     var mesh = new THREE.Mesh(geo, material);
 
-    const posInWorld = new THREE.Vector3();
-    //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
+    //place it 600 units away from the center of the world and 90 degrees to the left
+    var posInWorld = new THREE.Vector3(0, 0, distanceFromCamera);
+    posInWorld.applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.Math.degToRad(degrees));
 
-    in_front_of_you.position.set(0, 0, distanceFromCamera);  //base the the z position on camera field of view
-    in_front_of_you.getWorldPosition(posInWorld);
+
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
     console.log(posInWorld);
+
+    //have it face the center
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
-    images.push({ "object": mesh, "texture": texture });
+    textures.push(texture);
+    hitTestableThings.push(mesh);
 }
 
-
-async function askForPicture(inputField) {
-    prompt = inputField.value;
-    inputField.value = "Waiting for reply for:" + prompt;
-
-
-    let data = {
-        "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
-        input: {
-            "prompt": prompt,
-            "width": 1024,
-            "height": 512,
-        },
-    };
-    console.log("Asking for Picture Info From Replicate via Proxy", data);
-    let options = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    };
-    const url = replicateProxy + "/create_n_get/"
-    console.log("url", url, "options", options);
-    const picture_info = await fetch(url, options);
-    //console.log("picture_response", picture_info);
-    const proxy_said = await picture_info.json();
-
-    if (proxy_said.output.length == 0) {
-        alert("Something went wrong, try it again");
-    } else {
-        inputField.value = prompt;
-        //Loading of the home test image - img1
-        var incomingImage = new Image();
-        incomingImage.crossOrigin = "anonymous";
-        incomingImage.onload = function () {
-            placeImage(incomingImage);
-        };
-        incomingImage.src = proxy_said.output[0];
-    }
-}
 
 function animate() {
     requestAnimationFrame(animate);
-    for (var i = 0; i < images.length; i++) {
-        images[i].texture.needsUpdate = true;
+    //update the textures in case they changed
+    for (var i = 0; i < textures.length; i++) {
+        textures[i].needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
@@ -147,18 +111,28 @@ function moveCameraWithMouse() {
     camera3D.target = new THREE.Vector3(0, 0, 0);
 }
 
+
+function onDocumentMouseDown(event) {
+    /create a raytracer from the camera position and direction/
+    var raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera3D);
+    var intersects = raycaster.intersectObjects(hitTestableThings);
+    if (intersects.length > 0) {
+        console.log("intersected", intersects[0].object);
+
+    } else {
+        onPointerDownPointerX = event.clientX;
+        onPointerDownPointerY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+        isUserInteracting = true;
+    }
+}
+
 function onDocumentKeyDown(event) {
     //if (event.key == " ") {
     //in case you want to track key presses
     //}
-}
-
-function onDocumentMouseDown(event) {
-    onPointerDownPointerX = event.clientX;
-    onPointerDownPointerY = event.clientY;
-    onPointerDownLon = lon;
-    onPointerDownLat = lat;
-    isUserInteracting = true;
 }
 
 function onDocumentMouseMove(event) {
