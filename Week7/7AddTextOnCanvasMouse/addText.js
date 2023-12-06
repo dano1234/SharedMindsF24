@@ -30,11 +30,11 @@ function init3D() {
     scene.add(back);
 
     //tiny little dot (could be invisible) for placing things in front of you
-    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
-    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
-    camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
-    in_front_of_you.position.set(0, 0, -600);
+    // var geometryFront = new THREE.BoxGeometry(1, 1, 1);
+    // var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    // in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
+    // camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
+    // in_front_of_you.position.set(0, 0, -600);
 
     //convenience function for getting coordinates
 
@@ -54,13 +54,13 @@ function animate() {
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM
-textInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-        createNewText(textInput.value);
-    }
-});
+// textInput.addEventListener("keydown", function (e) {
+//     if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
+//         createNewText(textInput.value);
+//     }
+// });
 
-function createNewText(text_msg) {
+function createNewText(text_msg, posInWorld) {
     console.log("Created New Text");
     var canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -78,14 +78,16 @@ function createNewText(text_msg) {
     var geo = new THREE.PlaneGeometry(1, 1);
     var mesh = new THREE.Mesh(geo, material);
 
-    const posInWorld = new THREE.Vector3();
-    //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
+    // const posInWorld = new THREE.Vector3();
+    // //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
-    in_front_of_you.position.set(0, 0, -100);// -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
-    in_front_of_you.getWorldPosition(posInWorld);
+    // in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
+    // in_front_of_you.getWorldPosition(posInWorld);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
+
+
     console.log(posInWorld);
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
@@ -132,7 +134,19 @@ function onDocumentMouseDown(event) {
     onPointerDownPointerY = event.clientY;
     onPointerDownLon = lon;
     onPointerDownLat = lat;
-    isUserInteracting = true;
+    if (event.shiftKey == true) {
+        let vector = new THREE.Vector3();
+        vector.set(
+            (event.clientX / window.innerWidth) * 2 - 1,
+            - (event.clientY / window.innerHeight) * 2 + 1,
+            0.5
+        );
+        vector.unproject(camera3D);
+        vector.multiplyScalar(100)
+        createNewText(textInput.value, vector);
+    } else {
+        isUserInteracting = true;
+    }
 }
 
 function onDocumentMouseMove(event) {
