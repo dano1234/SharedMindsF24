@@ -2,8 +2,8 @@
 let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
-let textures = [];
-let hitTestableThings = [];
+let canvases = {};  //json object that keeps track of all the canvases in the scene by their threejs mesh uuid
+let hitTestableThings = [];  //things that will be tested for intersection
 let in_front_of_you;
 let distanceFromCamera = -800;
 let image1;
@@ -15,8 +15,8 @@ function preload() {
     image2 = loadImage('hektad.jpg');
 }
 function setup() {
-    let mainCanvas = createCanvas(512, 512);
-    mainCanvas.hide();
+    //let mainCanvas = createCanvas(512, 512);
+    //mainCanvas.hide();
     //placeImage(image1);
     //placeImage(image2);
     init3D();
@@ -78,7 +78,8 @@ function placeImage(img, degrees) {
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
-    textures.push(texture);
+    //store everything about this in a jsoon object as an associative array with the mesh uuid as the key
+    canvases[mesh.uuid] = { "threejs_mesh": mesh, "threejs_texture": texture, "p5_graphics": thisCanvas }  //keep track of the canvas
     hitTestableThings.push(mesh);
 }
 
@@ -86,9 +87,10 @@ function placeImage(img, degrees) {
 function animate() {
     requestAnimationFrame(animate);
     //update the textures in case they changed
-    for (var i = 0; i < textures.length; i++) {
-        textures[i].needsUpdate = true;
+    for (let key in canvases) {
+        canvases[key].threejs_texture.needsUpdate = true;
     }
+
     renderer.render(scene, camera3D);
 }
 
@@ -115,11 +117,24 @@ function moveCameraWithMouse() {
 function onDocumentMouseDown(event) {
     /create a raytracer from the camera position and direction/
     var raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera3D);
+    var mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera3D);
     var intersects = raycaster.intersectObjects(hitTestableThings);
     if (intersects.length > 0) {
-        console.log("intersected", intersects[0].object);
-
+        console.log("intersected", intersects[0].object.uuid);
+        for (let key in canvases) {
+            if (key == intersects[0].object.uuid) {
+                //now do anything you would do in p5 but use the p5_graphics object
+                thisCanvas = canvases[key].p5_graphics;
+                console.log("found it", key);
+                thisCanvas.background(255, 0, 0);
+                thisCanvas.textSize(32);
+                thisCanvas.text("hello", 100, 100);
+                thisCanvas.texture.needsUpdate = true;
+            }
+        }
     } else {
         onPointerDownPointerX = event.clientX;
         onPointerDownPointerY = event.clientY;
