@@ -14,12 +14,12 @@ import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onC
 
 let db;
 let appName = "EmbeddingClusters";
-let distanceFromCenter = 200;
+let distanceFromCenter = 800;
 
 let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
-let images = [];
+let objects = [];
 let in_front_of_you;
 let myPrompts = [];
 
@@ -132,10 +132,13 @@ async function askForEmbeddings(p_prompt) {
                 embeddings.push(embeddingsAndPrompts[i].embedding);
             }
             let fittings = runUMAP(embeddings);
+            fittings = mapAndNormalize(fittings);
+
             for (let i = 0; i < embeddingsAndPrompts.length; i++) {
                 placeImage(embeddingsAndPrompts[i].input, fittings[i]);
                 //embeddingsAndPrompts[i].embedding = fittings[i];
             }
+            startLoadingImages();
         });
 
     //console.log("raw", raw);
@@ -154,6 +157,45 @@ async function askForEmbeddings(p_prompt) {
 
 
 
+function startLoadingImages() {
+    let whichObject = 0;
+    setInterval(() => {
+        askForPicture(objects[whichObject]);
+        whichObject++;
+        console.log("whichObject", objects[whichObject]);
+    }, 10000);
+}
+function mapAndNormalize(arrayOfNumbers) {
+    let max = [0, 0, 0];
+    let min = [0, 0, 0];
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    console.log("max", max, "min", min);
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
+        }
+    }
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    return arrayOfNumbers;
+}
 
 function placeImage(text, pos) {
     console.log("placeImage", pos);
@@ -167,7 +209,7 @@ function placeImage(text, pos) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = '12px Arial';
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'white';
 
 
     for (let i = 0; i < textParts.length; i++) {
@@ -186,12 +228,12 @@ function placeImage(text, pos) {
     var mesh = new THREE.Mesh(geo, material);
     mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
     mesh.position.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;
-    mesh.position.z = pos[2] * distanceFromCenter;
+    mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
     //console.log("mesh.position", mesh.position);
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
-    images.push({ "object": mesh, "texture": texture });
+    objects.push({ "object": mesh, "texture": texture, "text": text, "context": ctx });
 }
 
 
@@ -215,15 +257,15 @@ function runUMAP(embeddings) {
 }
 
 
-async function askForPicture(inputField) {
-    prompt = inputField.value;
-    inputField.value = "Waiting for reply for:" + prompt;
+async function askForPicture(object) {
+    // prompt = inputField.value;
+    //inputField.value = "Waiting for reply for:" + prompt;
     let data = {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
-            "prompt": prompt,
-            "width": 1024,
-            "height": 512,
+            "prompt": object.text,
+            "width": 256,
+            "height": 256,
         },
     };
     console.log("Asking for Picture Info From Replicate via Proxy", data);
@@ -239,23 +281,20 @@ async function askForPicture(inputField) {
     const picture_info = await fetch(url, options);
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
-
+    console.log("Proxy Returned", proxy_said);
     if (proxy_said.output.length == 0) {
         alert("Something went wrong, try it again");
     } else {
-        inputField.value = prompt;
+        // inputField.value = prompt;
         //Loading of the home test image - img1
         var incomingImage = new Image();
         incomingImage.crossOrigin = "anonymous";
         incomingImage.onload = function () {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.height = incomingImage.naturalHeight;
-            canvas.width = incomingImage.naturalWidth;
-            ctx.drawImage(incomingImage, 0, 0);
-            const base64Image = canvas.toDataURL();
 
-            sendImageToFirebase(base64Image, prompt);
+            const ctx = object.context;
+            ctx.drawImage(incomingImage, 0, 0);
+            // const base64Image = canvas.toDataURL();
+            // sendImageToFirebase(base64Image, prompt);
         };
         incomingImage.src = proxy_said.output[0];
     }
@@ -342,7 +381,7 @@ function init3D() {
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
 
     let back = new THREE.Mesh(bgGeometery, backMaterial);
-    scene.add(back);
+    //scene.add(back);
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
@@ -370,8 +409,8 @@ function getPositionInFrontOfCamera() {
 
 function animate() {
     requestAnimationFrame(animate);
-    for (var i = 0; i < images.length; i++) {
-        images[i].texture.needsUpdate = true;
+    for (var i = 0; i < objects.length; i++) {
+        objects[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
