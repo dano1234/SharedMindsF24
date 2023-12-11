@@ -215,6 +215,7 @@ function gotFaceResults(results) {
         myMask.clear();
         myMask.noStroke();
         myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+        myMask.beginShape()
         for (var i = 0; i < results[0].faceOval.keypoints.length; i++) {
             myMask.curveVertex(results[0].faceOval.keypoints[i].x, results[0].faceOval.keypoints[i].y);
         }
