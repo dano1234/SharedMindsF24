@@ -1,10 +1,11 @@
 
 let camera3D, scene, renderer, cube;
-let texts = [];
+let texts = {};
 let in_front_of_you;
 
 
 init3D();
+initFirebase();
 
 function init3D() {
     scene = new THREE.Scene();
@@ -30,11 +31,11 @@ function init3D() {
     scene.add(back);
 
     //tiny little dot (could be invisible) for placing things in front of you
-    // var geometryFront = new THREE.BoxGeometry(1, 1, 1);
-    // var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    // in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
-    // camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
-    // in_front_of_you.position.set(0, 0, -600);
+    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
+    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
+    camera3D.add(in_front_of_you); // then add in front of the camera so it follow it
+    in_front_of_you.position.set(0, 0, -600);
 
     //convenience function for getting coordinates
 
@@ -47,20 +48,26 @@ function init3D() {
 
 function animate() {
     requestAnimationFrame(animate);
-    for (var i = 0; i < texts.length; i++) {
-        texts[i].texture.needsUpdate = true;
+    //console.log("texts", texts);
+    for (var key in texts) {
+        texts[key].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM
-// textInput.addEventListener("keydown", function (e) {
-//     if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-//         createNewText(textInput.value);
-//     }
-// });
+textInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
+        const posInWorld = new THREE.Vector3();
+        // //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
-function createNewText(text_msg, posInWorld) {
+        in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
+        in_front_of_you.getWorldPosition(posInWorld);
+        createNewText(textInput.value, posInWorld);
+    }
+});
+
+function createNewText(text_msg, posInWorld, dbKey) {
     console.log("Created New Text");
     var canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -78,11 +85,7 @@ function createNewText(text_msg, posInWorld) {
     var geo = new THREE.PlaneGeometry(1, 1);
     var mesh = new THREE.Mesh(geo, material);
 
-    // const posInWorld = new THREE.Vector3();
-    // //remember we attached a tiny to the  front of the camera in init, now we are asking for its position
 
-    // in_front_of_you.position.set(0, 0, -(600 - camera3D.fov * 7));  //base the the z position on camera field of view
-    // in_front_of_you.getWorldPosition(posInWorld);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
@@ -92,7 +95,7 @@ function createNewText(text_msg, posInWorld) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    texts.push({ "object": mesh, "texture": textTexture, "text": text_msg });
+    texts[dbKey] = { "object": mesh, "texture": textTexture, "text": text_msg, "position": posInWorld };
 }
 
 function onDocumentKeyDown(event) {
@@ -143,7 +146,9 @@ function onDocumentMouseDown(event) {
         );
         vector.unproject(camera3D);
         vector.multiplyScalar(100)
-        createNewText(textInput.value, vector);
+        let location = { x: vector.x, y: vector.y, z: vector.z };
+        sendTextToDB(textInput.value, location)
+        //send it to firebase and when it comes back as "added" from firebase, it will be created locally
     } else {
         isUserInteracting = true;
     }

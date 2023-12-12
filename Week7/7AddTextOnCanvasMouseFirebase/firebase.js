@@ -1,6 +1,6 @@
 let group = "3DRoomTextMouse";
 let typeOfThing = "words";
-
+let currentKey = -1;
 
 function initFirebase() {
     console.log("init");
@@ -25,19 +25,18 @@ function initFirebase() {
         appId: "1:258871453280:web:4c103da9b230e982544505",
         measurementId: "G-LN0GNWFZQQ"
     };
+    const app = firebase.initializeApp(firebaseConfig);
+    db = app.database();
 
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    db = getDatabase();
-    subscribeToImages()
+    subscribeToFirebase()
 }
 
 /////FIREBASE STUFF
-function sendTextToDB() {
-    let pos = inputBox.position();
+function sendTextToDB(inputText, pos) {
+    // let pos = inputBox.position();
     let mydata = {
-        location: { x: pos.x, y: pos.y + textSize() },
-        text: inputBox.value(),
+        location: pos,
+        text: inputText,
     };
     //add a stroke
     if (currentKey == -1) {
@@ -46,36 +45,27 @@ function sendTextToDB() {
     } else {
         let idOfOld = db.ref("group/" + group + "/" + typeOfThing + "/" + currentKey).update(mydata);
     }
-    inputBox.hide();
-    moveItButton.hide();
 }
 
 function subscribeToFirebase() {
-
-    const app = firebase.initializeApp(firebaseConfig);
-    db = app.database();
-
     var myRef = db.ref("group/" + group + "/" + typeOfThing + "/");
     myRef.on("child_added", (data) => {
         //console.log("add", data.key, data.val());
         let key = data.key;
         let value = data.val();
         //update our local variable
-        allTextsLocal[key] = value;
-        drawAll();
+        createNewText(value.text, value.location, key);
     });
 
     myRef.on("child_changed", (data) => {
         console.log("changed", data.key, data.val());
         let key = data.key;
         let value = data.val();
-        allTextsLocal[key] = value;
-        drawAll();
-
+        createNewText(value.text, value.location, key);
     });
 
     myRef.on("child_removed", (data) => {
         console.log("removed", data.key);
-        delete allTextsLocal[data.key];
+        delete texts[data.key];
     });
 }
