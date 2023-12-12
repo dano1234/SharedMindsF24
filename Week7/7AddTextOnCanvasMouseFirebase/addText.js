@@ -77,11 +77,11 @@ function createNewText(text_msg, posInWorld, dbKey) {
     var fontSize = Math.max(camera3D.fov / 2, 72);
     context.font = fontSize + "pt Arial";
     context.textAlign = "center";
-    context.fillStyle = "white";
+    context.fillStyle = "yellow";
     context.fillText(text_msg, canvas.width / 2, canvas.height / 2);
     var textTexture = new THREE.Texture(canvas);
     textTexture.needsUpdate = true;
-    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: false });
+    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true });
     var geo = new THREE.PlaneGeometry(1, 1);
     var mesh = new THREE.Mesh(geo, material);
 
