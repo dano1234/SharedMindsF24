@@ -264,8 +264,8 @@ async function askForPicture(object) {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
             "prompt": object.text,
-            "width": 256,
-            "height": 256,
+            "width": 512,
+            "height": 512,
         },
     };
     console.log("Asking for Picture Info From Replicate via Proxy", data);
@@ -292,7 +292,7 @@ async function askForPicture(object) {
         incomingImage.onload = function () {
 
             const ctx = object.context;
-            ctx.drawImage(incomingImage, 0, 0);
+            ctx.drawImage(incomingImage, 0, 0, 128, 128);
             // const base64Image = canvas.toDataURL();
             // sendImageToFirebase(base64Image, prompt);
         };
