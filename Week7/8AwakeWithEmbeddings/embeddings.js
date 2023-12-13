@@ -36,24 +36,24 @@ function initWebInterface() {
 
         })
 
-    var input_image_field = document.createElement("input");
-    input_image_field.type = "text";
-    input_image_field.id = "input_image_prompt";
-    input_image_field.value = "Nice picture of a dog";
-    input_image_field.style.position = "absolute";
-    input_image_field.style.fontSize = "20px";
-    input_image_field.style.width = "400px";
-    input_image_field.style.top = "20%";
-    input_image_field.style.left = "50%";
-    input_image_field.style.transform = "translate(-50%, -50%)";
-    document.getElementById("webInterfaceContainer")
-    input_image_field.addEventListener("keyup", function (event) {
-        if (event.key === "Enter") {
-            askForPicture(input_image_field);
-        }
-    });
+    // var input_image_field = document.createElement("input");
+    // input_image_field.type = "text";
+    // input_image_field.id = "input_image_prompt";
+    // input_image_field.value = "Nice picture of a dog";
+    // input_image_field.style.position = "absolute";
+    // input_image_field.style.fontSize = "20px";
+    // input_image_field.style.width = "400px";
+    // input_image_field.style.top = "20%";
+    // input_image_field.style.left = "50%";
+    // input_image_field.style.transform = "translate(-50%, -50%)";
+    // document.getElementById("webInterfaceContainer")
+    // input_image_field.addEventListener("keyup", function (event) {
+    //     if (event.key === "Enter") {
+    //         askForPicture(input_image_field);
+    //     }
+    // });
 
-    input_image_field.style.transform = "translate(-50%, -50%)";
+    // input_image_field.style.transform = "translate(-50%, -50%)";
     var webInterfaceContainer = document.createElement("div");
     webInterfaceContainer.id = "webInterfaceContainer";
 
@@ -64,7 +64,7 @@ function initWebInterface() {
     webInterfaceContainer.style.transform = "translate(-50%, -50%)";
     webInterfaceContainer.style.position = "absolute";
     webInterfaceContainer.style.height = "10%";
-    webInterfaceContainer.append(input_image_field);
+    //webInterfaceContainer.append(input_image_field);
     document.body.append(webInterfaceContainer);
 
     let ThreeJSContainer = document.createElement("div");
@@ -78,7 +78,7 @@ function initWebInterface() {
     document.body.append(ThreeJSContainer);
 
     let button = document.createElement("button");
-    button.innerHTML = "Add Prompt to Database";
+    button.innerHTML = "Load All Prompts";
     button.style.position = "absolute";
     button.style.top = "10%";
     button.style.left = "50%";
@@ -141,18 +141,6 @@ async function askForEmbeddings(p_prompt) {
             startLoadingImages();
         });
 
-    //console.log("raw", raw);
-    //const proxy_said = await raw.json();
-    //let output = proxy_said.output;
-    //console.log("Proxy Returned", output);
-    // distances = []
-    // let firstOne = output[0];
-    // for (let i = 0; i < output.length; i++) {
-    //     let thisOne = output[i];
-    //     let cdist = cosineSimilarity(firstOne.embedding, thisOne.embedding);
-    //     distances.push({ "reference": firstOne.input, "phrase": thisOne.input, "distance": cdist })
-    //     console.log(firstOne.input, thisOne.input, cdist);
-    // }
 }
 
 
@@ -160,63 +148,23 @@ async function askForEmbeddings(p_prompt) {
 function startLoadingImages() {
     let whichObject = 0;
     setInterval(() => {
-        askForPicture(objects[whichObject]);
+        if (!objects[whichObject].image) {
+            askForPicture(objects[whichObject]);
+        }
         whichObject++;
         console.log("whichObject", objects[whichObject]);
     }, 10000);
 }
-function mapAndNormalize(arrayOfNumbers) {
-    let max = [0, 0, 0];
-    let min = [0, 0, 0];
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (arrayOfNumbers[i][j] > max[j]) {
-                max[j] = arrayOfNumbers[i][j];
-            }
-            if (arrayOfNumbers[i][j] < min[j]) {
-                min[j] = arrayOfNumbers[i][j];
-            }
-        }
-    }
-    console.log("max", max, "min", min);
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
-        }
-    }
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (arrayOfNumbers[i][j] > max[j]) {
-                max[j] = arrayOfNumbers[i][j];
-            }
-            if (arrayOfNumbers[i][j] < min[j]) {
-                min[j] = arrayOfNumbers[i][j];
-            }
-        }
-    }
-    return arrayOfNumbers;
-}
+
 
 function placeImage(text, pos) {
     console.log("placeImage", pos);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
-    let size = 256;
+    let size = 128;
     canvas.height = size;
     canvas.width = size;
-    let textParts = text.split(" ");
-
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '12px Arial';
-    ctx.fillStyle = 'white';
-
-
-    for (let i = 0; i < textParts.length; i++) {
-        const metrics = ctx.measureText(textParts[i]);
-        ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
-        //text(textParts[i], 10, 10 + i * 20);
-    }
+    rePaintObject(ctx, text, null, canvas)
     //ctx.drawImage(img, 0, 0);
     //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
@@ -233,10 +181,26 @@ function placeImage(text, pos) {
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
-    objects.push({ "object": mesh, "texture": texture, "text": text, "context": ctx });
+    objects.push({ "object": mesh, "texture": texture, "text": text, "context": ctx, "image": null, "canvas": canvas });
 }
 
+function rePaintObject(ctx, text, image, canvas) {
+    let textParts = text.split(" ");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (image) {
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    }
 
+
+    ctx.font = '12px Arial';
+    ctx.fillStyle = 'white';
+
+
+    for (let i = 0; i < textParts.length; i++) {
+        const metrics = ctx.measureText(textParts[i]);
+        ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
+    }
+}
 
 
 
@@ -290,15 +254,18 @@ async function askForPicture(object) {
         var incomingImage = new Image();
         incomingImage.crossOrigin = "anonymous";
         incomingImage.onload = function () {
-
-            const ctx = object.context;
-            ctx.drawImage(incomingImage, 0, 0, 128, 128);
+            object.image = incomingImage;
+            rePaintObject(object.context, object.text, object.image, object.canvas);
+            //const ctx = object.context;
+            //ctx.drawImage(incomingImage, 0, 0, 128, 128);
             // const base64Image = canvas.toDataURL();
             // sendImageToFirebase(base64Image, prompt);
         };
         incomingImage.src = proxy_said.output[0];
     }
 }
+
+
 
 
 function initFirebase() {
@@ -413,6 +380,38 @@ function animate() {
         objects[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
+}
+
+function mapAndNormalize(arrayOfNumbers) {
+    let max = [0, 0, 0];
+    let min = [0, 0, 0];
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    console.log("max", max, "min", min);
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
+        }
+    }
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    return arrayOfNumbers;
 }
 
 /////MOUSE STUFF
