@@ -26,7 +26,7 @@ function setup() {
   createElement("br");
   feedback = createP("");
   createElement("br");
-  feedback.position(10,90)
+  feedback.position(10, 90)
   let canvas = createCanvas(512, 512);
   canvas.position(0, 120);
   setupAudio();
@@ -40,7 +40,7 @@ async function askForWords(p_prompt) {
   document.body.style.cursor = "progress";
   feedback.html("Waiting for reply from OpenAi...");
   const data = {
-    model: "text-davinci-003",
+    model: "gpt-3.5-turbo-instruct",
     prompt: p_prompt,
     temperature: 0,
     max_tokens: 1000,

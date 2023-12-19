@@ -134,6 +134,44 @@ function startLoadingImages() {
 }
 
 
+function mapAndNormalize(arrayOfNumbers) {
+    //find max and min in the array
+    console.log("arrayOfNumbers1", arrayOfNumbers);
+    let max = [0, 0, 0];
+    let min = [0, 0, 0];
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    console.log("max", max, "min", min);
+    //normalize
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
+        }
+    }
+    console.log("arrayOfNumbers2", arrayOfNumbers);
+
+    // for (let i = 0; i < arrayOfNumbers.length; i++) {
+    //     for (let j = 0; j < 3; j++) {
+    //         if (arrayOfNumbers[i][j] > max[j]) {
+    //             max[j] = arrayOfNumbers[i][j];
+    //         }
+    //         if (arrayOfNumbers[i][j] < min[j]) {
+    //             min[j] = arrayOfNumbers[i][j];
+    //         }
+    //     }
+    // }
+    console.log("arrayOfNumbers3", arrayOfNumbers);
+    return arrayOfNumbers;
+}
+
 function placeImage(text, pos) {
     console.log("placeImage", pos);
     let canvas = document.createElement('canvas');
@@ -152,7 +190,7 @@ function placeImage(text, pos) {
     var geo = new THREE.PlaneGeometry(size, size);
     var mesh = new THREE.Mesh(geo, material);
     mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-    mesh.position.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;
+    mesh.position.y = pos[1] * distanceFromCenter / 4 - distanceFromCenter / 8;  //dont go too high or low
     mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
     //console.log("mesh.position", mesh.position);
     mesh.lookAt(0, 0, 0);
@@ -178,12 +216,12 @@ function rePaintObject(ctx, text, image, canvas) {
 
 
 function runUMAP(embeddings) {
-
+    var myrng = new Math.seedrandom('hello.');
     let umap = new UMAP({
         nNeighbors: 4,
         minDist: .05,
         nComponents: 3,
-        random: Math.random,
+        random: myrng,
         spread: 1,
         //distanceFn: 'cosine',
     });
@@ -291,37 +329,6 @@ function animate() {
     renderer.render(scene, camera3D);
 }
 
-function mapAndNormalize(arrayOfNumbers) {
-    let max = [0, 0, 0];
-    let min = [0, 0, 0];
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (arrayOfNumbers[i][j] > max[j]) {
-                max[j] = arrayOfNumbers[i][j];
-            }
-            if (arrayOfNumbers[i][j] < min[j]) {
-                min[j] = arrayOfNumbers[i][j];
-            }
-        }
-    }
-    console.log("max", max, "min", min);
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
-        }
-    }
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (arrayOfNumbers[i][j] > max[j]) {
-                max[j] = arrayOfNumbers[i][j];
-            }
-            if (arrayOfNumbers[i][j] < min[j]) {
-                min[j] = arrayOfNumbers[i][j];
-            }
-        }
-    }
-    return arrayOfNumbers;
-}
 
 /////MOUSE STUFF
 
