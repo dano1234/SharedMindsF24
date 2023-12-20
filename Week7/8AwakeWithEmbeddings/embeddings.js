@@ -20,6 +20,7 @@ let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 let objects = [];
+let hitTestableThings = [];  //things that will be tested for intersection
 let in_front_of_you;
 let myPrompts = [];
 
@@ -76,8 +77,21 @@ function initWebInterface() {
         askForEmbeddings(dataForReplicate)
     });
     document.body.append(button);
+}
 
-
+function runUMAP(embeddings) {
+    var myrng = new Math.seedrandom('hello.');
+    let umap = new UMAP({
+        nNeighbors: 4,
+        minDist: .05,
+        nComponents: 3,
+        random: myrng,
+        spread: 1,
+        //distanceFn: 'cosine',
+    });
+    const fitting = umap.fit(embeddings);
+    console.log("fitting", fitting);
+    return fitting;
 
 }
 
@@ -109,7 +123,7 @@ async function askForEmbeddings(p_prompt) {
                 embeddings.push(embeddingsAndPrompts[i].embedding);
             }
             let fittings = runUMAP(embeddings);
-            fittings = mapAndNormalize(fittings);
+            fittings = normalize(fittings);
 
             for (let i = 0; i < embeddingsAndPrompts.length; i++) {
                 placeImage(embeddingsAndPrompts[i].input, fittings[i]);
@@ -134,9 +148,8 @@ function startLoadingImages() {
 }
 
 
-function mapAndNormalize(arrayOfNumbers) {
+function normalize(arrayOfNumbers) {
     //find max and min in the array
-    console.log("arrayOfNumbers1", arrayOfNumbers);
     let max = [0, 0, 0];
     let min = [0, 0, 0];
     for (let i = 0; i < arrayOfNumbers.length; i++) {
@@ -156,19 +169,8 @@ function mapAndNormalize(arrayOfNumbers) {
             arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
         }
     }
-    console.log("arrayOfNumbers2", arrayOfNumbers);
 
-    // for (let i = 0; i < arrayOfNumbers.length; i++) {
-    //     for (let j = 0; j < 3; j++) {
-    //         if (arrayOfNumbers[i][j] > max[j]) {
-    //             max[j] = arrayOfNumbers[i][j];
-    //         }
-    //         if (arrayOfNumbers[i][j] < min[j]) {
-    //             min[j] = arrayOfNumbers[i][j];
-    //         }
-    //     }
-    // }
-    console.log("arrayOfNumbers3", arrayOfNumbers);
+
     return arrayOfNumbers;
 }
 
@@ -179,7 +181,7 @@ function placeImage(text, pos) {
     let size = 128;
     canvas.height = size;
     canvas.width = size;
-    rePaintObject(ctx, text, null, canvas)
+    rePaintObject(ctx, text, null, canvas, true)
     //ctx.drawImage(img, 0, 0);
     //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
@@ -196,41 +198,57 @@ function placeImage(text, pos) {
     mesh.lookAt(0, 0, 0);
     //mesh.scale.set(10,10, 10);
     scene.add(mesh);
-    objects.push({ "object": mesh, "texture": texture, "text": text, "context": ctx, "image": null, "canvas": canvas });
+    hitTestableThings.push(mesh);//make a list for the raycaster to check for intersection
+    objects.push({ "object": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "context": ctx, "image": null, "canvas": canvas });
 }
 
-function rePaintObject(ctx, text, image, canvas) {
+function rePaintObject(ctx, text, image, canvas, showText) {
     let textParts = text.split(" ");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (image) {
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    } else {
+        showText = true; //so far only have the text to show
     }
-    ctx.font = '12px Arial';
-    ctx.fillStyle = 'white';
-    for (let i = 0; i < textParts.length; i++) {
-        const metrics = ctx.measureText(textParts[i]);
-        ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
+    if (showText) {
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'white';
+        for (let i = 0; i < textParts.length; i++) {
+            const metrics = ctx.measureText(textParts[i]);
+            ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
+        }
     }
 }
-
-
-
-function runUMAP(embeddings) {
-    var myrng = new Math.seedrandom('hello.');
-    let umap = new UMAP({
-        nNeighbors: 4,
-        minDist: .05,
-        nComponents: 3,
-        random: myrng,
-        spread: 1,
-        //distanceFn: 'cosine',
-    });
-    const fitting = umap.fit(embeddings);
-    console.log("fitting", fitting);
-    return fitting;
-
+function onDocumentMouseDown(event) {
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera3D);
+    var intersects = raycaster.intersectObjects(hitTestableThings);
+    let intersectedObjectUUID = -1;   //will never match but go through all the items anyway
+    if (intersects.length > 0) {
+        intersectedObjectUUID = intersects[0].object.uuid //take the first, closesest, object
+    }
+    for (let i = 0; i < objects.length; i++) {
+        let thisObject = objects[i];
+        if (thisObject.uuid == intersectedObjectUUID) {
+            console.log("clicked On", thisObject.text);
+            rePaintObject(thisObject.context, thisObject.text, thisObject.image, thisObject.canvas, true);
+            thisObject.texture.needsUpdate = true;
+        } else {
+            rePaintObject(thisObject.context, thisObject.text, thisObject.image, thisObject.canvas, false);
+            thisObject.texture.needsUpdate = true;
+        }
+    }
+    if (intersectedObjectUUID == -1) { //if no object was intersected
+        onPointerDownPointerX = event.clientX;
+        onPointerDownPointerY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+        isUserInteracting = true;
+    }
 }
-
 
 async function askForPicture(object) {
     // prompt = inputField.value;
@@ -266,7 +284,7 @@ async function askForPicture(object) {
         incomingImage.crossOrigin = "anonymous";
         incomingImage.onload = function () {
             object.image = incomingImage;
-            rePaintObject(object.context, object.text, object.image, object.canvas);
+            rePaintObject(object.context, object.text, object.image, object.canvas, false);
             //const ctx = object.context;
             //ctx.drawImage(incomingImage, 0, 0, 128, 128);
             // const base64Image = canvas.toDataURL();
@@ -323,9 +341,10 @@ function getPositionInFrontOfCamera() {
 
 function animate() {
     requestAnimationFrame(animate);
-    for (var i = 0; i < objects.length; i++) {
+    for (let i = 0; i < objects.length; i++) {
         objects[i].texture.needsUpdate = true;
     }
+
     renderer.render(scene, camera3D);
 }
 
@@ -356,13 +375,8 @@ function onDocumentKeyDown(event) {
     //}
 }
 
-function onDocumentMouseDown(event) {
-    onPointerDownPointerX = event.clientX;
-    onPointerDownPointerY = event.clientY;
-    onPointerDownLon = lon;
-    onPointerDownLat = lat;
-    isUserInteracting = true;
-}
+
+
 
 function onDocumentMouseMove(event) {
     if (isUserInteracting) {
