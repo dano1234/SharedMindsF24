@@ -1,19 +1,3 @@
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
-import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-//umap-js.min.js
-
-
-
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-
-
-let db;
-let appName = "EmbeddingClusters";
 let distanceFromCenter = 800;
 
 let camera3D, scene, renderer;
@@ -26,76 +10,11 @@ let myPrompts = [];
 
 initWebInterface();
 init3D();
-//initFirebase();
 
-function initWebInterface() {
 
-    fetch('prompts.json')
-        .then(response => response.json())
-        .then(prompts => {
-            myPrompts = prompts.allPrompts;
-
-        })
-
-    // input_image_field.style.transform = "translate(-50%, -50%)";
-    var webInterfaceContainer = document.createElement("div");
-    webInterfaceContainer.id = "webInterfaceContainer";
-
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.zIndex = "200";
-    webInterfaceContainer.style.top = "15%";
-    webInterfaceContainer.style.left = "50%";
-    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.height = "10%";
-    //webInterfaceContainer.append(input_image_field);
-    document.body.append(webInterfaceContainer);
-
-    let ThreeJSContainer = document.createElement("div");
-    ThreeJSContainer.style.zIndex = "1";
-    ThreeJSContainer.id = "ThreeJSContainer";
-    ThreeJSContainer.style.position = "absolute";
-    ThreeJSContainer.style.top = "0px";
-    ThreeJSContainer.style.left = "0px";
-    ThreeJSContainer.style.width = "100%";
-    ThreeJSContainer.style.height = "100%";
-    document.body.append(ThreeJSContainer);
-
-    let button = document.createElement("button");
-    button.innerHTML = "Load All Prompts";
-    button.style.position = "absolute";
-    button.style.top = "10%";
-    button.style.left = "50%";
-    button.style.transform = "translate(-50%, -50%)";
-    button.style.fontSize = "20px";
-    button.style.zIndex = "200";
-    button.addEventListener("click", function () {
-        let dataForReplicate = "";
-        for (let i = 0; i < myPrompts.length; i++) {
-            dataForReplicate += myPrompts[i] + "\n";
-        }
-        askForEmbeddings(dataForReplicate)
-    });
-    document.body.append(button);
-}
-
-function runUMAP(embeddings) {
-    var myrng = new Math.seedrandom('hello.');
-    let umap = new UMAP({
-        nNeighbors: 4,
-        minDist: .05,
-        nComponents: 3,
-        random: myrng,
-        spread: 1,
-        //distanceFn: 'cosine',
-    });
-    const fitting = umap.fit(embeddings);
-    console.log("fitting", fitting);
-    return fitting;
-
-}
 
 async function askForEmbeddings(p_prompt) {
+    document.getElementById("feedback").innerHTML = "Getting Embeddings...";
     let promptInLines = p_prompt.replace(/,/g, "\n");
     let data = {
         version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
@@ -116,31 +35,46 @@ async function askForEmbeddings(p_prompt) {
     const raw = fetch(url, options)
         .then(response => response.json())
         .then(data => {
-            let embeddingsAndPrompts = data.output;
-            console.log("embeddingsAndPrompts", embeddingsAndPrompts);
-            let embeddings = [];
-            for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-                embeddings.push(embeddingsAndPrompts[i].embedding);
-            }
-            let fittings = runUMAP(embeddings);
-            fittings = normalize(fittings);
-
-            for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-                placeImage(embeddingsAndPrompts[i].input, fittings[i]);
-                //embeddingsAndPrompts[i].embedding = fittings[i];
-            }
+            runUMAP(data.output);
             startLoadingImages();
+
         });
 
 }
+function runUMAP(embeddingsAndPrompts) {
 
-
+    //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
+    console.log("embeddingsAndPrompts", embeddingsAndPrompts);
+    let embeddings = [];
+    for (let i = 0; i < embeddingsAndPrompts.length; i++) {
+        embeddings.push(embeddingsAndPrompts[i].embedding);
+    }
+    //let fittings = runUMAP(embeddings);
+    var myrng = new Math.seedrandom('hello.');
+    let umap = new UMAP({
+        nNeighbors: 4,
+        minDist: .05,
+        nComponents: 3,
+        random: myrng,  //special library seeded random so it is the same randome numbers every time
+        spread: 1,
+        //distanceFn: 'cosine',
+    });
+    let fittings = umap.fit(embeddings);
+    fittings = normalize(fittings);  //normalize to 0-1
+    for (let i = 0; i < embeddingsAndPrompts.length; i++) {
+        placeImage(embeddingsAndPrompts[i].input, fittings[i]);
+    }
+    //console.log("fitting", fitting);
+}
 
 function startLoadingImages() {
+    document.getElementById("feedback").innerHTML = "Loading Images...";
     let whichObject = 0;
     setInterval(() => {
         if (!objects[whichObject].image) {
             askForPicture(objects[whichObject]);
+        } else {
+            document.getElementById("feedback").innerHTML = "Loaded Images";
         }
         whichObject++;
         console.log("whichObject", objects[whichObject]);
@@ -175,7 +109,6 @@ function normalize(arrayOfNumbers) {
 }
 
 function placeImage(text, pos) {
-    console.log("placeImage", pos);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     let size = 128;
@@ -219,7 +152,10 @@ function rePaintObject(ctx, text, image, canvas, showText) {
         }
     }
 }
-function onDocumentMouseDown(event) {
+
+//mouse can click on objects thanks to the raycaster, this iis 
+
+function getIntersectedObjectUUID(event) {
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -241,13 +177,7 @@ function onDocumentMouseDown(event) {
             thisObject.texture.needsUpdate = true;
         }
     }
-    if (intersectedObjectUUID == -1) { //if no object was intersected
-        onPointerDownPointerX = event.clientX;
-        onPointerDownPointerY = event.clientY;
-        onPointerDownLon = lon;
-        onPointerDownLat = lat;
-        isUserInteracting = true;
-    }
+    return intersectedObjectUUID;
 }
 
 async function askForPicture(object) {
@@ -304,16 +234,6 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById("ThreeJSContainer").append(renderer.domElement);
 
-    let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
-    // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
-    bgGeometery.scale(-1, 1, 1);
-    // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
-    let panotexture = new THREE.TextureLoader().load("itp.jpg");
-    // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
-    let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
-
-    let back = new THREE.Mesh(bgGeometery, backMaterial);
-    //scene.add(back);
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
@@ -335,7 +255,70 @@ function getPositionInFrontOfCamera() {
     return posInWorld;
 }
 
+function initWebInterface() {
 
+    fetch('prompts.json')
+        .then(response => response.json())
+        .then(prompts => {
+            myPrompts = prompts.allPrompts;
+
+        })
+
+    // input_image_field.style.transform = "translate(-50%, -50%)";
+    var webInterfaceContainer = document.createElement("div");
+    webInterfaceContainer.id = "webInterfaceContainer";
+
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.zIndex = "200";
+    webInterfaceContainer.style.top = "15%";
+    webInterfaceContainer.style.left = "50%";
+    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.height = "20%";
+    //webInterfaceContainer.append(input_image_field);
+    document.body.append(webInterfaceContainer);
+
+    let ThreeJSContainer = document.createElement("div");
+    ThreeJSContainer.style.zIndex = "1";
+    ThreeJSContainer.id = "ThreeJSContainer";
+    ThreeJSContainer.style.position = "absolute";
+    ThreeJSContainer.style.top = "0px";
+    ThreeJSContainer.style.left = "0px";
+    ThreeJSContainer.style.width = "100%";
+    ThreeJSContainer.style.height = "100%";
+    document.body.append(ThreeJSContainer);
+
+    let feedback = document.createElement("div");
+    feedback.id = "feedback";
+    feedback.style.position = "absolute";
+    feedback.style.zIndex = "200";
+    feedback.innerHTML = "Ready";
+    feedback.style.width = "100%";
+    feedback.style.textAlign = "center";
+    feedback.style.top = "80%";
+    feedback.style.left = "50%";
+    feedback.style.transform = "translate(-50%, -50%)";
+    feedback.style.fontSize = "20px";
+    feedback.style.color = "white";
+    webInterfaceContainer.append(feedback);
+
+    let button = document.createElement("button");
+    button.innerHTML = "Load All Prompts";
+    button.style.position = "absolute";
+    button.style.top = "10%";
+    button.style.left = "50%";
+    button.style.transform = "translate(-50%, -50%)";
+    button.style.fontSize = "20px";
+    button.style.zIndex = "200";
+    button.addEventListener("click", function () {
+        let dataForReplicate = "";
+        for (let i = 0; i < myPrompts.length; i++) {
+            dataForReplicate += myPrompts[i] + "\n";
+        }
+        askForEmbeddings(dataForReplicate)
+    });
+    document.body.append(button);
+}
 
 
 
@@ -344,7 +327,6 @@ function animate() {
     for (let i = 0; i < objects.length; i++) {
         objects[i].texture.needsUpdate = true;
     }
-
     renderer.render(scene, camera3D);
 }
 
@@ -357,6 +339,17 @@ var lon = -90, onPointerDownLon = 0;
 var lat = 0, onPointerDownLat = 0;
 var isUserInteracting = false;
 
+
+function onDocumentMouseDown(event) {
+    let intersectedObjectUUID = getIntersectedObjectUUID(event);
+    if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
+        onPointerDownPointerX = event.clientX;
+        onPointerDownPointerY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+        isUserInteracting = true;
+    }
+}
 
 function moveCameraWithMouse() {
     let ThreeJSContainer = document.getElementById("ThreeJSContainer");
@@ -413,68 +406,3 @@ function onWindowResize() {
     console.log('Resized');
 }
 
-
-
-
-// function initFirebase() {
-//     console.log("init");
-//     //let nameField = document.createElement('name');
-//     //document.body.append(nameField);
-//     //
-//     // //let name = localStorage.getItem('fb_name');
-//     // if (!name) {
-//     //     name = prompt("Enter Your Name Here");
-//     //     //localStorage.setItem('fb_name', name);  //save name
-//     // }
-//     // console.log("name", name);
-//     // if (name) {
-//     //     nameField.value = name;
-//     // }
-//     const firebaseConfig = {
-//         apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-//         authDomain: "shared-minds.firebaseapp.com",
-//         projectId: "shared-minds",
-//         storageBucket: "shared-minds.appspot.com",
-//         messagingSenderId: "258871453280",
-//         appId: "1:258871453280:web:4c103da9b230e982544505",
-//         measurementId: "G-LN0GNWFZQQ"
-//     };
-
-//     const app = initializeApp(firebaseConfig);
-//     const analytics = getAnalytics(app);
-//     db = getDatabase();
-//     subscribeToImages()
-// }
-
-// function subscribeToImages() {
-//     const commentsRef = ref(db, appName + '/images/');
-//     onChildAdded(commentsRef, (data) => {
-//         console.log("added", data.val());
-//         var incomingImage = new Image();
-//         incomingImage.crossOrigin = "anonymous";
-//         incomingImage.onload = function () {
-//             placeImage(incomingImage, data.val().location);
-//         };
-//         let b64 = data.val().base64Image;
-
-//         incomingImage.src = b64;
-
-//     });
-//     onChildChanged(commentsRef, (data) => {
-//         console.log("changed", data.key, data);
-//     });
-//     onChildRemoved(commentsRef, (data) => {
-//         console.log("removed", data.key, data.val());
-//     });
-// }
-
-// function sendImageToFirebase(base64Image, prompt) {
-//     let pos = getPositionInFrontOfCamera()
-//     let dataToSet = {
-//         prompt: prompt,
-//         base64Image: base64Image,
-//         location: { "x": pos.x, "y": pos.y, "z": pos.z }
-//     }
-//     //console.log("dataToSet", dataToSet);
-//     push(ref(db, appName + '/images/'), dataToSet);
-// }
