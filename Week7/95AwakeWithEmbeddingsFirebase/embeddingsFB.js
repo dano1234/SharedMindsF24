@@ -31,19 +31,6 @@ initFirebase();
 function initWebInterface() {
 
 
-    // input_image_field.style.transform = "translate(-50%, -50%)";
-    var webInterfaceContainer = document.createElement("div");
-    webInterfaceContainer.id = "webInterfaceContainer";
-
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.zIndex = "200";
-    webInterfaceContainer.style.top = "15%";
-    webInterfaceContainer.style.left = "50%";
-    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.height = "10%";
-    //webInterfaceContainer.append(input_image_field);
-    document.body.append(webInterfaceContainer);
 
     let ThreeJSContainer = document.createElement("div");
     ThreeJSContainer.style.zIndex = "1";
@@ -54,6 +41,36 @@ function initWebInterface() {
     ThreeJSContainer.style.width = "100%";
     ThreeJSContainer.style.height = "100%";
     document.body.append(ThreeJSContainer);
+
+    // input_image_field.style.transform = "translate(-50%, -50%)";
+    var webInterfaceContainer = document.createElement("div");
+    webInterfaceContainer.id = "webInterfaceContainer";
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.zIndex = "200";
+    webInterfaceContainer.style.top = "15%";
+    webInterfaceContainer.style.left = "50%";
+    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
+    webInterfaceContainer.style.position = "absolute";
+    webInterfaceContainer.style.height = "10%";
+    //webInterfaceContainer.append(input_image_field);
+    document.body.append(webInterfaceContainer);
+
+    var input_image_field = document.createElement("input");
+    input_image_field.type = "text";
+    input_image_field.id = "input_image_prompt";
+    input_image_field.value = "Nice picture of a dog";
+    input_image_field.style.position = "absolute";
+    input_image_field.style.fontSize = "20px";
+    input_image_field.style.width = "400px";
+    input_image_field.style.top = "20%";
+    input_image_field.style.left = "50%";
+    input_image_field.style.transform = "translate(-50%, -50%)";
+    input_image_field.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") {
+            askForPicture(input_image_field);
+        }
+    });
+    webInterfaceContainer.append(input_image_field);
 
     let button = document.createElement("button");
     button.innerHTML = "Load All Prompts";
@@ -70,7 +87,7 @@ function initWebInterface() {
         }
         askForEmbeddings(dataForReplicate)
     });
-    document.body.append(button);
+    webInterfaceContainer.body.append(button);
 }
 
 function runUMAP(embeddings) {
