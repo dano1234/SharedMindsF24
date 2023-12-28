@@ -1,13 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
-import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { placeImage, getPositionInFrontOfCamera } from "./embeddingsFB.js";
+import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
+import { createObject } from "./embeddingsFB.js";
 
 
 //use var instead of let in module to make it global
 var appName;
 var folder;
 var db;
+export var localKey;
 
 console.log("subscribeToFirebase", appName, folder);
 export function initFirebase() {
@@ -39,7 +40,6 @@ export function initFirebase() {
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     db = getDatabase();
-
     subscribeToFirebase()
 }
 
@@ -48,20 +48,16 @@ function subscribeToFirebase() {
     const myRef = ref(db, path);
     console.log("myRef", myRef);
     onChildAdded(myRef, (data) => {
-        console.log("added", data.val());
-        placeImage(data.key, data.val().prompt, data.val().location, data.val().embedding, data.val().base64Image);
-        // var incomingImage = new Image();
-        // incomingImage.crossOrigin = "anonymous";
-        // incomingImage.onload = function () {
-        //     placeImage(incomingImage, data.val().location);
-        // };
-        // let b64 = data.val().base64Image;
+        console.log("added", data.val())
 
-        // incomingImage.src = b64;
-
+        let newObject = createObject(data.key, data.val());
+        if (newObject.dbKey == localKey && object.image == null) {
+            askForPicture(text, object.key);
+        }
     });
     onChildChanged(myRef, (data) => {
         console.log("changed", data.key, data);
+        updateObject(data.key, data.val());
     });
     onChildRemoved(myRef, (data) => {
         console.log("removed", data.key, data.val());
@@ -76,16 +72,18 @@ export function storeEmbeddingInFirebase(prompt, embedding, pos) {
         prompt: prompt,
         location: { "x": pos.x, "y": pos.y, "z": pos.z }
     }
-    //console.log("dataToSet", dataToSet);
+    // push adds something to the database and returns a key
     let gotBack = push(myRef, dataToSet);
-    let key = gotBack.key;
+    localKey = gotBack.key;
+    console.log("got back", localKey);
 }
 
-export function setImageInFirebase(key, image) {
-    let base64Image = image.src;
+export function updateInFirebase(key, base64Image) {
+    //just append the image to the existing data
     let dataToSet = {
         base64Image: base64Image,
     }
-    //console.log("dataToSet", dataToSet);
-    updated(ref(db, appName + '/' + folder + '/' + key), dataToSet);
+    const updates = {};
+    updates[appName + '/' + folder + '/' + key + '/image/'] = dataToSet;
+    update(ref(db), updates);
 }

@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
-import { initFirebase, storeEmbeddingInFirebase, setImageInFirebase } from './firebaseMOD.js';
+import { initFirebase, storeEmbeddingInFirebase, updateInFirebase, localKey } from './firebaseMOD.js';
 
 let distanceFromCenter = 800;
 
@@ -63,29 +63,12 @@ async function askForEmbedding(p_prompt) {
     const raw = fetch(url, options)
         .then(response => response.json())
         .then(data => {
-            storeEmbeddingInFirebase(data.output[0].input, data.output[0].embedding, getPositionInFrontOfCamera());
+            askForPicture(p_prompt);
             //runUMAP(data);
             //startLoadingImages();
-            console.log("got embedding", data.output);
-
+            console.log("got embedding getting picture", data.output);
         });
-
 }
-
-function startLoadingImages() {
-    document.getElementById("feedback").innerHTML = "Loading Images...";
-    let whichObject = 0;
-    setInterval(() => {
-        if (!objects[whichObject].image) {
-            askForPicture(objects[whichObject]);
-        } else {
-            document.getElementById("feedback").innerHTML = "Loaded Images";
-        }
-        whichObject++;
-        console.log("whichObject", objects[whichObject]);
-    }, 10000);
-}
-
 
 function normalize(arrayOfNumbers) {
     //find max and min in the array
@@ -111,54 +94,103 @@ function normalize(arrayOfNumbers) {
     return arrayOfNumbers;
 }
 
-export function placeImage(key, text, embedding, pos, base64Image) {
-    console.log("placeImage", pos);
+function findObjectByKey(key) {
+    for (let i = 0; i < objects.length; i++) {
+        if (objects[i].dbKey == key) {
+            return objects[i];
+        }
+    }
+    return null;
+}
+
+export function updateObject(key, data) {
+    let text = data.prompt;
+    let embedding = data.embedding;
+    let pos = data.location;
+    let image = data.image;
+    console.log("updateObject", pos);
+    let thisObject = findObjectByKey(key);
+    if (!thisObject) {
+        console.log("could not find object", key);
+        return;
+    }
+    thisObject.text = text;
+    thisObject.embedding = embedding;
+    thisObject.mesh.position.x = pos.x;
+    thisObject.mesh.position.y = pos.y;
+    thisObject.mesh.position.z = pos.z;
+    thisObject.mesh.lookAt(0, 0, 0);
+    if (image) {
+        //Loading of the home test image - img1
+        var incomingImage = new Image();
+        incomingImage.crossOrigin = "anonymous";
+        incomingImage.onload = function () {
+            thisObject.image = incomingImage;
+        };
+        incomingImage.src = image.base64Image;
+    }
+}
+
+
+export function createObject(key, data) {
+    //get stuff from firebase
+    let text = data.prompt;
+    let embedding = data.embedding;
+    let pos = data.location;
+    let image = data.image;
+
+    //create a texturem mapped 3D object
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     let size = 128;
     canvas.height = size;
     canvas.width = size;
-    if (base64Image) {
-        //Loading of the home test image - img1
-        var incomingImage = new Image();
-        incomingImage.crossOrigin = "anonymous";
-        incomingImage.onload = function () {
-            rePaintObject(ctx, text, incomingImage, canvas, false);
-        };
-        incomingImage.src = base64Image;
-    } else {
-        askForPicture(text, key);
-        rePaintObject(ctx, text, null, canvas, true)
-    }
-    //ctx.drawImage(img, 0, 0);
+
     //let teture = new THREE.TextureLoader().load(img);
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    //console.log(img, texture);
     var material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-
     var geo = new THREE.PlaneGeometry(size, size);
     var mesh = new THREE.Mesh(geo, material);
-    mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-    mesh.position.y = pos[1] * distanceFromCenter / 4 - distanceFromCenter / 8;  //dont go too high or low
-    mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
-    //console.log("mesh.position", mesh.position);
+    mesh.position.x = pos.x
+    mesh.position.y = pos.y
+    mesh.position.z = pos.z
     mesh.lookAt(0, 0, 0);
-    //mesh.scale.set(10,10, 10);
     scene.add(mesh);
     hitTestableThings.push(mesh);//make a list for the raycaster to check for intersection
-    objects.push({ "dbKey": key, "embedding": embedding, "object": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "context": ctx, "image": null, "canvas": canvas });
+    //leave the image null for now
+    let thisObject = { "dbKey": key, "embedding": embedding, "mesh": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "show_text": false, "context": ctx, "image": null, "canvas": canvas };
+    objects.push(thisObject);
+    if (image) {
+        let incomingImage = new Image();
+        thisObject.image = incomingImage;
+        incomingImage.crossOrigin = "anonymous";
+        incomingImage.onload = function () {
+            console.log("loaded image", thisObject.text);
+        };
+        incomingImage.src = image.base64Image;
+    }
+    return thisObject;
 }
 
-function rePaintObject(ctx, text, image, canvas, showText) {
+
+
+
+function repaintObject(object) {
+    let texture = object.texture;
+    let text = object.text;
+    let image = object.image;
+    let ctx = object.context;
+    let canvas = object.canvas;
+
     let textParts = text.split(" ");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (image) {
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     } else {
-        showText = true; //so far only have the text to show
+        object.showText = true; //so far only have the text to show
     }
-    if (showText) {
+    if (object.showText) {
         ctx.font = '12px Arial';
         ctx.fillStyle = 'white';
         for (let i = 0; i < textParts.length; i++) {
@@ -166,10 +198,10 @@ function rePaintObject(ctx, text, image, canvas, showText) {
             ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
         }
     }
+    texture.needsUpdate = true;
 }
 
 //mouse can click on objects thanks to the raycaster, this iis 
-
 function getIntersectedObjectUUID(event) {
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
@@ -184,18 +216,15 @@ function getIntersectedObjectUUID(event) {
     for (let i = 0; i < objects.length; i++) {
         let thisObject = objects[i];
         if (thisObject.uuid == intersectedObjectUUID) {
+            thisObject.showText = !thisObject.showText;  //toggle the text
             console.log("clicked On", thisObject.text);
-            rePaintObject(thisObject.context, thisObject.text, thisObject.image, thisObject.canvas, true);
-            thisObject.texture.needsUpdate = true;
-        } else {
-            rePaintObject(thisObject.context, thisObject.text, thisObject.image, thisObject.canvas, false);
-            thisObject.texture.needsUpdate = true;
+            break;
         }
     }
     return intersectedObjectUUID;
 }
 
-async function askForPicture(text, key) {
+async function askForPicture(text) {
     // prompt = inputField.value;
     //inputField.value = "Waiting for reply for:" + prompt;
     let data = {
@@ -206,7 +235,7 @@ async function askForPicture(text, key) {
             "height": 512,
         },
     };
-    console.log("Asking for Picture Info From Replicate via Proxy", data);
+    //console.log("Asking for Picture Info From Replicate via Proxy", data);
     let options = {
         method: "POST",
         headers: {
@@ -215,7 +244,7 @@ async function askForPicture(text, key) {
         body: JSON.stringify(data),
     };
     const url = replicateProxy + "/create_n_get/"
-    console.log("url", url, "options", options);
+    //console.log("url", url, "options", options);
     const picture_info = await fetch(url, options);
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
@@ -225,26 +254,7 @@ async function askForPicture(text, key) {
     } else {
         // inputField.value = prompt;
         //Loading of the home test image - img1
-        var incomingImage = new Image();
-        incomingImage.crossOrigin = "anonymous";
-        incomingImage.onload = function () {
-
-            let object;
-            for (let i = 0; i < objects.length; i++) {
-                if (objects[i].dbKey == key) {
-                    object = objects[i];
-                    break;
-                }
-            }
-            if (!object) {
-                console.log("could not find object", key);
-                return;
-            }
-            object.image = incomingImage;
-            rePaintObject(object.context, object.text, object.image, object.canvas, false);
-            setImageInFirebase(key, object.canvas.toDataURL("image/png", 1.0));
-        };
-        incomingImage.src = proxy_said.output[0];
+        return proxy_said.output[0];
     }
 }
 
@@ -259,14 +269,15 @@ function init3D() {
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
-    var geometryFront = new THREE.BoxGeometry(1, 1, 1);
-    var materialFront = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    var geometryFront = new THREE.BoxGeometry(10, 10, 10);
+    var materialFront = new THREE.MeshBasicMaterial({ color: 0xffff00 });
     in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
+    in_front_of_you.position.set(0, 0, -distanceFromCenter);  //base the the z position on camera field of view
     camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
-
+    scene.add(camera3D);
     moveCameraWithMouse();
 
-    camera3D.position.z = 5;
+    camera3D.position.z = 0;
     animate();
 }
 
@@ -328,21 +339,45 @@ function initWebInterface() {
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.addEventListener("keyup", function (event) {
         if (event.key === "Enter") {
-            askForEmbedding(input_image_field.value);
+            askForEmbedding(input_image_field.value).then(embedding =>
+                askForPicture(input_image_field.value).then(imageAndEmbedding =>
+                    convertImageToBase64(imageAndEmbedding).then(all =>
+                        storeEmbeddingInFirebase(all.prompt, all.embedding, all.base64, getPositionInFrontOfCamera()))));
+
         }
     });
     webInterfaceContainer.append(input_image_field);
 }
 
+async function convertImageToBase64(imageAndEmbedding) {
+    var incomingImage = new Image();
+    incomingImage.crossOrigin = "anonymous";
+
+    incomingImage.src = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png";
+    await incomingImage.decode();
+    await incomingImage.onload = function () {
+        let object = findObjectByKey(key);
+        if (!object) {
+            console.log("could not find object", key);
+            return;
+        }
+        object.image = incomingImage;
+        //storeEmbeddingInFirebase(data.output[0].input, data.output[0].embedding, getPositionInFrontOfCamera());
+
+        //just update firebase for now, we make that authoratative,
+        //firbase subescriptionsfor add and change will eventually trigger local changes
+        //updateInFirebase(key, object.canvas.toDataURL("image/png", 1.0));
+    };
+    incomingImage.src = proxy_said.output[0];
+}
 
 function animate() {
     requestAnimationFrame(animate);
     for (let i = 0; i < objects.length; i++) {
-        objects[i].texture.needsUpdate = true;
+        repaintObject(objects[i]);
     }
     renderer.render(scene, camera3D);
 }
-
 
 /////MOUSE STUFF
 
