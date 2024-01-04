@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
-import { initFirebase, storeInFirebase } from './firebaseMOD.js';
+import { initFirebase, storeInFirebase, destroyDatabase } from './firebaseMOD.js';
 
 let distanceFromCenter = 800;
 
@@ -100,10 +100,16 @@ function normalize(arrayOfNumbers) {
     return arrayOfNumbers;
 }
 
+export function removeObject(key, data) {
+    let thisArrayIndex = findObjectByKey(key);
+    scene.remove(objects[thisArrayIndex].mesh);
+    objects.splice(thisArrayIndex, 1);
+}
+
 function findObjectByKey(key) {
     for (let i = 0; i < objects.length; i++) {
         if (objects[i].dbKey == key) {
-            return objects[i];
+            return i;
         }
     }
     return null;
@@ -115,11 +121,12 @@ export function updateObject(key, data) {
     let pos = data.location;
     let image = data.image;
     console.log("updateObject", pos);
-    let thisObject = findObjectByKey(key);
-    if (!thisObject) {
+    let thisArrayIndex = findObjectByKey(key);
+    if (thisArrayIndex == -1) {
         console.log("could not find object", key);
         return;
     }
+    thisObject = objects[thisArrayIndex];
     thisObject.text = text;
     thisObject.embedding = embedding;
     thisObject.mesh.position.x = pos.x;
@@ -136,7 +143,6 @@ export function updateObject(key, data) {
         incomingImage.src = image.base64Image;
     }
 }
-
 
 export function createObject(key, data) {
     //get stuff from firebase
@@ -227,6 +233,34 @@ function getIntersectedObjectUUID(event) {
     return intersectedObjectUUID;
 }
 
+async function godCalling() {
+
+    let text = "36 prompts for stable diffusion images organzied into 6 different themes "
+    // prompt = inputField.value;
+    //inputField.value = "Waiting for reply for:" + prompt;
+    let data = {
+        "version": "13c3cdee13ee059ab779f0291d29054dab00a47dad8261375654de5540165fb0",
+        input: {
+            "prompt": text,
+        },
+    };
+    //console.log("Asking for Picture Info From Replicate via Proxy", data);
+    let options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    };
+    const url = replicateProxy + "/create_n_get/"
+    //console.log("url", url, "options", options);
+    const response = await fetch(url, options);
+    //console.log("picture_response", picture_info);
+    const jsonResponse = await response.json();
+    let incomingText = jsonResponse.output.join("");
+    console.log("Proxy Returned", incomingText);
+    return incomingText;
+}
 async function askForPicture(text) {
     input_image_field.value = "Waiting for reply for:" + text;
     // prompt = inputField.value;
@@ -270,6 +304,20 @@ function init3D() {
     document.getElementById("ThreeJSContainer").append(renderer.domElement);
 
 
+    var radius = 100;
+    var latSegments = 9;  // 10° increments
+    var longSegments = 18; // 10° increments
+
+    var geometry = new THREE.SphereBufferGeometry(radius, longSegments, latSegments);
+    var material = new THREE.MeshBasicMaterial({
+        color: 0x444444,
+        wireframe: true
+    });
+
+    var sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+
+
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
     var geometryFront = new THREE.BoxGeometry(10, 10, 10);
@@ -292,34 +340,37 @@ export function getPositionInFrontOfCamera() {
 }
 
 function initWebInterface() {
-    // input_image_field.style.transform = "translate(-50%, -50%)";
+
+    //something to contain all the web interface elements
     var webInterfaceContainer = document.createElement("div");
     webInterfaceContainer.id = "webInterfaceContainer";
-
     webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.zIndex = "200";
+    webInterfaceContainer.style.zIndex = "2";
     webInterfaceContainer.style.top = "15%";
     webInterfaceContainer.style.left = "50%";
     webInterfaceContainer.style.transform = "translate(-50%, -50%)";
     webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.height = "20%";
-    //webInterfaceContainer.append(input_image_field);
+    webInterfaceContainer.style.height = "100%";
+    webInterfaceContainer.style.width = "100%";
+    webInterfaceContainer.style.pointerEvents = "none";
     document.body.append(webInterfaceContainer);
 
+    //something to contain all the 3D stuff (so it can be behind the web interface)
     let ThreeJSContainer = document.createElement("div");
     ThreeJSContainer.style.zIndex = "1";
     ThreeJSContainer.id = "ThreeJSContainer";
     ThreeJSContainer.style.position = "absolute";
-    ThreeJSContainer.style.top = "0px";
-    ThreeJSContainer.style.left = "0px";
+    ThreeJSContainer.style.top = "0%";
+    ThreeJSContainer.style.left = "0%";
     ThreeJSContainer.style.width = "100%";
     ThreeJSContainer.style.height = "100%";
     document.body.append(ThreeJSContainer);
 
+    //make a feedback div
     let feedback = document.createElement("div");
     feedback.id = "feedback";
     feedback.style.position = "absolute";
-    feedback.style.zIndex = "200";
+    feedback.style.zIndex = "2";
     feedback.innerHTML = "Ready";
     feedback.style.width = "100%";
     feedback.style.textAlign = "center";
@@ -330,36 +381,26 @@ function initWebInterface() {
     feedback.style.color = "white";
     webInterfaceContainer.append(feedback);
 
-    input_image_field = document.createElement("input");
-    webInterfaceContainer.append(input_image_field);
-    input_image_field.type = "text";
-    input_image_field.id = "input_image_prompt";
-    input_image_field.value = "Nice picture of a dog";
-    input_image_field.style.position = "absolute";
-    input_image_field.style.fontSize = "20px";
-    input_image_field.style.width = "400px";
-    input_image_field.style.top = "20%";
-    input_image_field.style.left = "50%";
-    input_image_field.style.transform = "translate(-50%, -50%)";
-    input_image_field.addEventListener("keyup", function (event) {
-        if (event.key === "Enter") {
-            askForAll();
-        }
-    });
-    //make a button in the upper right corner called "GOD" that will create many new objects\
 
-    let GodButton = document.createElement("GodButton");
+
+    //make a button in the upper right corner called "GOD" that will create many new objects\
+    let GodButton = document.createElement("button");
     GodButton.innerHTML = "GOD";
     GodButton.style.position = "absolute";
     GodButton.style.top = "50%";
     GodButton.style.right = "10%";
-    GodButton.style.zIndex = "200";
+    GodButton.style.zIndex = "2";
     GodButton.style.fontSize = "20px";
     GodButton.style.color = "white";
+    GodButton.style.backgroundColor = "black";
+    GodButton.style.pointerEvents = "all";
     GodButton.addEventListener("click", function () {
-        createManyObjects();
+        let result = godCalling();
+        console.log("result", result);
     });
     webInterfaceContainer.append(GodButton);
+
+
     //make a button in the upper right corner called "THANOS" that will remove many new objects
     let ThanosButton = document.createElement("button");
     ThanosButton.innerHTML = "THANOS";
@@ -369,10 +410,36 @@ function initWebInterface() {
     ThanosButton.style.zIndex = "200";
     ThanosButton.style.fontSize = "20px";
     ThanosButton.style.color = "white";
+    ThanosButton.style.backgroundColor = "black";
     ThanosButton.addEventListener("click", function () {
-        removeManyObjects();
+        destroyDatabase();
     });
+    ThanosButton.style.pointerEvents = "all";
     webInterfaceContainer.append(ThanosButton);
+
+    //make a text input field
+    input_image_field = document.createElement("input");
+    input_image_field.type = "text";
+    input_image_field.id = "input_image_prompt";
+    input_image_field.value = "Nice picture of a dog";
+    input_image_field.style.position = "absolute";
+    input_image_field.style.zIndex = "200";
+    input_image_field.style.fontSize = "30px";
+    input_image_field.style.height = "30px";
+    input_image_field.style.color = "white";
+    input_image_field.style.backgroundColor = "black";
+    input_image_field.style.textAlign = "center";
+    input_image_field.style.width = "50%";
+    input_image_field.style.top = "50%";
+    input_image_field.style.left = "50%";
+    input_image_field.style.transform = "translate(-50%, -50%)";
+    input_image_field.style.pointerEvents = "all";
+    input_image_field.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") {
+            askForAll();
+        }
+    });
+    webInterfaceContainer.append(input_image_field);
 
 }
 

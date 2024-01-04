@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { createObject } from "./embeddingsFB.js";
+import { createObject, removeObject } from "./embeddingsFB.js";
 
 
 //use var instead of let in module to make it global
@@ -60,6 +60,7 @@ function subscribeToFirebase() {
         updateObject(data.key, data.val());
     });
     onChildRemoved(myRef, (data) => {
+        removeObject(data.key, data.val());
         console.log("removed", data.key, data.val());
     });
 }
@@ -73,6 +74,15 @@ export function storeInFirebase(data) {
     let gotBack = push(myRef, data);
     localKey = gotBack.key;
     console.log("got back", localKey);
+}
+
+
+export function destroyDatabase() {
+    const myRef = ref(db, appName + '/' + folder + '/')
+    //console.log("storeEmbeddingInFirbase", prompt, embedding);
+    const updates = {};
+    updates[appName + '/' + folder + '/'] = {};
+    update(ref(db), updates);
 }
 
 export function updateInFirebase(key, data) {
