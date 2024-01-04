@@ -6,15 +6,15 @@ import { createObject } from "./embeddingsFB.js";
 
 //use var instead of let in module to make it global
 var appName;
-var folder;
+var folder
 var db;
 export var localKey;
 
-console.log("subscribeToFirebase", appName, folder);
-export function initFirebase() {
-    appName = "3DEmbeddingsFirebase";
-    folder = "embeddings";
-    console.log("init firebase");
+export function initFirebase(_appName, _folder) {
+    appName = _appName;
+    folder = _folder;
+
+    console.log("init firebase at ", appName, folder);
     //let nameField = document.createElement('name');
     //document.body.append(nameField);
     //
@@ -64,26 +64,20 @@ function subscribeToFirebase() {
     });
 }
 
-export function storeEmbeddingInFirebase(prompt, embedding, pos) {
+export function storeInFirebase(data) {
     const myRef = ref(db, appName + '/' + folder + '/')
     //console.log("storeEmbeddingInFirbase", prompt, embedding);
-    let dataToSet = {
-        embedding: embedding,
-        prompt: prompt,
-        location: { "x": pos.x, "y": pos.y, "z": pos.z }
-    }
+
+    console.log("dataToSet", data);
     // push adds something to the database and returns a key
-    let gotBack = push(myRef, dataToSet);
+    let gotBack = push(myRef, data);
     localKey = gotBack.key;
     console.log("got back", localKey);
 }
 
-export function updateInFirebase(key, base64Image) {
+export function updateInFirebase(key, data) {
     //just append the image to the existing data
-    let dataToSet = {
-        base64Image: base64Image,
-    }
     const updates = {};
-    updates[appName + '/' + folder + '/' + key + '/image/'] = dataToSet;
+    updates[appName + '/' + folder + '/' + key + '/image/'] = data;
     update(ref(db), updates);
 }

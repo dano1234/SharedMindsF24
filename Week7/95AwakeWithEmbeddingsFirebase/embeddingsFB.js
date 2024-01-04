@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
-import { initFirebase, storeEmbeddingInFirebase, updateInFirebase, localKey } from './firebaseMOD.js';
+import { initFirebase, storeInFirebase } from './firebaseMOD.js';
 
 let distanceFromCenter = 800;
 
@@ -10,11 +10,11 @@ const replicateProxy = "https://replicate-api-proxy.glitch.me"
 let objects = [];
 let hitTestableThings = [];  //things that will be tested for intersection
 let in_front_of_you;
-let myPrompts = [];
+var input_image_field;
 
 initWebInterface();
 init3D();
-initFirebase();
+initFirebase("3DEmbeddingsFirebase", "imagesAndEmbeddings");
 
 function runUMAP(data) {
     let embeddingsAndPrompts = data.output;
@@ -41,8 +41,20 @@ function runUMAP(data) {
     //console.log("fitting", fitting);
 }
 
+async function askForAll() {
+    let all = {}
+    let embedding = await askForEmbedding(input_image_field.value);
+    all.embedding = embedding;
+    all.prompt = input_image_field.value;
+    let imageURL = await askForPicture(input_image_field.value);
+    let b64 = await convertURLToBase64(imageURL);
+    all.image = { base64Image: b64, url: imageURL };
+    all.location = getPositionInFrontOfCamera();
+    storeInFirebase(all);
+}
+
 async function askForEmbedding(p_prompt) {
-    //let promptInLines = p_prompt.replace(/,/g,) "\n";
+    //let promptInLines = p_prompt.replace(/,/g,) "\n";  //replace commas with new lines
     p_prompt = p_prompt + "\n"
     let data = {
         version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
@@ -59,15 +71,9 @@ async function askForEmbedding(p_prompt) {
         body: JSON.stringify(data),
     };
     const url = replicateProxy + "/create_n_get/";
-    console.log("url", url, "options", options);
-    const raw = fetch(url, options)
-        .then(response => response.json())
-        .then(data => {
-            askForPicture(p_prompt);
-            //runUMAP(data);
-            //startLoadingImages();
-            console.log("got embedding getting picture", data.output);
-        });
+    let rawResponse = await fetch(url, options)
+    let jsonData = await rawResponse.json();
+    return jsonData.output[0].embedding;
 }
 
 function normalize(arrayOfNumbers) {
@@ -173,9 +179,6 @@ export function createObject(key, data) {
     return thisObject;
 }
 
-
-
-
 function repaintObject(object) {
     let texture = object.texture;
     let text = object.text;
@@ -225,6 +228,7 @@ function getIntersectedObjectUUID(event) {
 }
 
 async function askForPicture(text) {
+    input_image_field.value = "Waiting for reply for:" + text;
     // prompt = inputField.value;
     //inputField.value = "Waiting for reply for:" + prompt;
     let data = {
@@ -252,8 +256,7 @@ async function askForPicture(text) {
     if (proxy_said.output.length == 0) {
         alert("Something went wrong, try it again");
     } else {
-        // inputField.value = prompt;
-        //Loading of the home test image - img1
+        input_image_field.value = text;
         return proxy_said.output[0];
     }
 }
@@ -327,7 +330,8 @@ function initWebInterface() {
     feedback.style.color = "white";
     webInterfaceContainer.append(feedback);
 
-    var input_image_field = document.createElement("input");
+    input_image_field = document.createElement("input");
+    webInterfaceContainer.append(input_image_field);
     input_image_field.type = "text";
     input_image_field.id = "input_image_prompt";
     input_image_field.value = "Nice picture of a dog";
@@ -339,36 +343,51 @@ function initWebInterface() {
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.addEventListener("keyup", function (event) {
         if (event.key === "Enter") {
-            askForEmbedding(input_image_field.value).then(embedding =>
-                askForPicture(input_image_field.value).then(imageAndEmbedding =>
-                    convertImageToBase64(imageAndEmbedding).then(all =>
-                        storeEmbeddingInFirebase(all.prompt, all.embedding, all.base64, getPositionInFrontOfCamera()))));
-
+            askForAll();
         }
     });
-    webInterfaceContainer.append(input_image_field);
+    //make a button in the upper right corner called "GOD" that will create many new objects\
+
+    let GodButton = document.createElement("GodButton");
+    GodButton.innerHTML = "GOD";
+    GodButton.style.position = "absolute";
+    GodButton.style.top = "50%";
+    GodButton.style.right = "10%";
+    GodButton.style.zIndex = "200";
+    GodButton.style.fontSize = "20px";
+    GodButton.style.color = "white";
+    GodButton.addEventListener("click", function () {
+        createManyObjects();
+    });
+    webInterfaceContainer.append(GodButton);
+    //make a button in the upper right corner called "THANOS" that will remove many new objects
+    let ThanosButton = document.createElement("button");
+    ThanosButton.innerHTML = "THANOS";
+    ThanosButton.style.position = "absolute";
+    ThanosButton.style.top = "50%";
+    ThanosButton.style.left = "10%";
+    ThanosButton.style.zIndex = "200";
+    ThanosButton.style.fontSize = "20px";
+    ThanosButton.style.color = "white";
+    ThanosButton.addEventListener("click", function () {
+        removeManyObjects();
+    });
+    webInterfaceContainer.append(ThanosButton);
+
 }
 
-async function convertImageToBase64(imageAndEmbedding) {
+async function convertURLToBase64(url) {
     var incomingImage = new Image();
     incomingImage.crossOrigin = "anonymous";
-
-    incomingImage.src = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png";
+    incomingImage.src = url;
     await incomingImage.decode();
-    await incomingImage.onload = function () {
-        let object = findObjectByKey(key);
-        if (!object) {
-            console.log("could not find object", key);
-            return;
-        }
-        object.image = incomingImage;
-        //storeEmbeddingInFirebase(data.output[0].input, data.output[0].embedding, getPositionInFrontOfCamera());
-
-        //just update firebase for now, we make that authoratative,
-        //firbase subescriptionsfor add and change will eventually trigger local changes
-        //updateInFirebase(key, object.canvas.toDataURL("image/png", 1.0));
-    };
-    incomingImage.src = proxy_said.output[0];
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    canvas.height = incomingImage.height;
+    canvas.width = incomingImage.width;
+    ctx.drawImage(incomingImage, 0, 0, canvas.width, canvas.height);
+    let base64 = canvas.toDataURL("image/png", 1.0);
+    return base64;
 }
 
 function animate() {
@@ -442,7 +461,6 @@ function computeCameraOrientation() {
     camera3D.target.z = 100 * Math.sin(phi) * Math.sin(theta);
     camera3D.lookAt(camera3D.target);
 }
-
 
 function onWindowResize() {
     camera3D.aspect = window.innerWidth / window.innerHeight;
