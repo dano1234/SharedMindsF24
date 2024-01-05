@@ -8,9 +8,11 @@ let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 let objects = [];
+
 let hitTestableThings = [];  //things that will be tested for intersection
 let in_front_of_you;
 var input_image_field;
+let feedback;
 
 initWebInterface();
 init3D();
@@ -235,31 +237,50 @@ function getIntersectedObjectUUID(event) {
 
 async function godCalling() {
 
-    let text = "36 prompts for stable diffusion images organzied into 6 different themes "
-    // prompt = inputField.value;
-    //inputField.value = "Waiting for reply for:" + prompt;
-    let data = {
-        "version": "13c3cdee13ee059ab779f0291d29054dab00a47dad8261375654de5540165fb0",
-        input: {
-            "prompt": text,
-        },
+    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
+    document.body.style.cursor = "progress";
+    // feedback.html("Waiting for reply from OpenAi...");
+    const data = {
+        model: "gpt-3.5-turbo-instruct", //"gpt-4-1106-preview",//
+        prompt: text,
+        temperature: 0,
+        max_tokens: 1000,
+        response_format: { "type": "json_object" },
+        //  n: 1,
+        //  stop: "\n",
     };
-    //console.log("Asking for Picture Info From Replicate via Proxy", data);
+    console.log("Asking for Words From OpenAI via Proxy", data);
     let options = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
         },
         body: JSON.stringify(data),
     };
-    const url = replicateProxy + "/create_n_get/"
-    //console.log("url", url, "options", options);
+    const openAIProxy = "https://openai-api-proxy.glitch.me";
+
+    const url = openAIProxy + "/AskOpenAI/";
+    console.log("words url", url, "words options", options);
     const response = await fetch(url, options);
-    //console.log("picture_response", picture_info);
-    const jsonResponse = await response.json();
-    let incomingText = jsonResponse.output.join("");
-    console.log("Proxy Returned", incomingText);
-    return incomingText;
+    console.log("words_response", response);
+    const openAI_json = await response.json();
+    console.log("openAI_json", openAI_json);
+    if (openAI_json.choices.length == 0) {
+        //feedback.html("Something went wrong, try it again");
+        return 0;
+    } else {
+        let choicesjoin = "";
+        for (let i = 0; i < openAI_json.choices.length; i++) {
+            choicesjoin += openAI_json.choices[i].text;
+        }
+        //feedback.html(choicesjoin);
+        console.log("open ai returned ", choicesjoin);
+        return choicesjoin;
+        //console.log("proxy_said", proxy_said.output.join(""));
+    }
+    document.body.style.cursor = "auto";
+
 }
 async function askForPicture(text) {
     input_image_field.value = "Waiting for reply for:" + text;
@@ -367,7 +388,7 @@ function initWebInterface() {
     document.body.append(ThreeJSContainer);
 
     //make a feedback div
-    let feedback = document.createElement("div");
+    feedback = document.createElement("div");
     feedback.id = "feedback";
     feedback.style.position = "absolute";
     feedback.style.zIndex = "2";
@@ -395,8 +416,8 @@ function initWebInterface() {
     GodButton.style.backgroundColor = "black";
     GodButton.style.pointerEvents = "all";
     GodButton.addEventListener("click", function () {
-        let result = godCalling();
-        console.log("result", result);
+        godCalling();
+        //console.log("result", result);
     });
     webInterfaceContainer.append(GodButton);
 
