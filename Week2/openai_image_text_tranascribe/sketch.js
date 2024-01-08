@@ -40,7 +40,7 @@ async function askForWords(p_prompt) {
   document.body.style.cursor = "progress";
   feedback.html("Waiting for reply from OpenAi...");
   const data = {
-    model: "gpt-3.5-turbo-instruct",
+    model: "gpt-3.5-turbo-instruct",  //"gpt-4-1106-preview", //
     prompt: p_prompt,
     temperature: 0,
     max_tokens: 1000,

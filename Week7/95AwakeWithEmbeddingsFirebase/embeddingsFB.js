@@ -43,12 +43,12 @@ function runUMAP(data) {
     //console.log("fitting", fitting);
 }
 
-async function askForAll() {
+async function askForAll(thisPrompt) {
     let all = {}
-    let embedding = await askForEmbedding(input_image_field.value);
+    let embedding = await askForEmbedding(thisPrompt);
     all.embedding = embedding;
-    all.prompt = input_image_field.value;
-    let imageURL = await askForPicture(input_image_field.value);
+    all.prompt = thisPrompt;
+    let imageURL = await askForPicture(thisPrompt);
     let b64 = await convertURLToBase64(imageURL);
     all.image = { base64Image: b64, url: imageURL };
     all.location = getPositionInFrontOfCamera();
@@ -235,20 +235,25 @@ function getIntersectedObjectUUID(event) {
     return intersectedObjectUUID;
 }
 
-async function godCalling() {
+async function askGod() {
 
     let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
     document.body.style.cursor = "progress";
     // feedback.html("Waiting for reply from OpenAi...");
     const data = {
-        model: "gpt-3.5-turbo-instruct", //"gpt-4-1106-preview",//
+        model: "gpt-3.5-turbo-instruct", //"gpt-3.5-turbo-instruct", //"gpt-4-1106-preview", //"gpt-4-1106-preview",//
         prompt: text,
         temperature: 0,
         max_tokens: 1000,
-        response_format: { "type": "json_object" },
+        // response_format: { "type": "json_object" },
         //  n: 1,
         //  stop: "\n",
     };
+    // const data = {
+    //     "model": "gpt-4-1106-preview",
+    //     "messages": [{ "role": "user", "content": "Say this is a test!" }],
+    //     "temperature": 0.7
+    // }
     console.log("Asking for Words From OpenAI via Proxy", data);
     let options = {
         method: "POST",
@@ -260,7 +265,7 @@ async function godCalling() {
     };
     const openAIProxy = "https://openai-api-proxy.glitch.me";
 
-    const url = openAIProxy + "/AskOpenAI/";
+    const url = openAIProxy + "/AskOpenAI/";  //"/askOpenAIChat/"; // 
     console.log("words url", url, "words options", options);
     const response = await fetch(url, options);
     console.log("words_response", response);
@@ -276,7 +281,8 @@ async function godCalling() {
         }
         //feedback.html(choicesjoin);
         console.log("open ai returned ", choicesjoin);
-        return choicesjoin;
+
+        performCreation(choicesjoin)
         //console.log("proxy_said", proxy_said.output.join(""));
     }
     document.body.style.cursor = "auto";
@@ -416,7 +422,7 @@ function initWebInterface() {
     GodButton.style.backgroundColor = "black";
     GodButton.style.pointerEvents = "all";
     GodButton.addEventListener("click", function () {
-        godCalling();
+        askGod();
         //console.log("result", result);
     });
     webInterfaceContainer.append(GodButton);
@@ -457,11 +463,29 @@ function initWebInterface() {
     input_image_field.style.pointerEvents = "all";
     input_image_field.addEventListener("keyup", function (event) {
         if (event.key === "Enter") {
-            askForAll();
+            askForAll(input_image_field.value);
         }
     });
     webInterfaceContainer.append(input_image_field);
 
+}
+
+async function performCreation(prompts) {
+    console.log("prompts", prompts);
+    let promptsArray = prompts.split("\n");
+    for (let i = 0; i < promptsArray.length; i++) {
+
+        let prompt = promptsArray[i];
+        if (prompt.length < 30) {
+            continue;
+        }
+        prompt = prompt.slice(2).trim();
+        lon = Math.random() * 360 - 180;
+        lat = Math.random() * 60 - 30;
+        computeCameraOrientation();
+        console.log("prompt created", prompt);
+        await askForAll(prompt);
+    }
 }
 
 async function convertURLToBase64(url) {
