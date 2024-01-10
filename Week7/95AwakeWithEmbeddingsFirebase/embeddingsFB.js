@@ -241,11 +241,11 @@ async function askGod() {
     document.body.style.cursor = "progress";
     // // feedback.html("Waiting for reply from OpenAi...");
     const data = {
-        model: "gpt-3.5-turbo-instruct", //"gpt-4-1106-preview",//
+        model: "gpt-3.5-turbo-instruct", //"gpt-3.5-turbo-instruct", //"gpt-4-1106-preview", //"gpt-4-1106-preview",//
         prompt: text,
         temperature: 0,
         max_tokens: 1000,
-        response_format: { "type": "json_object" },
+        // response_format: { "type": "json_object" },
         //  n: 1,
         //  stop: "\n",
     };
@@ -580,4 +580,3 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     console.log('Resized');
 }
-
