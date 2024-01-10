@@ -1,0 +1,47 @@
+<html>
+
+<head>
+    <title>Hand</title>
+    <style>
+        #container {
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            z-index: 1;
+            position: absolute;
+            background-color: transparent;
+        }
+
+
+        #text {
+
+            position: absolute;
+            top: 100px;
+            width: 30%;
+            color: #000000;
+            padding: 5px;
+            font-family: Monospace;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: left;
+            z-index: 2;
+        }
+    </style>
+</head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
+<script src="https://unpkg.com/ml5@0.20.0-alpha.3/dist/ml5.js"></script>
+
+
+<body>
+    <div id='container'></div>
+    <div>
+        Text: <input type="text" value='Hi There' id="text">
+    </div>
+    <!--<script src="p5LiveMediaStuff.js"></script>-->
+    <script src="hand.js"> </script>
+
+</body>
+
+</html>
