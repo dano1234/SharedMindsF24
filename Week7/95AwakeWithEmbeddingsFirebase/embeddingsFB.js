@@ -239,13 +239,13 @@ async function askGod() {
 
     let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
     document.body.style.cursor = "progress";
-    // feedback.html("Waiting for reply from OpenAi...");
+    // // feedback.html("Waiting for reply from OpenAi...");
     const data = {
-        model: "gpt-3.5-turbo-instruct", //"gpt-3.5-turbo-instruct", //"gpt-4-1106-preview", //"gpt-4-1106-preview",//
+        model: "gpt-3.5-turbo-instruct", //"gpt-4-1106-preview",//
         prompt: text,
         temperature: 0,
         max_tokens: 1000,
-        // response_format: { "type": "json_object" },
+        response_format: { "type": "json_object" },
         //  n: 1,
         //  stop: "\n",
     };
