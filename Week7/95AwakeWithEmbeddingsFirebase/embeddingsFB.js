@@ -7,41 +7,50 @@ let distanceFromCenter = 800;
 let camera3D, scene, renderer;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
-let objects = [];
+var objects = [];
 
 let hitTestableThings = [];  //things that will be tested for intersection
 let in_front_of_you;
 var input_image_field;
 let feedback;
+let feature;
 
 initWebInterface();
 init3D();
 initFirebase("3DEmbeddingsFirebase", "imagesAndEmbeddings");
 
 function runUMAP(data) {
-    let embeddingsAndPrompts = data.output;
+    let embeddingsAndPrompts = data;
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
         embeddings.push(embeddingsAndPrompts[i].embedding);
     }
     //let fittings = runUMAP(embeddings);
-    var myrng = new Math.seedrandom('hello.');
+    var repeatableRandomNumberFunction = new Math.seedrandom('hello.');
     let umap = new UMAP({
-        nNeighbors: 4,
-        minDist: .05,
+        nNeighbors: 6,
+        minDist: .5,
         nComponents: 3,
-        random: myrng,  //special library seeded random so it is the same randome numbers every time
-        spread: 1,
+        random: repeatableRandomNumberFunction,  //special library seeded random so it is the same randome numbers every time
+        spread: 10,
         //distanceFn: 'cosine',
     });
     let fittings = umap.fit(embeddings);
     fittings = normalize(fittings);  //normalize to 0-1
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-        placeImage(embeddingsAndPrompts[i].input, fittings[i]);
+        let obj = embeddingsAndPrompts[i];
+        let pos = fittings[i];
+        obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
+        obj.mesh.position.y = pos[1] * distanceFromCenter / 4 - distanceFromCenter / 8;  //dont go too high or low
+        obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
+        obj.mesh.lookAt(0, 0, 0);
     }
     //console.log("fitting", fitting);
 }
+
+
+
 
 async function askForAll(thisPrompt) {
     let all = {}
@@ -174,6 +183,7 @@ export function createObject(key, data) {
     hitTestableThings.push(mesh);//make a list for the raycaster to check for intersection
     //leave the image null for now
     let thisObject = { "dbKey": key, "embedding": embedding, "mesh": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "show_text": false, "context": ctx, "image": null, "canvas": canvas };
+
     objects.push(thisObject);
     if (image) {
         let incomingImage = new Image();
@@ -184,8 +194,11 @@ export function createObject(key, data) {
         };
         incomingImage.src = image.base64Image;
     }
+    runUMAP(objects)
     return thisObject;
 }
+
+
 
 function repaintObject(object) {
     let texture = object.texture;
@@ -213,7 +226,7 @@ function repaintObject(object) {
 }
 
 //mouse can click on objects thanks to the raycaster, this iis 
-function getIntersectedObjectUUID(event) {
+function getIntersectedObject(event) {
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -224,15 +237,18 @@ function getIntersectedObjectUUID(event) {
     if (intersects.length > 0) {
         intersectedObjectUUID = intersects[0].object.uuid //take the first, closesest, object
     }
+    //find the object with that UUID
+    let clickedOnObject;
     for (let i = 0; i < objects.length; i++) {
         let thisObject = objects[i];
         if (thisObject.uuid == intersectedObjectUUID) {
-            thisObject.showText = !thisObject.showText;  //toggle the text
-            console.log("clicked On", thisObject.text);
+            clickedOnObject = thisObject;
+            //thisObject.showText = !thisObject.showText;  //toggle the text
+            //console.log("clicked On", thisObject.text);
             break;
         }
     }
-    return intersectedObjectUUID;
+    return clickedOnObject;
 }
 
 async function askGod() {
@@ -373,9 +389,9 @@ function initWebInterface() {
     webInterfaceContainer.id = "webInterfaceContainer";
     webInterfaceContainer.style.position = "absolute";
     webInterfaceContainer.style.zIndex = "2";
-    webInterfaceContainer.style.top = "15%";
-    webInterfaceContainer.style.left = "50%";
-    webInterfaceContainer.style.transform = "translate(-50%, -50%)";
+    webInterfaceContainer.style.top = "0%";
+    webInterfaceContainer.style.left = "0%";
+    //webInterfaceContainer.style.transform = "translate(-50%, -50%)";
     webInterfaceContainer.style.position = "absolute";
     webInterfaceContainer.style.height = "100%";
     webInterfaceContainer.style.width = "100%";
@@ -401,12 +417,29 @@ function initWebInterface() {
     feedback.innerHTML = "Ready";
     feedback.style.width = "100%";
     feedback.style.textAlign = "center";
-    feedback.style.top = "80%";
+    feedback.style.top = "50%";
     feedback.style.left = "50%";
-    feedback.style.transform = "translate(-50%, -50%)";
+
+
     feedback.style.fontSize = "20px";
     feedback.style.color = "white";
     webInterfaceContainer.append(feedback);
+
+    //show off pictures big when you double click on them
+    feature = document.createElement("div");
+    feature.style.ali
+    feature.id = "feature";
+    feature.style.zIndex = "5";
+    feature.style.width = "512px";
+    feature.style.height = "512px";
+    feature.style.position = "absolute";
+    feature.style.top = "50%";
+    feature.style.left = "50%";
+    feature.style.transform = "translate(-50%, -50%)";
+    feature.style.display = "none";
+    webInterfaceContainer.append(feature);
+
+
 
 
 
@@ -457,7 +490,7 @@ function initWebInterface() {
     input_image_field.style.backgroundColor = "black";
     input_image_field.style.textAlign = "center";
     input_image_field.style.width = "50%";
-    input_image_field.style.top = "50%";
+    input_image_field.style.top = "15%";
     input_image_field.style.left = "50%";
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.style.pointerEvents = "all";
@@ -519,9 +552,66 @@ var lat = 0, onPointerDownLat = 0;
 var isUserInteracting = false;
 
 
-function onDocumentMouseDown(event) {
-    let intersectedObjectUUID = getIntersectedObjectUUID(event);
-    if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
+function onMouseDown(event) {
+    // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
+    // ThreeJSContainer.setCapture();
+
+
+    //if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
+    onPointerDownPointerX = event.clientX;
+    onPointerDownPointerY = event.clientY;
+    onPointerDownLon = lon;
+    onPointerDownLat = lat;
+    isUserInteracting = true;
+    //}
+}
+
+function onDoubleClick(event) {
+    let intersectedObject = getIntersectedObject(event);
+    if (intersectedObject) {
+        feature.style.display = "block";
+        feature.innerHTML = "";
+        let featureClose = document.createElement("button");
+        featureClose.innerHTML = "X";
+        featureClose.style.zIndex = "5";
+        featureClose.style.position = "absolute";
+        featureClose.style.top = "0%";
+        featureClose.style.left = "90%";
+        featureClose.style.color = "white";
+        featureClose.style.backgroundColor = "black";
+        featureClose.style.pointerEvents = "all";
+        featureClose.addEventListener("click", function () {
+            feature.style.display = "none";
+        }
+        );
+        feature.append(featureClose);
+        feature.append(document.createElement("br"));
+        let featureImage = document.createElement("div");
+        featureImage.style.position = "absolute";
+        featureImage.style.top = "50%";
+        featureImage.style.left = "50%";
+        featureImage.style.transform = "translate(-50%, -50%)";
+        feature.append(featureImage);
+        let bigCanvas = document.createElement('canvas');
+        let size = 512;
+        bigCanvas.height = size;
+        bigCanvas.width = size;
+        let ctx = bigCanvas.getContext('2d');
+        ctx.drawImage(intersectedObject.image, 0, 0, bigCanvas.width, bigCanvas.height);
+        featureImage.append(bigCanvas);
+        let featurePrompt = document.createElement("div");
+        featurePrompt.innerHTML = intersectedObject.text;
+        featurePrompt.style.position = "absolute";
+        featurePrompt.style.textAlign = "center";
+        featurePrompt.style.left = "50%";
+        featurePrompt.style.top = "90%";
+        featurePrompt.style.transform = "translate(-50%, -50%)";
+        featurePrompt.style.fontSize = "20px";
+        featurePrompt.style.color = "white";
+        featurePrompt.style.backgroundColor = "black";
+        featurePrompt.style.pointerEvents = "all";
+        feature.append(featurePrompt)
+    } else { //if no object was intersected, start navigation
         onPointerDownPointerX = event.clientX;
         onPointerDownPointerY = event.clientY;
         onPointerDownLon = lon;
@@ -532,22 +622,24 @@ function onDocumentMouseDown(event) {
 
 function moveCameraWithMouse() {
     let ThreeJSContainer = document.getElementById("ThreeJSContainer");
-    ThreeJSContainer.addEventListener('keydown', onDocumentKeyDown, false);
-    ThreeJSContainer.addEventListener('mousedown', onDocumentMouseDown, false);
-    ThreeJSContainer.addEventListener('mousemove', onDocumentMouseMove, false);
-    ThreeJSContainer.addEventListener('mouseup', onDocumentMouseUp, false);
-    window.addEventListener('wheel', onDocumentMouseWheel, false);
+    ThreeJSContainer.addEventListener('dblclick', onDoubleClick, false);
+    ThreeJSContainer.addEventListener('keydown', onKeyDown, false);
+    ThreeJSContainer.addEventListener('mousedown', onMouseDown, false);
+    ThreeJSContainer.addEventListener('mousemove', onMouseMove, false);
+    ThreeJSContainer.addEventListener('mouseup', onMouseUp, false);
+    window.addEventListener('mouseup', onMouseUp, false);
+    window.addEventListener('wheel', onMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);
 }
 
-function onDocumentKeyDown(event) {
+function onKeyDown(event) {
     //if (event.key == " ") {
     //in case you want to track key presses
     //}
 }
 
-function onDocumentMouseMove(event) {
+function onMouseMove(event) {
     if (isUserInteracting) {
         lon = (onPointerDownPointerX - event.clientX) * 0.1 + onPointerDownLon;
         lat = (event.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
@@ -555,11 +647,13 @@ function onDocumentMouseMove(event) {
     }
 }
 
-function onDocumentMouseUp(event) {
+function onMouseUp(event) {
     isUserInteracting = false;
+    // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
+    // ThreeJSContainer.releaseCapture();
 }
 
-function onDocumentMouseWheel(event) {
+function onMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
     camera3D.updateProjectionMatrix();
 }
