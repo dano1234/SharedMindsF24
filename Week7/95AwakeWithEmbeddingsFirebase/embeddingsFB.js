@@ -19,6 +19,30 @@ initWebInterface();
 init3D();
 initFirebase("3DEmbeddingsFirebase", "imagesAndEmbeddings");
 
+
+function findClosest(toWhere, clumpSize, all_objects) {
+    console.log("findClosest", toWhere);
+    //toWhere.z = -toWhere.z;
+    let closeness = {};
+    for (let j = 0; j < all_objects.length; j++) {
+        let thisObject = all_objects[j];
+        let thisPos = thisObject.mesh.position;
+        //let thatEmbedding = thatObject.embedding;
+        let distance = Math.sqrt(Math.pow(thisPos.x - toWhere.x, 2) + Math.pow(thisPos.y - toWhere.y, 2) + Math.pow(thisPos.z - toWhere.z, 2));
+        closeness[distance] = thisObject;
+        thisObject.showText = false;
+    }
+    console.log("closeness", closeness);
+    let keys = Object.keys(closeness);
+    keys.sort();
+    for (let i = 0; i < clumpSize; i++) {
+        let closeObject = closeness[keys[i]];
+        closeObject.showText = true;
+    }
+    console.log("closest", closeness[keys[0]]);
+
+}
+
 function runUMAP(data) {
     let embeddingsAndPrompts = data;
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
@@ -48,9 +72,6 @@ function runUMAP(data) {
     }
     //console.log("fitting", fitting);
 }
-
-
-
 
 async function askForAll(thisPrompt) {
     let all = {}
@@ -194,7 +215,9 @@ export function createObject(key, data) {
         };
         incomingImage.src = image.base64Image;
     }
-    runUMAP(objects)
+    if (objects.length > 6) {
+        runUMAP(objects)
+    }
     return thisObject;
 }
 
@@ -226,12 +249,9 @@ function repaintObject(object) {
 }
 
 //mouse can click on objects thanks to the raycaster, this iis 
-function getIntersectedObject(event) {
+function getIntersectedObject(XYpos) {
     var raycaster = new THREE.Raycaster();
-    var mouse = new THREE.Vector2();
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera3D);
+    raycaster.setFromCamera(XYpos, camera3D);
     var intersects = raycaster.intersectObjects(hitTestableThings);
     let intersectedObjectUUID = -1;   //will never match but go through all the items anyway
     if (intersects.length > 0) {
@@ -252,7 +272,6 @@ function getIntersectedObject(event) {
 }
 
 async function askGod() {
-
     let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
     document.body.style.cursor = "progress";
     // // feedback.html("Waiting for reply from OpenAi...");
@@ -304,6 +323,7 @@ async function askGod() {
     document.body.style.cursor = "auto";
 
 }
+
 async function askForPicture(text) {
     input_image_field.value = "Waiting for reply for:" + text;
     // prompt = inputField.value;
@@ -340,7 +360,7 @@ async function askForPicture(text) {
 
 function init3D() {
     scene = new THREE.Scene();
-    camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera3D = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -359,7 +379,6 @@ function init3D() {
 
     var sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
-
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
@@ -418,7 +437,7 @@ function initWebInterface() {
     feedback.style.width = "100%";
     feedback.style.textAlign = "center";
     feedback.style.top = "50%";
-    feedback.style.left = "50%";
+    feedback.style.left = "0%";
 
 
     feedback.style.fontSize = "20px";
@@ -438,8 +457,6 @@ function initWebInterface() {
     feature.style.transform = "translate(-50%, -50%)";
     feature.style.display = "none";
     webInterfaceContainer.append(feature);
-
-
 
 
 
@@ -567,7 +584,11 @@ function onMouseDown(event) {
 }
 
 function onDoubleClick(event) {
-    let intersectedObject = getIntersectedObject(event);
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    let intersectedObject = getIntersectedObject(mouse);
     if (intersectedObject) {
         feature.style.display = "block";
         feature.innerHTML = "";
@@ -649,12 +670,23 @@ function onMouseMove(event) {
 
 function onMouseUp(event) {
     isUserInteracting = false;
+
+    var middle = new THREE.Vector2();
+    middle.x = (.5) * 2 - 1;
+    middle.y = - (.5) * 2 + 1;
+    let intersectedObject = getIntersectedObject(middle);
+    console.log("intersectedObject", intersectedObject);
+    if (intersectedObject) {
+        findClosest(intersectedObject.mesh.position, 6, objects)
+    }
+
     // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
     // ThreeJSContainer.releaseCapture();
 }
 
 function onMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
+    camera3D.fov = Math.min(120, Math.max(10, camera3D.fov));
     camera3D.updateProjectionMatrix();
 }
 
