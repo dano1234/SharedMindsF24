@@ -24,6 +24,11 @@ function init3D() {
     let panotexture = new THREE.TextureLoader().load("itp.jpg");
     // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
+    let canvas = document.createElement('canvas');
+    canvas.width = 4096;
+    canvas.height = 2048;
+    let ctx = canvas.getContext('2d');
+
 
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);

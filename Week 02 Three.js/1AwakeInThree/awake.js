@@ -6,13 +6,15 @@ init3D(); //have to call the setup yourself
 
 function init3D() { //like setup
     scene = new THREE.Scene();
+    scene.background = new THREE.Color("#ffffff");
+    scene.fog = new THREE.Fog("#ffffff", 0.015, 100);
     camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const material = new THREE.MeshBasicMaterial({ color: 0x006600 });
     cube = new THREE.Mesh(geometry, material);
     cube.position.set(0, 0, -30);
     cube.scale.set(10, 10, 10);
