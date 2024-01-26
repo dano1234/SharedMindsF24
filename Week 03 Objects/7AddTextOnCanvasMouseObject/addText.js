@@ -48,11 +48,12 @@ function init3D() {
 
 
 function animate() {
-    requestAnimationFrame(animate);
+
     for (var i = 0; i < texts.length; i++) {
         texts[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
+    requestAnimationFrame(animate);
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM
