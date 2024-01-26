@@ -1,3 +1,4 @@
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 
 let camera3D, scene, renderer, cube;
 let dir = 0.01;
@@ -24,34 +25,29 @@ function init3D() {
     let panotexture = new THREE.TextureLoader().load("itp.jpg");
     // var material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
-    let canvas = document.createElement('canvas');
-    canvas.width = 4096;
-    canvas.height = 2048;
-    let ctx = canvas.getContext('2d');
-
 
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-
     moveCameraWithMouse();
 
-    camera3D.position.z = 5;
+    camera3D.position.z = 135;
     animate();
 }
 
 function animate() {
-    requestAnimationFrame(animate);
-    /*  cube.scale.x += dir;
-      cube.scale.y += dir;
-      cube.scale.z += dir;
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
-    
-      if (cube.scale.x > 4 || cube.scale.x < -4) {
-          dir = -dir;
-      }*/
+
+    cube.scale.x += dir;
+    cube.scale.y += dir;
+    cube.scale.z += dir;
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+
+    if (cube.scale.x > 4 || cube.scale.x < -4) {
+        dir = -dir;
+    }
     renderer.render(scene, camera3D);
+    requestAnimationFrame(animate);
 }
 
 init3D();
@@ -59,21 +55,21 @@ init3D();
 
 /////MOUSE STUFF
 
-var onMouseDownMouseX = 0, onMouseDownMouseY = 0;
-var onPointerDownPointerX = 0, onPointerDownPointerY = 0;
-var lon = -90, onMouseDownLon = 0;
-var lat = 0, onMouseDownLat = 0;
-var isUserInteracting = false;
+let mouseDownX = 0, mouseDownY = 0;
+let lon = -90, mouseDownLon = 0;
+let lat = 0, mouseDownLat = 0;
+let isUserInteracting = false;
 
 
 function moveCameraWithMouse() {
+    //set up event handlers
     document.addEventListener('keydown', onDocumentKeyDown, false);
     document.addEventListener('mousedown', onDocumentMouseDown, false);
     document.addEventListener('mousemove', onDocumentMouseMove, false);
     document.addEventListener('mouseup', onDocumentMouseUp, false);
     document.addEventListener('wheel', onDocumentMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
-    camera3D.target = new THREE.Vector3(0, 0, 0);
+    camera3D.target = new THREE.Vector3(0, 0, 0);  //something for the camera to look at
 }
 
 function onDocumentKeyDown(event) {
@@ -83,17 +79,18 @@ function onDocumentKeyDown(event) {
 }
 
 function onDocumentMouseDown(event) {
-    onPointerDownPointerX = event.clientX;
-    onPointerDownPointerY = event.clientY;
-    onPointerDownLon = lon;
-    onPointerDownLat = lat;
+    console.log('mouse down');
+    mouseDownX = event.clientX;
+    mouseDownY = event.clientY;
+    mouseDownLon = lon;
+    mouseDownLat = lat;
     isUserInteracting = true;
 }
 
 function onDocumentMouseMove(event) {
     if (isUserInteracting) {
-        lon = (onPointerDownPointerX - event.clientX) * 0.1 + onPointerDownLon;
-        lat = (event.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
+        lon = (mouseDownX - event.clientX) * 0.1 + mouseDownLon;
+        lat = (event.clientY - mouseDownY) * 0.1 + mouseDownLat;
         computeCameraOrientation();
     }
 }
@@ -109,14 +106,14 @@ function onDocumentMouseWheel(event) {
 
 function computeCameraOrientation() {
     lat = Math.max(- 30, Math.min(30, lat));  //restrict movement
-    let phi = THREE.Math.degToRad(90 - lat);  //restrict movement
-    let theta = THREE.Math.degToRad(lon);
+    let phi = THREE.MathUtils.degToRad(90 - lat);  //restrict movement
+    let theta = THREE.MathUtils.degToRad(lon);
+    //move the target that the camera is looking at
     camera3D.target.x = 100 * Math.sin(phi) * Math.cos(theta);
     camera3D.target.y = 100 * Math.cos(phi);
     camera3D.target.z = 100 * Math.sin(phi) * Math.sin(theta);
     camera3D.lookAt(camera3D.target);
 }
-
 
 function onWindowResize() {
     camera3D.aspect = window.innerWidth / window.innerHeight;
