@@ -45,6 +45,8 @@ function init3D() {
 }
 
 
+
+
 function animate() {
     requestAnimationFrame(animate);
     for (var i = 0; i < texts.length; i++) {
@@ -54,11 +56,20 @@ function animate() {
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM
-// textInput.addEventListener("keydown", function (e) {
-//     if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-//         createNewText(textInput.value);
-//     }
-// });
+textInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
+        let vector = new THREE.Vector3();
+        vector.set(
+            (0.5) * 2 - 1,
+            - (0.5) * 2 + 1,
+            0.5
+        );
+        vector.unproject(camera3D);
+        vector.multiplyScalar(100)
+        createNewText(textInput.value, vector);
+        createNewText(textInput.value);
+    }
+});
 
 function createNewText(text_msg, posInWorld) {
     console.log("Created New Text");
