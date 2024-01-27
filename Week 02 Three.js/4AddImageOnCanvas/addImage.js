@@ -60,10 +60,18 @@ function initHTML() {
 
     textInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-            const pos = find3DCoornatesInFrontOfCamera(200);
+            const inputRect = textInput.getBoundingClientRect();
+
+            let mouse = { x: inputRect.left, y: inputRect.top };
+            console.log("Entered Text", mouse.z);
+            const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
             createNewText(textInput.value, pos);
         }
     });
+
+    window.addEventListener("dragover", function (e) {
+        e.preventDefault();  //prevents browser from opening the file
+    }, false);
 
     window.addEventListener("drop", (e) => {
         e.preventDefault();
@@ -72,6 +80,18 @@ function initHTML() {
             if (!files[i].type.match("image")) continue;
             // Process the dropped image file here
             console.log("Dropped image file:", files[i]);
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.onload = function () {
+                    let mouse = { x: e.clientX, y: e.clientY };
+                    const pos = find3DCoornatesInFrontOfCamera(100, mouse);
+                    createNewImage(img, pos, files[i]);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(files[i]);
         }
     }, true);
 
@@ -79,12 +99,46 @@ function initHTML() {
 
 }
 
-function find3DCoornatesInFrontOfCamera(distance) {
+function find3DCoornatesInFrontOfCamera(distance, mouse) {
     let vector = new THREE.Vector3();
-    vector.set(0, 0, 0); //middle of the screen where input box is
+    vector.set(
+        (mouse.x / window.innerWidth) * 2 - 1,
+        - (mouse.y / window.innerHeight) * 2 + 1,
+        0
+    );
+    //vector.set(0, 0, 0); //would be middle of the screen where input box is
     vector.unproject(camera);
     vector.multiplyScalar(distance)
     return vector;
+}
+
+function createNewImage(img, posInWorld, file) {
+
+    console.log("Created New Text", posInWorld);
+    var canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var context = canvas.getContext("2d");
+    context.drawImage(img, 0, 0);
+    var fontSize = Math.max(12);
+    context.font = fontSize + "pt Arial";
+    context.textAlign = "center";
+    context.fillStyle = "red";
+    context.fillText(file.name, canvas.width / 2, canvas.height - 30);
+    var textTexture = new THREE.Texture(canvas);
+    textTexture.needsUpdate = true;
+    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true });
+    var geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
+    var mesh = new THREE.Mesh(geo, material);
+
+    mesh.position.x = posInWorld.x;
+    mesh.position.y = posInWorld.y;
+    mesh.position.z = posInWorld.z;
+
+    console.log(posInWorld);
+    mesh.lookAt(0, 0, 0);
+    mesh.scale.set(10, 10, 10);
+    scene.add(mesh);
 }
 
 function createNewText(text_msg, posInWorld) {
@@ -132,7 +186,7 @@ function moveCameraWithMouse() {
     div3D.addEventListener('mousedown', div3DMouseDown, false);
     div3D.addEventListener('mousemove', div3DMouseMove, false);
     div3D.addEventListener('mouseup', div3DMouseUp, false);
-    div3D.addEventListener('wheel', div3DMouseWheel, false);
+    div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
     window.addEventListener('resize', onWindowResize, false);
     //document.addEventListener('keydown', onDocumentKeyDown, false);
     camera.target = new THREE.Vector3(0, 0, 0);  //something for the camera to look at
@@ -160,7 +214,7 @@ function div3DMouseUp(event) {
 
 function div3DMouseWheel(event) {
     camera.fov += event.deltaY * 0.05;
-    camera.fov = Math.max(5, Math.min(100, camera.fov));
+    camera.fov = Math.max(5, Math.min(100, camera.fov)); //limit zoom
     camera.updateProjectionMatrix();
 }
 
