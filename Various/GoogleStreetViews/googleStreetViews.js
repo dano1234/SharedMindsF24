@@ -1,6 +1,6 @@
 
 let camera3D, scene, renderer
-let myLoc ={ lat: 0, lng: 0 };
+let myLoc = { lat: 0, lng: 0 };
 
 
 init3D();
@@ -36,34 +36,32 @@ function animate() {
     renderer.render(scene, camera3D);
 }
 
-function askForLatLong(query) {
-    console.log("asking");
-    //var query = $("#place").val();
-    var api_key = "AIzaSyBi_F0gaMWtXi8Ngerunlwe1vRFkjy8cdI";
-    ///work around  CORS Exception with proxy from herokuap, add this front of url https://cors-anywhere.herokuapp.com/
-    //sometimes you have get permissions to to it  https://cors-anywhere.herokuapp.com/corsdemo
-    var url = "https://cors-anywhere.herokuapp.com/https://maps.googleapis.com/maps/api/geocode/json?address=" + query + "&key=" + api_key;
-    console.log(url);
-    $("#loading_feedback").html("...Loading");
-    //THIS IS HOW YOU MAKE A NETWORK CALL IN JQUERY
-    $.ajax({
-        url: url,
-        type: "POST",
-        contentType: "application/json",
-        success: function (data) {
-            console.log(data);
-            var lat = data.results[0].geometry.location.lat;
-            var lng = data.results[0].geometry.location.lng;
-            newLoc = {};
-            newLoc.lat = lat;
-            newLoc.lng = lng;
-            console.log(newLoc);
-            $("#loading_feedback").html("Lat:"+ lat + " Lon:" + lon);
-            initializeGoogleMaps(newLoc);
+async function askForLatLong(query) {
+    console.log("Asking for Lat Long thru Glitch Proxy", query);
+    let options = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
         },
-        failure: function (data) { console.log("didn't find place"); }
-    });
+    };
+    //due to CORS issues, we have to use a proxy
+    //var url = "https://cors-anywhere.herokuapp.com/https://maps.googleapis.com/maps/api/geocode/json?address=" + query + "&key=" + api_key;
+    const url = "https://googlemapapiPROXY.glitch.me" + "/addressToLatLon?address=" + query
+    console.log("url", url, "options", options);
+    const result = await fetch(url, options);
+    //console.log("picture_response", picture_info);
+    const data = await result.json();
+    console.log(data);
+    var lat = data.results[0].geometry.location.lat;
+    var lng = data.results[0].geometry.location.lng;
+    newLoc = {};
+    newLoc.lat = lat;
+    newLoc.lng = lng;
+    console.log(newLoc);
+    $("#loading_feedback").html("Lat:" + lat + " Lon:" + lon);
+    initializeGoogleMaps(newLoc);
 }
+
 
 //this gets called from script tag
 function initializeGoogleMaps(loc) {
