@@ -7,7 +7,7 @@ let dir = 0.01;
 
 function init3D() {
     scene = new THREE.Scene();
-    camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera3D = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 900);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -18,7 +18,7 @@ function init3D() {
     cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
-    let bgGeometery = new THREE.SphereGeometry(950, 60, 40);
+    let bgGeometery = new THREE.SphereGeometry(700, 60, 40);
     // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
     // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
@@ -31,7 +31,7 @@ function init3D() {
 
     moveCameraWithMouse();
 
-    camera3D.position.z = 135;
+    camera3D.position.z = -5;
     animate();
 }
 
