@@ -6,6 +6,7 @@ let dir = 1;
 
 init3D(); //have to call the setup yourself
 
+
 function init3D() { //like setup
     scene = new THREE.Scene();
     scene.background = new THREE.Color("#ffffff");
