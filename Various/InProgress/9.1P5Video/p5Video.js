@@ -4,22 +4,6 @@ let camera, scene, renderer;
 initHTML();
 init3D();
 
-let p5Inst = new p5();
-console.log(p5Inst);
-
-p5Inst.setup = function () {
-    let canvas = p5Inst.createCanvas(100, 100);
-    console.log("p5 setup");
-}
-p5Inst.setup();
-
-p5Inst.draw = function () {
-    p5Inst.background(0);
-    p5Inst.fill(255);
-    p5Inst.text("Hello World", 10, 50);
-    console.log("p5 draw");
-}
-p5Inst.draw();
 
 function init3D() {
     scene = new THREE.Scene();
@@ -128,6 +112,57 @@ function find3DCoornatesInFrontOfCamera(distance, mouse) {
     vector.multiplyScalar(distance)
     return vector;
 }
+
+function createNewP5(w, h) {
+    let sketch = function (p) {
+        let x = w / 2;
+        let y = h / 2;
+        let xDir = 1;
+        let yDir = 1;
+        let radius = 50;
+        let p5Canvas;
+
+        p.setup = function () {
+            p5Canvas = p.createCanvas(w, h);
+        };
+
+        p.draw = function () {
+            p.clearRect(0, 0, w, h);
+            // Update ball position
+            x += xDir;
+            y += yDir;
+            // Check for collision with edges and reverse direction if necessary
+            if (x > w - radius || x < radius) {
+                xDir *= -1;
+            }
+            if (y > h - radius || y < radius) {
+                yDir *= -1;
+            }
+            // Draw the ball
+            p.fill(255);
+            p.ellipse(x, y, radius * 2, radius * 2);
+        };
+    };
+
+    let mouse = { x: e.clientX, y: e.clientY };
+    const pos = find3DCoornatesInFrontOfCamera(100, mouse);
+    var textTexture = new THREE.Texture(p5Canvas.elt);
+    textTexture.needsUpdate = true;
+    var material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true });
+    var geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
+    var mesh = new THREE.Mesh(geo, material);
+
+    mesh.position.x = posInWorld.x;
+    mesh.position.y = posInWorld.y;
+    mesh.position.z = posInWorld.z;
+
+    console.log(posInWorld);
+    mesh.lookAt(0, 0, 0);
+    mesh.scale.set(10, 10, 10);
+    scene.add(mesh);
+    return new p5(sketch);
+}
+
 
 function createNewImage(img, posInWorld, file) {
 
