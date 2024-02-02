@@ -1,8 +1,8 @@
-import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/build/three.module.js';
-import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js'
+//for more modern version of orbit control user importmap https://stackoverflow.com/questions/75250424/threejs-orbitcontrol-import-version-from-cdn
 
 let camera3D, scene, renderer, cube;
-let dir = 0.01;
 let controls;
 
 
@@ -38,10 +38,9 @@ function init3D() {
 }
 
 function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-
+    controls.update();  //orbit controls
     renderer.render(scene, camera3D);
+    requestAnimationFrame(animate);
 }
 
 init3D();
