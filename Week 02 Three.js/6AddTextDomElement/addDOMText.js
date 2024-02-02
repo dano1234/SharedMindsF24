@@ -104,7 +104,7 @@ function moveCameraWithMouse() {
     threeContainer.addEventListener('mousedown', onDocumentMouseDown, false);
     threeContainer.addEventListener('mousemove', onDocumentMouseMove, false);
     threeContainer.addEventListener('mouseup', onDocumentMouseUp, false);
-    document.addEventListener('wheel', onDocumentMouseWheel, false);
+    document.addEventListener('wheel', onDocumentMouseWheel, { passive: true });
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);
 }

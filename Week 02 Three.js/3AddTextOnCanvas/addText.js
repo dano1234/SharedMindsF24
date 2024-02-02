@@ -60,7 +60,7 @@ function initHTML() {
 
     textInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-            const pos = find3DCoornatesInFrontOfCamera(200);
+            const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov);
             createNewText(textInput.value, pos);
         }
     });
@@ -120,7 +120,7 @@ function moveCameraWithMouse() {
     div3D.addEventListener('mousemove', div3DMouseMove, false);
     div3D.addEventListener('mouseup', div3DMouseUp, false);
     div3D.addEventListener('wheel', div3DMouseWheel, false);
-    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('resize', onWindowResize, { passive: true });
     //document.addEventListener('keydown', onDocumentKeyDown, false);
     camera.target = new THREE.Vector3(0, 0, 0);  //something for the camera to look at
 }
@@ -147,6 +147,7 @@ function div3DMouseUp(event) {
 
 function div3DMouseWheel(event) {
     camera.fov += event.deltaY * 0.05;
+    camera.fov = Math.max(5, Math.min(100, camera.fov)); //limit zoom
     camera.updateProjectionMatrix();
 }
 

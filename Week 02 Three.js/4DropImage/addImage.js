@@ -86,7 +86,7 @@ function initHTML() {
                 const img = new Image();
                 img.onload = function () {
                     let mouse = { x: e.clientX, y: e.clientY };
-                    const pos = find3DCoornatesInFrontOfCamera(100, mouse);
+                    const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
                     createNewImage(img, pos, files[i]);
                 };
                 img.src = event.target.result;

@@ -67,7 +67,7 @@ function moveCameraWithMouse() {
     document.addEventListener('mousedown', onDocumentMouseDown, false);
     document.addEventListener('mousemove', onDocumentMouseMove, false);
     document.addEventListener('mouseup', onDocumentMouseUp, false);
-    document.addEventListener('wheel', onDocumentMouseWheel, false);
+    document.addEventListener('wheel', onDocumentMouseWheel, { passive: true });
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);  //something for the camera to look at
 }
@@ -101,6 +101,7 @@ function onDocumentMouseUp(event) {
 
 function onDocumentMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
+    camera.fov = Math.max(5, Math.min(100, camera.fov)); //limit zoom
     camera3D.updateProjectionMatrix();
 }
 
