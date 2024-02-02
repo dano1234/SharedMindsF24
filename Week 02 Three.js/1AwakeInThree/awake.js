@@ -1,4 +1,6 @@
-let camera3D, scene, renderer;
+import { THREE } from
+
+    let camera3D, scene, renderer;
 let cube, light
 let dir = 1;
 
