@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 let camera, scene, renderer;
-let objects = [];
+let thingsThatNeedUpdating = [];
 initHTML();
 init3D();
 
@@ -33,8 +33,8 @@ function init3D() {
 }
 
 function animate() {
-    for (let i = 0; i < objects.length; i++) {
-        objects[i].texture.needsUpdate = true;
+    for (let i = 0; i < thingsThatNeedUpdating.length; i++) {
+        thingsThatNeedUpdating[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
@@ -90,7 +90,7 @@ function initHTML() {
                 const img = new Image();
                 img.onload = function () {
                     let mouse = { x: e.clientX, y: e.clientY };
-                    const pos = find3DCoornatesInFrontOfCamera(100, mouse);
+                    const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
                     createNewImage(img, pos, files[i]);
                 };
                 img.src = event.target.result;
@@ -204,9 +204,9 @@ function createP5Sketch(w, h) {
         class Particle {
             constructor() {
                 this.x = p.width / 2;
-                this.y = p.height;
+                this.y = p.height / 2;
                 this.vx = p.random(-1, 1);
-                this.vy = p.random(-4, -1);
+                this.vy = p.random(-4, 1);
                 this.alpha = 255;
             }
             finished() {
@@ -232,25 +232,27 @@ function addP5To3D(_x, _y) {  //called from double click
     let newP5 = createP5Sketch(200, 200);
     //pull the p5 canvas out of sketch 
     //and then regular (elt) js canvas out of special p5 canvas
-    let canvas = newP5.getCanvas().elt;
-    console.log(canvas);
+    let p5Canvas = newP5.getCanvas();
+    let canvas = p5Canvas.elt;
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
     let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
     let mesh = new THREE.Mesh(geo, material);
-    mesh.lookAt(0, 0, 0);
+
     mesh.scale.set(10, 10, 10);
 
     let mouse = { x: _x, y: _y };
-    const posInWorld = find3DCoornatesInFrontOfCamera(100, mouse);
+    console.log("camera fov", camera.fov);
+    const posInWorld = find3DCoornatesInFrontOfCamera(300 - camera.fov * 3, mouse);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
 
+    mesh.lookAt(0, 0, 0);
     scene.add(mesh);
-    let thisObject = { canvas: canvas, mesh: mesh, texture: texture };
-    objects.push(thisObject);
+    let thisObject = { canvas: canvas, mesh: mesh, texture: texture, p5Canvas: p5Canvas };
+    thingsThatNeedUpdating.push(thisObject);
 }
 
 
