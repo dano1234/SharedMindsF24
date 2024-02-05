@@ -3,9 +3,44 @@ let camera, scene, renderer;
 let thingsThatNeedUpdating = [];
 let myObjectsByThreeID = {}
 let clickableMeshes = [];
+let storageJSON = {};
 initHTML();
 init3D();
+recall();
 
+function store() {
+    console.log("store");
+    let myJSON = JSON.stringify(storageJSON);
+    localStorage.setItem('sharedMinds', myJSON);
+}
+
+function recall() {
+    console.log("recall");
+    let myText = localStorage.getItem('sharedMinds');
+    if (myText) {
+        let myObjects = JSON.parse(myText);
+        //clear the stuff in there
+        for (let i = 0; i < clickableMeshes.length; i++) {
+            scene.remove(clickableMeshes[i]);
+        }
+        clickableMeshes = [];
+        myObjectsByThreeID = {};
+        storageJSON = {}
+        thingsThatNeedUpdating = [];
+        for (let key in myObjects) {
+
+            let thisObject = myObjects[key];
+            console.log(thisObject);
+            if (thisObject.type == "text") {
+                createNewText(thisObject.text, thisObject.position);
+            } else if (thisObject.type == "image") {
+                createNewImage(thisObject.base64, thisObject.position);
+            } else if (thisObject.type == "p5ParticleSystem") {
+                createNewP5(thisObject.position);
+            }
+        }
+    }
+}
 
 function init3D() {
     scene = new THREE.Scene();
@@ -119,12 +154,26 @@ function project2DCoordsInto3D(distance, mouse) {
 
 function createNewImage(img, posInWorld, name) {
 
-    console.log("Created New Text", posInWorld);
+    console.log("Created New Text", img, posInWorld);
     let canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
     let context = canvas.getContext("2d");
-    context.drawImage(img, 0, 0);
+
+    if (typeof img === "string") {
+        let b64Img = new Image();
+        b64Img.onload = function () {
+            canvas.width = b64Img.width;
+            canvas.height = b64Img.height;
+            context.drawImage(b64Img, 0, 0);
+        };
+        b64Img.src = img;
+    } else {
+        //already loaded
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+    }
+
+
     let fontSize = Math.max(12);
     context.font = fontSize + "pt Arial";
     context.textAlign = "center";
@@ -144,9 +193,14 @@ function createNewImage(img, posInWorld, name) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    let thisObject = { type: "image", threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    let base64 = canvas.toDataURL();
+    let thisObject = {
+        type: "image", name: name, position: posInWorld, base64: base64, threeID: mesh.uuid, name: name, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture
+    };
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
+    storageJSON[mesh.uuid] = { type: "image", name: name, position: posInWorld, base64: base64 };
+    store()
 }
 
 
@@ -177,22 +231,25 @@ function createNewText(text_msg, posInWorld) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    let thisObject = { type: "text", text: text_msg, threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    let thisObject = { type: "text", text: text_msg, position: posInWorld, threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
+    storageJSON[mesh.uuid] = { type: "text", text: text_msg, position: posInWorld };
+    store()
 }
 
-function createP5Sketch(w, h) {
+function birthP5Object(w, h) {
     let sketch = function (p) {
         let particles = [];
         let myCanvas;
-        p.getCanvas = function () {
-            return myCanvas;
-        }
         p.setup = function () {
             myCanvas = p.createCanvas(w, h);
 
         };
+        p.getP5Canvas = function () {
+            return myCanvas;
+        }
+
         p.draw = function () {
             p.clear();
             for (let i = 0; i < 5; i++) {
@@ -232,17 +289,18 @@ function createP5Sketch(w, h) {
             }
         }
     };
-
     return new p5(sketch);
 }
 
-function addP5To3D(_x, _y) {  //called from double click
+function createNewP5(posInWorld) {  //called from double click
 
-    let newP5 = createP5Sketch(200, 200);
+    let newP5 = birthP5Object(200, 200);
+    console.log("newp5", posInWorld, newP5);
     //pull the p5 canvas out of sketch 
     //and then regular (elt) js canvas out of special p5 canvas
-    let p5Canvas = newP5.getCanvas();
-    let canvas = p5Canvas.elt;
+    let myCanvas = newP5.getP5Canvas();
+    console.log(myCanvas, "newp5", posInWorld, newP5);
+    let canvas = myCanvas.elt;
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
@@ -251,19 +309,18 @@ function addP5To3D(_x, _y) {  //called from double click
 
     mesh.scale.set(10, 10, 10);
 
-    let mouse = { x: _x, y: _y };
-    console.log("camera fov", camera.fov);
-    const posInWorld = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
 
     mesh.lookAt(0, 0, 0);
     scene.add(mesh);
-    let thisObject = { type: "p5ParticleSystem", threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    let thisObject = { type: "p5ParticleSystem", threeID: mesh.uuid, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture };
     thingsThatNeedUpdating.push(thisObject);
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
+    storageJSON[mesh.uuid] = { type: "p5ParticleSystem", position: posInWorld };
+    store();
 }
 
 function findObjectUnderMouse(x, y) {
@@ -315,7 +372,10 @@ function initMoveCameraWithMouse() {
 
 function div3DDoubleClick(event) {
     console.log('double click');
-    addP5To3D(event.clientX, event.clientY);
+    let mouse = { x: event.clientX, y: event.clientY };
+    console.log("camera fov", camera.fov);
+    const posInWorld = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
+    createNewP5(posInWorld);
 }
 
 function div3DMouseDown(event) {
