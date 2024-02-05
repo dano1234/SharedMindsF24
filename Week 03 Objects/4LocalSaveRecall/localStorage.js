@@ -34,7 +34,12 @@ function recall() {
             if (thisObject.type == "text") {
                 createNewText(thisObject.text, thisObject.position);
             } else if (thisObject.type == "image") {
-                createNewImage(thisObject.base64, thisObject.position);
+                let img = new Image();
+                img.onload = function () {
+                    createNewImage(img, thisObject.position);
+                };
+                img.src = thisObject.base64;
+
             } else if (thisObject.type == "p5ParticleSystem") {
                 createNewP5(thisObject.position);
             }
@@ -151,28 +156,15 @@ function project2DCoordsInto3D(distance, mouse) {
 }
 
 
-
 function createNewImage(img, posInWorld, name) {
 
     console.log("Created New Text", img, posInWorld);
     let canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
     let context = canvas.getContext("2d");
 
-    if (typeof img === "string") {
-        let b64Img = new Image();
-        b64Img.onload = function () {
-            canvas.width = b64Img.width;
-            canvas.height = b64Img.height;
-            context.drawImage(b64Img, 0, 0);
-        };
-        b64Img.src = img;
-    } else {
-        //already loaded
-        canvas.width = img.width;
-        canvas.height = img.height;
-        context.drawImage(img, 0, 0);
-    }
-
+    context.drawImage(img, 0, 0);
 
     let fontSize = Math.max(12);
     context.font = fontSize + "pt Arial";
