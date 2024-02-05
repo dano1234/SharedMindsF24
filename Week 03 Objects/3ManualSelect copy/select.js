@@ -1,24 +1,10 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
-
 let camera, scene, renderer;
 let thingsThatNeedUpdating = [];
+let myObjectsByThreeID = {}
+let clickableMeshes = [];
 initHTML();
 init3D();
-//createNewModel()
-
-
-function createNewModel() {
-    const loader = new GLTFLoader();
-    console.log("loading duck", loader);
-    loader.load('./duck/Duck.gltf', function (gltf) {
-        console.log("loaded duck", gltf.scene);
-        gltf.scene.scale.set(0.5, 0.5, 0.5);
-        gltf.scene.position.y = -1;
-        scene.add(gltf.scene);
-        console.log("loaded duck");
-    });
-}
 
 
 function init3D() {
@@ -42,11 +28,10 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-    moveCameraWithMouse();
+    initMoveCameraWithMouse();
 
     camera.position.z = 0;
     animate();
-
 }
 
 function animate() {
@@ -84,8 +69,8 @@ function initHTML() {
             const inputRect = textInput.getBoundingClientRect();
 
             let mouse = { x: inputRect.left, y: inputRect.top };
-            console.log("Entered Text", mouse.z);
-            const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
+            console.log("Entered Text", textInput.value);
+            const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
             createNewText(textInput.value, pos);
         }
     });
@@ -107,7 +92,7 @@ function initHTML() {
                 const img = new Image();
                 img.onload = function () {
                     let mouse = { x: e.clientX, y: e.clientY };
-                    const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
+                    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
                     createNewImage(img, pos, files[i]);
                 };
                 img.src = event.target.result;
@@ -117,7 +102,7 @@ function initHTML() {
     }, true);
 }
 
-function find3DCoornatesInFrontOfCamera(distance, mouse) {
+function project2DCoordsInto3D(distance, mouse) {
     let vector = new THREE.Vector3();
     vector.set(
         (mouse.x / window.innerWidth) * 2 - 1,
@@ -132,8 +117,7 @@ function find3DCoornatesInFrontOfCamera(distance, mouse) {
 
 
 
-
-function createNewImage(img, posInWorld, file) {
+function createNewImage(img, posInWorld, name) {
 
     console.log("Created New Text", posInWorld);
     let canvas = document.createElement("canvas");
@@ -145,7 +129,7 @@ function createNewImage(img, posInWorld, file) {
     context.font = fontSize + "pt Arial";
     context.textAlign = "center";
     context.fillStyle = "red";
-    context.fillText(file.name, canvas.width / 2, canvas.height - 30);
+    context.fillText(name, canvas.width / 2, canvas.height - 30);
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
@@ -160,6 +144,9 @@ function createNewImage(img, posInWorld, file) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
+    let thisObject = { type: "image", threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    clickableMeshes.push(mesh);
+    myObjectsByThreeID[mesh.uuid] = thisObject;
 }
 
 
@@ -176,9 +163,9 @@ function createNewText(text_msg, posInWorld) {
     context.textAlign = "center";
     context.fillStyle = "red";
     context.fillText(text_msg, canvas.width / 2, canvas.height / 2);
-    let textTexture = new THREE.Texture(canvas);
-    textTexture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true });
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
     let geo = new THREE.PlaneGeometry(1, 1);
     let mesh = new THREE.Mesh(geo, material);
 
@@ -190,6 +177,9 @@ function createNewText(text_msg, posInWorld) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
+    let thisObject = { type: "text", text: text_msg, threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    clickableMeshes.push(mesh);
+    myObjectsByThreeID[mesh.uuid] = thisObject;
 }
 
 function createP5Sketch(w, h) {
@@ -242,6 +232,7 @@ function createP5Sketch(w, h) {
             }
         }
     };
+
     return new p5(sketch);
 }
 
@@ -262,17 +253,39 @@ function addP5To3D(_x, _y) {  //called from double click
 
     let mouse = { x: _x, y: _y };
     console.log("camera fov", camera.fov);
-    const posInWorld = find3DCoornatesInFrontOfCamera(300 - camera.fov * 3, mouse);
+    const posInWorld = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
 
     mesh.lookAt(0, 0, 0);
     scene.add(mesh);
-    let thisObject = { canvas: canvas, mesh: mesh, texture: texture, p5Canvas: p5Canvas };
+    let thisObject = { type: "p5ParticleSystem", threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
     thingsThatNeedUpdating.push(thisObject);
+    clickableMeshes.push(mesh);
+    myObjectsByThreeID[mesh.uuid] = thisObject;
 }
 
+function findObjectUnderMouse(x, y) {
+    let raycaster = new THREE.Raycaster(); // create once
+    //var mouse = new THREE.Vector2(); // create once
+    let mouse = {};
+    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    let intersects = raycaster.intersectObjects(clickableMeshes, false);
+
+    // if there is one (or more) intersections
+    let hitObject = null;
+    if (intersects.length > 0) {
+        let hitMesh = intersects[0].object; //closest objec
+        hitObject = myObjectsByThreeID[hitMesh.uuid]; //use look up table assoc array
+
+    }
+    return hitObject;
+    //console.log("Hit ON", hitMesh);
+}
 
 
 
@@ -283,9 +296,10 @@ let mouseDownX = 0, mouseDownY = 0;
 let lon = -90, mouseDownLon = 0;
 let lat = 0, mouseDownLat = 0;
 let isUserInteracting = false;
+let selectedObject = null;
 
 
-function moveCameraWithMouse() {
+function initMoveCameraWithMouse() {
     //set up event handlers
     const div3D = document.getElementById('THREEcontainer');
     div3D.addEventListener('mousedown', div3DMouseDown, false);
@@ -305,23 +319,36 @@ function div3DDoubleClick(event) {
 }
 
 function div3DMouseDown(event) {
+    isUserInteracting = true;
+    selectedObject = findObjectUnderMouse(event.clientX, event.clientY);
+    console.log('selectedObject', selectedObject);
     mouseDownX = event.clientX;
     mouseDownY = event.clientY;
     mouseDownLon = lon;
     mouseDownLat = lat;
-    isUserInteracting = true;
+
 }
 
 function div3DMouseMove(event) {
     if (isUserInteracting) {
         lon = (mouseDownX - event.clientX) * 0.1 + mouseDownLon;
         lat = (event.clientY - mouseDownY) * 0.1 + mouseDownLat;
-        computeCameraOrientation();
+        //either move the selected object or the camera 
+        if (selectedObject) {
+            let pos = project2DCoordsInto3D(100, { x: event.clientX, y: event.clientY });
+            selectedObject.mesh.position.x = pos.x;
+            selectedObject.mesh.position.y = pos.y;
+            selectedObject.mesh.position.z = pos.z;
+        } else {
+            computeCameraOrientation();
+        }
     }
 }
 
+
 function div3DMouseUp(event) {
     isUserInteracting = false;
+
 }
 
 function div3DMouseWheel(event) {

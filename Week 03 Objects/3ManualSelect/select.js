@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
+
 let camera, scene, renderer;
 let thingsThatNeedUpdating = [];
 let myObjectsByThreeID = {}
@@ -70,7 +71,7 @@ function initHTML() {
 
             let mouse = { x: inputRect.left, y: inputRect.top };
             console.log("Entered Text", textInput.value);
-            const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
+            const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
             createNewText(textInput.value, pos);
         }
     });
@@ -92,7 +93,7 @@ function initHTML() {
                 const img = new Image();
                 img.onload = function () {
                     let mouse = { x: e.clientX, y: e.clientY };
-                    const pos = find3DCoornatesInFrontOfCamera(150 - camera.fov, mouse);
+                    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
                     createNewImage(img, pos, files[i]);
                 };
                 img.src = event.target.result;
@@ -102,7 +103,7 @@ function initHTML() {
     }, true);
 }
 
-function find3DCoornatesInFrontOfCamera(distance, mouse) {
+function project2DCoordsInto3D(distance, mouse) {
     let vector = new THREE.Vector3();
     vector.set(
         (mouse.x / window.innerWidth) * 2 - 1,
@@ -253,7 +254,7 @@ function addP5To3D(_x, _y) {  //called from double click
 
     let mouse = { x: _x, y: _y };
     console.log("camera fov", camera.fov);
-    const posInWorld = find3DCoornatesInFrontOfCamera(300 - camera.fov * 3, mouse);
+    const posInWorld = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
     mesh.position.x = posInWorld.x;
     mesh.position.y = posInWorld.y;
     mesh.position.z = posInWorld.z;
@@ -335,7 +336,7 @@ function div3DMouseMove(event) {
         lat = (event.clientY - mouseDownY) * 0.1 + mouseDownLat;
         //either move the selected object or the camera 
         if (selectedObject) {
-            let pos = find3DCoornatesInFrontOfCamera(100, { x: event.clientX, y: event.clientY });
+            let pos = project2DCoordsInto3D(100, { x: event.clientX, y: event.clientY });
             selectedObject.mesh.position.x = pos.x;
             selectedObject.mesh.position.y = pos.y;
             selectedObject.mesh.position.z = pos.z;
