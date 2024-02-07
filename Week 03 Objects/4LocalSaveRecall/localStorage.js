@@ -392,6 +392,7 @@ function div3DMouseMove(event) {
             selectedObject.mesh.position.y = pos.y;
             selectedObject.mesh.position.z = pos.z;
             selectedObject.mesh.lookAt(0, 0, 0);
+
         } else {
             computeCameraOrientation();
         }
@@ -401,7 +402,10 @@ function div3DMouseMove(event) {
 
 function div3DMouseUp(event) {
     isUserInteracting = false;
-    store();
+    if (selectedObject) {
+        storageJSON[selectedObject.threeID].position = selectedObject.mesh.position;
+        store();
+    }
 }
 
 function div3DMouseWheel(event) {
