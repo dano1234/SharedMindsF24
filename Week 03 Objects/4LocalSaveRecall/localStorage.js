@@ -353,7 +353,7 @@ function initMoveCameraWithMouse() {
     const div3D = document.getElementById('THREEcontainer');
     div3D.addEventListener('mousedown', div3DMouseDown, false);
     div3D.addEventListener('mousemove', div3DMouseMove, false);
-    div3D.addEventListener('mouseup', div3DMouseUp, false);
+    window.addEventListener('mouseup', div3DMouseUp, false);  //window in case mouse goes off div
     div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
     //add double click listener
     window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
@@ -391,6 +391,7 @@ function div3DMouseMove(event) {
             selectedObject.mesh.position.x = pos.x;
             selectedObject.mesh.position.y = pos.y;
             selectedObject.mesh.position.z = pos.z;
+            selectedObject.mesh.lookAt(0, 0, 0);
         } else {
             computeCameraOrientation();
         }
@@ -400,7 +401,7 @@ function div3DMouseMove(event) {
 
 function div3DMouseUp(event) {
     isUserInteracting = false;
-
+    store();
 }
 
 function div3DMouseWheel(event) {
