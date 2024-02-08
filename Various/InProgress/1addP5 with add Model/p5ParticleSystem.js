@@ -1,9 +1,24 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
 
 let camera, scene, renderer;
 let thingsThatNeedUpdating = [];
 initHTML();
 init3D();
+//createNewModel()
+
+
+function createNewModel() {
+    const loader = new GLTFLoader();
+    console.log("loading duck", loader);
+    loader.load('./duck/Duck.gltf', function (gltf) {
+        console.log("loaded duck", gltf.scene);
+        gltf.scene.scale.set(0.5, 0.5, 0.5);
+        gltf.scene.position.y = -1;
+        scene.add(gltf.scene);
+        console.log("loaded duck");
+    });
+}
 
 
 function init3D() {
