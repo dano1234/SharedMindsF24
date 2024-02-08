@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
 import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { createNewText } from './objectsFB.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -15,6 +16,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+let appName = "SharedMindsExample";
 
 let db;
 
@@ -26,31 +28,21 @@ function init() {
     let nameField = document.createElement('name');
     document.body.append(nameField);
     db = getDatabase();
-
-
 }
 
-function set(folder, data) {
-    set(ref(db, 'image/users/' + folder + "/location"), {
-        "x": x,
-        "y": y
-    });
+export function setDataInFirebase(folder, key, data) {
+    set(ref(db, appName + '/' + folder + '/' + key), data);
 }
 
-function subscribeToUsers() {
-    const commentsRef = ref(db, 'image/users/');
+export function subscribeToData(folder) {
+    const commentsRef = ref(db, appName + '/' + folder + '/');
     onChildAdded(commentsRef, (data) => {
-        let container = addDiv(data.key, data);
-        fillContainer(container, data.key, data);
         console.log("added", data.key, data);
+        createNewText(data, data.key);
     });
 
     onChildChanged(commentsRef, (data) => {
-        let container = document.getElementById(data.key);
-        if (!container) {
-            container = addDiv(data.key, data);
-        }
-        fillContainer(container, data.key, data);
+
         console.log("changed", data.key, data);
     });
 

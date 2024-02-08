@@ -1,27 +1,26 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
-import * as FB from './firebaseStuff';
+import * as FB from './firebaseStuff.js';
 
 
 let camera, scene, renderer;
-let thingsThatNeedUpdating = [];
-let myObjectsByThreeID = {}
-let clickableMeshes = [];
-let storageJSON = {};
+let thingsThatNeedUpdating = [];  //for updating textures
+let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
+let clickableMeshes = []; //for use with raycasting
+
 initHTML();
 init3D();
 recall();
 
-function store() {
+function store(key, stuffToStore) {
     //console.log("store");
     // let myJSON = JSON.stringify(storageJSON);
     //localStorage.setItem('sharedMinds', myJSON);
-    FB.writeData('sharedMind', myJSON);
+    FB.setData('sharedMind', key, stuffToStore);
 }
 
 function recall() {
     console.log("recall");
-    FB.subscribeToData('sharedMind', gotData);
-
+    FB.subscribeToData('objects'); //get notified if anything changes in this folder
 }
 
 function init3D() {
@@ -85,10 +84,12 @@ function initHTML() {
         if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
             const inputRect = textInput.getBoundingClientRect();
 
-            let mouse = { x: inputRect.left, y: inputRect.top };
-            console.log("Entered Text", textInput.value);
+            const mouse = { x: inputRect.left, y: inputRect.top };
             const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
-            createNewText(textInput.value, pos);
+            const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: textInput.value };
+            FB.setDataInFirebase("", "objects", data);//put empty for the key when you are making a new thing.
+            //don't make it locally until you hear back from firebase
+            console.log("Entered Text, Send to Firebase", textInput.value);
         }
     });
 
@@ -168,13 +169,12 @@ function createNewImage(img, posInWorld, name) {
     };
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
-    storageJSON[mesh.uuid] = { type: "image", name: name, position: posInWorld, base64: base64 };
-    store()
 }
 
 
-function createNewText(text_msg, posInWorld) {
-
+export function createNewText(data, firebaseKey) {
+    let text_msg = data.text;
+    let posInWorld = data.position;
     console.log("Created New Text", posInWorld);
     let canvas = document.createElement("canvas");
     canvas.width = 512;
@@ -200,11 +200,10 @@ function createNewText(text_msg, posInWorld) {
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
-    let thisObject = { type: "text", text: text_msg, position: posInWorld, threeID: mesh.uuid, canvas: canvas, mesh: mesh, texture: texture };
+    let thisObject = { type: "text", firebaseKey: firebaseKey, threeID: mesh.uuid, text: text_msg, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture };
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
-    storageJSON[mesh.uuid] = { type: "text", text: text_msg, position: posInWorld };
-    store()
+
 }
 
 function birthP5Object(w, h) {
@@ -288,8 +287,6 @@ function createNewP5(posInWorld) {  //called from double click
     thingsThatNeedUpdating.push(thisObject);
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
-    storageJSON[mesh.uuid] = { type: "p5ParticleSystem", position: posInWorld };
-    store();
 }
 
 function findObjectUnderMouse(x, y) {

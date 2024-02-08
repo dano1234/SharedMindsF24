@@ -1,9 +1,9 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 let camera, scene, renderer;
-let thingsThatNeedUpdating = [];
-let myObjectsByThreeID = {}
-let clickableMeshes = [];
-let storageJSON = {};
+let thingsThatNeedUpdating = [];  //for updating textures
+let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
+let clickableMeshes = []; //for use with raycasting
+let storageJSON = {};  // for saving to local storage
 initHTML();
 init3D();
 recall();
