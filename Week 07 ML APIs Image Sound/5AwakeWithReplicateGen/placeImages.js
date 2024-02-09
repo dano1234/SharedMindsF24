@@ -37,8 +37,6 @@ function init3D() {
     in_front_of_you.position.set(0, 0, distanceFromCamera); //set it in front of the camera
     camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
 
-
-
     let bgGeometry = new THREE.SphereGeometry(950, 60, 40);
     // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometry.scale(-1, 1, 1);
@@ -48,7 +46,6 @@ function init3D() {
     let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
     let back = new THREE.Mesh(bgGeometry, backMaterial);
     scene.add(back);
-
 
     moveCameraWithMouse();
 

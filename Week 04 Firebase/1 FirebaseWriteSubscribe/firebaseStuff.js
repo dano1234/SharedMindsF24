@@ -1,8 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
-import { getDatabase, ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-import { createNewText } from './objectsFB.js';
+import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { reactToFirebase } from './objectsFB.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -15,40 +14,41 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 let appName = "SharedMindsExample";
 
-let db;
-
-init(); //same as setup but we call it ourselves
+let db = getDatabase();
 
 
-function init() {
-    console.log("init");
-    let nameField = document.createElement('name');
-    document.body.append(nameField);
-    db = getDatabase();
+export function addNewThingToFirebase(folder, data) {
+    //firebase will supply the key,  this will trigger "onChildAdded" below
+    const dbRef = ref(db, appName + '/' + folder);
+    const newKey = push(dbRef, data).key;
+    return newKey; //useful for later updating
 }
 
-export function setDataInFirebase(folder, key, data) {
-    set(ref(db, appName + '/' + folder + '/' + key), data);
+export function updateJSONFieldInFirebase(folder, key, data) {
+    console.log(appName + '/' + folder + '/' + key)
+    const dbRef = ref(db, appName + '/' + folder + '/' + key);
+    update(dbRef, data);
 }
 
 export function subscribeToData(folder) {
+    //get callbacks when there are changes either by you locally or others remotely
     const commentsRef = ref(db, appName + '/' + folder + '/');
     onChildAdded(commentsRef, (data) => {
-        console.log("added", data.key, data);
-        createNewText(data, data.key);
+        reactToFirebase("added", data.val(), data.key);
     });
-
     onChildChanged(commentsRef, (data) => {
-
-        console.log("changed", data.key, data);
+        reactToFirebase("changed", data.val(), data.key)
     });
-
     onChildRemoved(commentsRef, (data) => {
-        console.log("removed", data.key, data.val());
+        reactToFirebase("removed", data.val(), data.key)
     });
+}
 
-
+export function setDataInFirebase(folder, key, data) {
+    //if it doesn't exist, it adds (pushes) with you providing the key
+    //if it does exist, it overwrites
+    const dbRef = ref(db, appName + '/' + folder)
+    set(dbRef, data);
 }
