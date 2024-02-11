@@ -2,9 +2,6 @@ import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/
 import * as FB from './firebaseStuff.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 
-
-
-
 let camera, scene, renderer;
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
@@ -67,6 +64,40 @@ export function reactToFirebase(reaction, data, key) {
     }
 }
 
+export function findObjectUnderMouse(x, y) {
+    let raycaster = new THREE.Raycaster(); // create once
+    //var mouse = new THREE.Vector2(); // create once
+    let mouse = {};
+    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    let intersects = raycaster.intersectObjects(clickableMeshes, false);
+
+    // if there is one (or more) intersections
+    let hitObject = null;
+    if (intersects.length > 0) {
+        let hitMesh = intersects[0].object; //closest objec
+        hitObject = myObjectsByThreeID[hitMesh.uuid]; //use look up table assoc array
+
+    }
+    return hitObject;
+    //console.log("Hit ON", hitMesh);
+}
+
+export function project2DCoordsInto3D(distance, mouse) {
+    let vector = new THREE.Vector3();
+    vector.set(
+        (mouse.x / window.innerWidth) * 2 - 1,
+        - (mouse.y / window.innerHeight) * 2 + 1,
+        0
+    );
+    //vector.set(0, 0, 0); //would be middle of the screen where input box is
+    vector.unproject(camera);
+    vector.multiplyScalar(distance)
+    return vector;
+}
+
 function init3D() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -88,8 +119,6 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-
-
     initMoveCameraWithMouse(camera, renderer);
 
     camera.position.z = 0;
@@ -105,18 +134,6 @@ function animate() {
 }
 
 
-export function project2DCoordsInto3D(distance, mouse) {
-    let vector = new THREE.Vector3();
-    vector.set(
-        (mouse.x / window.innerWidth) * 2 - 1,
-        - (mouse.y / window.innerHeight) * 2 + 1,
-        0
-    );
-    //vector.set(0, 0, 0); //would be middle of the screen where input box is
-    vector.unproject(camera);
-    vector.multiplyScalar(distance)
-    return vector;
-}
 
 
 function createNewImage(img, posInWorld, firebaseKey) {
@@ -260,52 +277,30 @@ function createNewP5(data, firebaseKey) {  //called from double click
     //and then regular (elt) js canvas out of special p5 canvas
     let myCanvas = newP5.getP5Canvas();
     let canvas = myCanvas.elt;
+
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
     let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
     let mesh = new THREE.Mesh(geo, material);
-    mesh.x = 0;
-    mesh.y = 0;
-    mesh.z = -299;
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
+
     let thisObject = { type: "p5ParticleSystem", firebaseKey: firebaseKey, threeID: mesh.uuid, position: data.position, canvas: canvas, mesh: mesh, texture: texture };
-    //redrawP5(thisObject);
+    redrawP5(thisObject);
     texturesThatNeedUpdating.push(thisObject);
-    // clickableMeshes.push(mesh);
+    clickableMeshes.push(mesh);
+    mesh.lookAt(0, 0, 0);
     myObjectsByThreeID[mesh.uuid] = thisObject;
     myObjectsByFirebaseKey[firebaseKey] = thisObject;
 }
 
 function redrawP5(thisObject) {
-    console.log("redraw", thisObject);
-    thisObject.mesh.x = thisObject.position.x;
-    thisObject.mesh.y = thisObject.position.y;
-    thisObject.mesh.z = thisObject.position.z;
+    thisObject.mesh.position.x = thisObject.position.x;
+    thisObject.mesh.position.y = thisObject.position.y;
+    thisObject.mesh.position.z = thisObject.position.z;
     thisObject.mesh.lookAt(0, 0, 0);
     thisObject.texture.needsUpdate = true;
-}
-
-export function findObjectUnderMouse(x, y) {
-    let raycaster = new THREE.Raycaster(); // create once
-    //var mouse = new THREE.Vector2(); // create once
-    let mouse = {};
-    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
-    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-
-    let intersects = raycaster.intersectObjects(clickableMeshes, false);
-
-    // if there is one (or more) intersections
-    let hitObject = null;
-    if (intersects.length > 0) {
-        let hitMesh = intersects[0].object; //closest objec
-        hitObject = myObjectsByThreeID[hitMesh.uuid]; //use look up table assoc array
-
-    }
-    return hitObject;
-    //console.log("Hit ON", hitMesh);
 }
 
 

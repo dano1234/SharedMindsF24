@@ -13,6 +13,7 @@ init3D();
 const loader = new GLTFLoader();
 // Function to load and add a duck to the scene
 function creatNewModel(file, pos) {
+
     loader.load(file, function (gltf) {
         const model = gltf.scene;
         model.scale.set(5, 5, 5);
@@ -44,7 +45,7 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    let ambientLight = new THREE.AmbientLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.75);
     scene.add(ambientLight);
 
 

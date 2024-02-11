@@ -104,8 +104,18 @@ export function initMoveCameraWithMouse(_camera, _renderer) {
     div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
     window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
     window.addEventListener('resize', onWindowResize, false);
-    //document.addEventListener('keydown', onDocumentKeyDown, false);
+    document.addEventListener('keydown', div3DKeyDown, false);
 
+}
+
+function div3DKeyDown(event) {
+
+    if (selectedObject) {
+        if (event.key === "Backspace" || event.key === "Delete") {
+
+            FB.deleteFromFirebase("objects", selectedObject.firebaseKey);
+        }
+    }
 }
 
 function div3DDoubleClick(event) {
@@ -117,6 +127,11 @@ function div3DDoubleClick(event) {
 function div3DMouseDown(event) {
     isUserInteracting = true;
     selectedObject = MAIN.findObjectUnderMouse(event.clientX, event.clientY);
+    // if (selectedObject) {
+    //     selectedObject.hilite = true;
+    // } else {
+    //     MAIN.clearAllHilites();
+    // }
     mouseDownX = event.clientX;
     mouseDownY = event.clientY;
     mouseDownLon = lon;
