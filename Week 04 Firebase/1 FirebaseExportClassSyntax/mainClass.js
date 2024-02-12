@@ -21,16 +21,16 @@ function recall() {
 export function reactToFirebase(reaction, data, key) {
     if (reaction === "added") {
         if (data.type === "text") {
-            createNewText(data, key);
+            new SharedMindsText(data.text, data.position, key);
         } else if (data.type === "image") {
             let img = new Image();  //create a new image
             img.onload = function () {
-                let posInWorld = data.position;
-                createNewImage(img, posInWorld, key);
+                new SharedMindsImage(img, data.position, data.base64, key);
             }
             img.src = data.base64;
         } else if (data.type === "p5ParticleSystem") {
-            createNewP5(data, key);
+            let newp5 = new SharedMindsP5Sketch(data.position, key);
+            console.log("new p5", newp5);
         }
     } else if (reaction === "changed") {
         console.log("changed", data);
@@ -39,19 +39,19 @@ export function reactToFirebase(reaction, data, key) {
             if (data.type === "text") {
                 thisObject.text = data.text;
                 thisObject.position = data.position;
-                redrawText(thisObject);
+                thisObject.redraw();
             } else if (data.type === "image") {
                 let img = new Image();  //create a new image
                 img.onload = function () {
                     thisObject.img = img;
                     thisObject.position = data.position;
-                    redrawImage(thisObject);
+                    thisObject.redraw();
                 }
                 img.src = data.base64;
 
             } else if (data.type === "p5ParticleSystem") {
                 thisObject.position = data.position;
-                redrawP5(thisObject);
+                thisObject.redraw();
             }
         }
     } else if (reaction === "removed") {
@@ -63,6 +63,103 @@ export function reactToFirebase(reaction, data, key) {
         }
     }
 }
+
+
+class AnyObject {
+    constructor(canvas, pos, key) {
+        this.type = "any";
+        this.position = pos;
+        this.firebaseKey = key;
+        this.canvas = canvas;
+        this.context = this.canvas.getContext("2d");
+        this.texture = new THREE.Texture(this.canvas);
+        this.texture.needsUpdate = true;
+        this.material = new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
+        this.geo = new THREE.PlaneGeometry(1, 1);
+        this.mesh = new THREE.Mesh(this.geo, this.material);
+        this.mesh.lookAt(0, 0, 0);
+        this.mesh.scale.set(10, 10, 10);
+        scene.add(this.mesh);
+        texturesThatNeedUpdating.push(this);
+        clickableMeshes.push(this.mesh);
+        myObjectsByThreeID[this.mesh.uuid] = this;
+        myObjectsByFirebaseKey[this.firebaseKey] = this;
+    }
+    redraw() {
+        this.mesh.position.x = this.position.x;
+        this.mesh.position.y = this.position.y;
+        this.mesh.position.z = this.position.z;
+        this.mesh.lookAt(0, 0, 0);
+        this.texture.needsUpdate = true;
+    }
+}
+
+class SharedMindsImage extends AnyObject {
+    constructor(img, pos, base64, key) {
+        let canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        super(canvas, pos, key);
+        this.type = "image";
+        this.img = img;
+        this.base64 = base64;
+        this.redraw();
+    }
+    redraw() {
+        super.redraw();
+        this.context.drawImage(this.img, 0, 0);
+
+    }
+    getJSONForFirebase() {
+        return { type: "image", position: this.position, base64: this.base64 };
+    }
+
+}
+
+class SharedMindsText extends AnyObject {
+    constructor(_words, pos, key) {
+        let canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 512;
+        super(canvas, pos, key);
+        this.type = "text";
+        this.text = _words;
+        this.redraw();
+    }
+    redraw() {
+        super.redraw();
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        let fontSize = Math.max(camera.fov / 2, 72);
+        this.context.font = fontSize + "pt Arial";
+        this.context.textAlign = "center";
+        this.context.fillStyle = "red";
+        this.context.fillText(this.text, this.canvas.width / 2, this.canvas.height / 2);
+
+    }
+    getJSONForFirebase() {
+        return { type: "text", position: this.position, text: this.text };
+    }
+}
+
+class SharedMindsP5Sketch extends AnyObject {
+    constructor(pos, key) {
+        let newP5 = birthP5Object(200, 200);
+        //pull the p5 canvas out of sketch 
+        //and then regular (elt) js canvas out of special p5 canvas
+        let p5Canvas = newP5.getP5Canvas();
+        let canvas = p5Canvas.elt;
+        super(canvas, pos, key);
+        this.type = "p5Sketch";
+        this.redraw();
+    }
+    redraw() {
+        super.redraw();
+    }
+    getJSONForFirebase() {
+        return { type: "P5Sketch", position: this.position };
+    }
+}
+
 
 export function findObjectUnderMouse(x, y) {
     let raycaster = new THREE.Raycaster(); // create once
@@ -133,165 +230,6 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-class AnyObject {
-    constructor() {
-        this.type = "any";
-        this.position = { x: 0, y: 0, z: 0 };
-        this.canvas = document.createElement("canvas");
-        this.context = this.canvas.getContext("2d");
-
-        this.texture = new THREE.Texture(this.canvas);
-        this.texture.needsUpdate = true;
-        let material = new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-        let geo = new THREE.PlaneGeometry(1, 1);
-        this.mesh = new THREE.Mesh(geo, material);
-        this.mesh.lookAt(0, 0, 0);
-        this.mesh.scale.set(10, 10, 10);
-        scene.add(this.mesh);
-    }
-    setPosition(pos) {
-        this.position = pos;
-    }
-    redraw() {
-        this.mesh.position.x = this.position.x;
-        this.mesh.position.y = this.position.y;
-        this.mesh.position.z = this.position.z;
-        this.mesh.lookAt(0, 0, 0);
-        this.texture.needsUpdate = true;
-    }
-}
-
-class Image extends AnyObject {
-
-    constructor(img) {
-        super();
-        this.type = "image";
-        this.img = new Image();
-        this.base64 = "";
-    }
-
-    redraw() {
-        this.context.drawImage(this.img, 0, 0);
-        this.texture.needsUpdate = true;
-
-    }
-
-
-    redrawImage() {
-        this.mesh.position.x = this.position.x;
-        this.mesh.position.y = this.position.y;
-        this.mesh.position.z = this.position.z;
-        this.mesh.lookAt(0, 0, 0);
-        this.texture.needsUpdate = true;
-    }
-
-    getJSONForFirebase() {
-        return { type: "image", position: this.position, base64: this.base64 };
-    }
-
-}
-
-class Text extends AnyObject {
-
-    constructor() {
-        super();
-        this.type = "text";
-        this.text = "";
-
-        redraw() {
-            super.redraw();
-            this.context.fillText(this.text, this.canvas.width / 2, this.canvas.height / 2);
-
-        }
-
-        getJSONForFirebase() {
-            return { type: "text", position: this.position, text: this.text };
-        }
-    }
-}
-
-
-function createNewImage(img, posInWorld, firebaseKey) {
-
-    let canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    let context = canvas.getContext("2d");
-
-    let texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
-    let mesh = new THREE.Mesh(geo, material);
-
-    mesh.lookAt(0, 0, 0);
-    mesh.scale.set(10, 10, 10);
-    scene.add(mesh);
-    let base64 = canvas.toDataURL();
-    let thisObject = {
-        type: "image", firebaseKey: firebaseKey, position: posInWorld, context: context, texture: texture, img: img, base64: base64, threeID: mesh.uuid, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture
-    };
-    redrawImage(thisObject);
-    clickableMeshes.push(mesh);
-    myObjectsByThreeID[mesh.uuid] = thisObject;
-    myObjectsByFirebaseKey[firebaseKey] = thisObject;
-}
-
-function redrawImage(object) {
-    let img = object.img;
-    object.context.drawImage(img, 0, 0);
-    let fontSize = Math.max(12);
-    object.context.font = fontSize + "pt Arial";
-    object.context.textAlign = "center";
-    object.context.fillStyle = "red";
-    object.context.fillText(object.firebaseKey, object.canvas.width / 2, object.canvas.height - 30);
-    object.mesh.position.x = object.position.x;
-    object.mesh.position.y = object.position.y;
-    object.mesh.position.z = object.position.z;
-    object.mesh.lookAt(0, 0, 0);
-    object.texture.needsUpdate = true;
-}
-
-
-function createNewText(data, firebaseKey) {
-    let text_msg = data.text;
-    let posInWorld = data.position;
-    let canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-
-    let texture = new THREE.Texture(canvas);
-
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(1, 1);
-    let mesh = new THREE.Mesh(geo, material);
-    mesh.lookAt(0, 0, 0);
-    mesh.scale.set(10, 10, 10);
-    scene.add(mesh);
-    let thisObject = { type: "text", firebaseKey: firebaseKey, threeID: mesh.uuid, text: text_msg, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture };
-    redrawText(thisObject);
-    clickableMeshes.push(mesh);
-    myObjectsByThreeID[mesh.uuid] = thisObject;
-    myObjectsByFirebaseKey[firebaseKey] = thisObject;
-}
-
-function redrawText(thisObject) {
-    let canvas = thisObject.canvas;
-    let context = canvas.getContext("2d");
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    let fontSize = Math.max(camera.fov / 2, 72);
-    context.font = fontSize + "pt Arial";
-    context.textAlign = "center";
-    context.fillStyle = "red";
-    context.fillText(thisObject.text, canvas.width / 2, canvas.height / 2);
-    thisObject.texture.needsUpdate = true;
-    thisObject.mesh.position.x = thisObject.position.x;
-    thisObject.mesh.position.y = thisObject.position.y;
-    thisObject.mesh.position.z = thisObject.position.z;
-    thisObject.mesh.lookAt(0, 0, 0);
-    thisObject.texture.needsUpdate = true;
-}
-
 function birthP5Object(w, h) {
     let sketch = function (p) {
         let particles = [];
@@ -344,38 +282,6 @@ function birthP5Object(w, h) {
         }
     };
     return new p5(sketch);
-}
-
-function createNewP5(data, firebaseKey) {  //called from double click
-    let newP5 = birthP5Object(200, 200);
-    //pull the p5 canvas out of sketch 
-    //and then regular (elt) js canvas out of special p5 canvas
-    let myCanvas = newP5.getP5Canvas();
-    let canvas = myCanvas.elt;
-
-    let texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
-    let mesh = new THREE.Mesh(geo, material);
-    mesh.scale.set(10, 10, 10);
-    scene.add(mesh);
-
-    let thisObject = { type: "p5ParticleSystem", firebaseKey: firebaseKey, threeID: mesh.uuid, position: data.position, canvas: canvas, mesh: mesh, texture: texture };
-    redrawP5(thisObject);
-    texturesThatNeedUpdating.push(thisObject);
-    clickableMeshes.push(mesh);
-    mesh.lookAt(0, 0, 0);
-    myObjectsByThreeID[mesh.uuid] = thisObject;
-    myObjectsByFirebaseKey[firebaseKey] = thisObject;
-}
-
-function redrawP5(thisObject) {
-    thisObject.mesh.position.x = thisObject.position.x;
-    thisObject.mesh.position.y = thisObject.position.y;
-    thisObject.mesh.position.z = thisObject.position.z;
-    thisObject.mesh.lookAt(0, 0, 0);
-    thisObject.texture.needsUpdate = true;
 }
 
 
