@@ -44,13 +44,25 @@ export function initHTML() {
             const mouse = { x: inputRect.left, y: inputRect.top };
             const pos = MAIN.project2DCoordsInto3D(150 - camera.fov, mouse);
             const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: textInput.value };
-            FB.addNewThingToFirebase("objects", data);//put empty for the key when you are making a new thing.
+            FB.addNewThingToFirebase(data);//put empty for the key when you are making a new thing.
             //don't make it locally until you hear back from firebase
             console.log("Entered Text, Send to Firebase", textInput.value);
         }
     });
+    const captureButton = document.createElement("button");
+    captureButton.textContent = "Capture Frame";
+    document.body.appendChild(captureButton);
+    captureButton.style.position = "absolute";
+    captureButton.style.top = "10px";
+    captureButton.style.left = "10px";
+    captureButton.style.zIndex = "5";
 
 
+
+    captureButton.addEventListener("click", function () {
+        MAIN.captureScene();
+
+    });
 
 }
 
@@ -74,7 +86,7 @@ function div3DKeyDown(event) {
     if (selectedObject) {
         if (event.key === "Backspace" || event.key === "Delete") {
 
-            FB.deleteFromFirebase("objects", selectedObject.firebaseKey);
+            FB.deleteFromFirebase(selectedObject.firebaseKey);
         }
     }
 }
@@ -82,7 +94,7 @@ function div3DKeyDown(event) {
 function div3DDoubleClick(event) {
     let mouse = { x: event.clientX, y: event.clientY };
     const pos = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
-    FB.addNewThingToFirebase("objects", { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } });
+    FB.addNewThingToFirebase({ type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } });
 }
 
 function div3DMouseDown(event) {
@@ -107,7 +119,7 @@ function div3DMouseMove(event) {
         if (selectedObject) {
             let pos = MAIN.project2DCoordsInto3D(100, { x: event.clientX, y: event.clientY });
             const updates = { position: pos };
-            FB.updateJSONFieldInFirebase("objects", selectedObject.firebaseKey, updates);
+            FB.updateJSONFieldInFirebase(selectedObject.firebaseKey, updates);
         } else {
             computeCameraOrientation();
         }
@@ -171,7 +183,7 @@ function enableDragDrop() {
                         quickCanvas.height = img.height;
                         quickContext.drawImage(img, 0, 0);
                         const base64 = quickCanvas.toDataURL();
-                        FB.addNewThingToFirebase("objects", { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, filename: files[i], base64: base64 });
+                        FB.addNewThingToFirebase({ type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, filename: files[i], base64: base64 });
                     };
                     img.src = event.target.result;
                 };
