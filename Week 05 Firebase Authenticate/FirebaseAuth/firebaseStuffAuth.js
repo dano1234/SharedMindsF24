@@ -1,9 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-import { reactToFirebase } from './main.js';
+import { reactToFirebase } from '../../Week 04 Firebase/1 FirebaseExport/main.js';
 
-
+import { getAuth, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
 
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
@@ -19,6 +19,59 @@ const app = initializeApp(firebaseConfig);
 let appName = "SharedMindsExample";
 
 let db = getDatabase();
+const auth = getAuth();
+
+const provider = new GoogleAuthProvider();
+
+
+let signUpButton = document.createElement("button");
+signUpButton.innerHTML = "Sign Up";
+signUpButton.setAttribute("id", "signUp");
+signUpButton.style.position = "absolute";
+signUpButton.style.top = "10%";
+signUpButton.style.left = "90%";
+signUpButton.style.transform = "translate(-50%, -50%)";
+signUpButton.style.zIndex = "15";
+
+
+document.body.appendChild(signUpButton);
+
+let email = "dan@example.com";
+let password = "123456";
+
+document.getElementById("signUp").addEventListener("click", function () {
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const token = credential.accessToken;
+            // The signed-in user info.
+            const user = result.user;
+            // IdP data available using getAdditionalUserInfo(result)
+            // ...
+        }).catch((error) => {
+            // Handle Errors here.
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            // The email of the user's account used.
+            const email = error.customData.email;
+            // The AuthCredential type that was used.
+            const credential = GoogleAuthProvider.credentialFromError(error);
+            // ...
+        });
+    // createUserWithEmailAndPassword(auth, email, password)
+    //     .then((userCredential) => {
+    //         // Signed up 
+    //         const user = userCredential.user;
+    //         console.log(user);
+    //         // ...
+    //     })
+    //     .catch((error) => {
+    //         const errorCode = error.code;
+    //         const errorMessage = error.message;
+    //         // ..
+    //     });
+});
 
 
 export function addNewThingToFirebase(folder, data) {
