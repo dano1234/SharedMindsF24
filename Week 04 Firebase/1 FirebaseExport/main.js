@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 import * as FB from './firebaseStuff.js';
-
+import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 
 let camera, scene, renderer;
 let texturesThatNeedUpdating = [];  //for updating textures
@@ -13,8 +13,6 @@ initHTML();
 init3D();
 recall();
 
-
-
 function recall() {
     console.log("recall");
     FB.subscribeToData('objects'); //get notified if anything changes in this folder
@@ -23,7 +21,7 @@ function recall() {
 export function reactToFirebase(reaction, data, key) {
     if (reaction === "added") {
         if (data.type === "text") {
-            createNewText(data);
+            createNewText(data, key);
         } else if (data.type === "image") {
             let img = new Image();  //create a new image
             img.onload = function () {
@@ -50,6 +48,7 @@ export function reactToFirebase(reaction, data, key) {
                     redrawImage(thisObject);
                 }
                 img.src = data.base64;
+
             } else if (data.type === "p5ParticleSystem") {
                 thisObject.position = data.position;
                 redrawP5(thisObject);
@@ -65,10 +64,44 @@ export function reactToFirebase(reaction, data, key) {
     }
 }
 
+export function findObjectUnderMouse(x, y) {
+    let raycaster = new THREE.Raycaster(); // create once
+    //var mouse = new THREE.Vector2(); // create once
+    let mouse = {};
+    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    let intersects = raycaster.intersectObjects(clickableMeshes, false);
+
+    // if there is one (or more) intersections
+    let hitObject = null;
+    if (intersects.length > 0) {
+        let hitMesh = intersects[0].object; //closest objec
+        hitObject = myObjectsByThreeID[hitMesh.uuid]; //use look up table assoc array
+
+    }
+    return hitObject;
+    //console.log("Hit ON", hitMesh);
+}
+
+export function project2DCoordsInto3D(distance, mouse) {
+    let vector = new THREE.Vector3();
+    vector.set(
+        (mouse.x / window.innerWidth) * 2 - 1,
+        - (mouse.y / window.innerHeight) * 2 + 1,
+        0
+    );
+    //vector.set(0, 0, 0); //would be middle of the screen where input box is
+    vector.unproject(camera);
+    vector.multiplyScalar(distance)
+    return vector;
+}
+
 function init3D() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-
+    camera.target = new THREE.Vector3(0, 0, 0);  //mouse controls move this around and camera looks at it 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     ///document.body.appendChild(renderer.domElement);
@@ -86,7 +119,7 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-    initMoveCameraWithMouse();
+    initMoveCameraWithMouse(camera, renderer);
 
     camera.position.z = 0;
     animate();
@@ -100,86 +133,7 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-function initHTML() {
-    const THREEcontainer = document.createElement("div");
-    THREEcontainer.setAttribute("id", "THREEcontainer");
-    document.body.appendChild(THREEcontainer);
-    THREEcontainer.style.position = "absolute";
-    THREEcontainer.style.top = "0";
-    THREEcontainer.style.left = "0";
-    THREEcontainer.style.width = "100%";
-    THREEcontainer.style.height = "100%";
-    THREEcontainer.style.zIndex = "1";
 
-    const textInput = document.createElement("input");
-    textInput.setAttribute("type", "text");
-    textInput.setAttribute("id", "textInput");
-    textInput.setAttribute("placeholder", "Enter text here");
-    document.body.appendChild(textInput);
-    textInput.style.position = "absolute";
-    textInput.style.top = "50%";
-    textInput.style.left = "50%";
-    textInput.style.transform = "translate(-50%, -50%)";
-    textInput.style.zIndex = "5";
-
-    textInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-            const inputRect = textInput.getBoundingClientRect();
-
-            const mouse = { x: inputRect.left, y: inputRect.top };
-            const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
-            const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: textInput.value };
-            FB.addNewThingToFirebase("objects", data);//put empty for the key when you are making a new thing.
-            //don't make it locally until you hear back from firebase
-            console.log("Entered Text, Send to Firebase", textInput.value);
-        }
-    });
-
-    window.addEventListener("dragover", function (e) {
-        e.preventDefault();  //prevents browser from opening the file
-    }, false);
-
-    window.addEventListener("drop", (e) => {
-        e.preventDefault();
-        const files = e.dataTransfer.files;
-        for (let i = 0; i < files.length; i++) {
-            if (!files[i].type.match("image")) continue;
-            // Process the dropped image file here
-            console.log("Dropped image file:", files[i]);
-
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                const img = new Image();
-                img.onload = function () {
-                    let mouse = { x: e.clientX, y: e.clientY };
-                    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
-                    const quickCanvas = document.createElement("canvas");
-                    const quickContext = quickCanvas.getContext("2d");
-                    quickCanvas.width = img.width;
-                    quickCanvas.height = img.height;
-                    quickContext.drawImage(img, 0, 0);
-                    const base64 = quickCanvas.toDataURL();
-                    FB.addNewThingToFirebase("objects", { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, filename: files[i], base64: base64 });
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(files[i]);
-        }
-    }, true);
-}
-
-function project2DCoordsInto3D(distance, mouse) {
-    let vector = new THREE.Vector3();
-    vector.set(
-        (mouse.x / window.innerWidth) * 2 - 1,
-        - (mouse.y / window.innerHeight) * 2 + 1,
-        0
-    );
-    //vector.set(0, 0, 0); //would be middle of the screen where input box is
-    vector.unproject(camera);
-    vector.multiplyScalar(distance)
-    return vector;
-}
 
 
 function createNewImage(img, posInWorld, firebaseKey) {
@@ -219,6 +173,7 @@ function redrawImage(object) {
     object.mesh.position.x = object.position.x;
     object.mesh.position.y = object.position.y;
     object.mesh.position.z = object.position.z;
+    object.mesh.lookAt(0, 0, 0);
     object.texture.needsUpdate = true;
 }
 
@@ -243,7 +198,6 @@ function createNewText(data, firebaseKey) {
     clickableMeshes.push(mesh);
     myObjectsByThreeID[mesh.uuid] = thisObject;
     myObjectsByFirebaseKey[firebaseKey] = thisObject;
-
 }
 
 function redrawText(thisObject) {
@@ -323,6 +277,7 @@ function createNewP5(data, firebaseKey) {  //called from double click
     //and then regular (elt) js canvas out of special p5 canvas
     let myCanvas = newP5.getP5Canvas();
     let canvas = myCanvas.elt;
+
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
@@ -330,127 +285,26 @@ function createNewP5(data, firebaseKey) {  //called from double click
     let mesh = new THREE.Mesh(geo, material);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
+
     let thisObject = { type: "p5ParticleSystem", firebaseKey: firebaseKey, threeID: mesh.uuid, position: data.position, canvas: canvas, mesh: mesh, texture: texture };
     redrawP5(thisObject);
     texturesThatNeedUpdating.push(thisObject);
-    //clickableMeshes.push(mesh);
+    clickableMeshes.push(mesh);
+    mesh.lookAt(0, 0, 0);
     myObjectsByThreeID[mesh.uuid] = thisObject;
     myObjectsByFirebaseKey[firebaseKey] = thisObject;
 }
 
 function redrawP5(thisObject) {
-    console.log(thisObject);
-    thisObject.position.x = thisObject.position.x;
-    thisObject.position.y = thisObject.position.y;
-    thisObject.position.z = thisObject.position.z;
+    thisObject.mesh.position.x = thisObject.position.x;
+    thisObject.mesh.position.y = thisObject.position.y;
+    thisObject.mesh.position.z = thisObject.position.z;
     thisObject.mesh.lookAt(0, 0, 0);
     thisObject.texture.needsUpdate = true;
 }
 
-function findObjectUnderMouse(x, y) {
-    let raycaster = new THREE.Raycaster(); // create once
-    //var mouse = new THREE.Vector2(); // create once
-    let mouse = {};
-    mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
-    mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-
-    let intersects = raycaster.intersectObjects(clickableMeshes, false);
-
-    // if there is one (or more) intersections
-    let hitObject = null;
-    if (intersects.length > 0) {
-        let hitMesh = intersects[0].object; //closest objec
-        hitObject = myObjectsByThreeID[hitMesh.uuid]; //use look up table assoc array
-
-    }
-    return hitObject;
-    //console.log("Hit ON", hitMesh);
-}
 
 
 
 
-/////MOUSE STUFF
-
-let mouseDownX = 0, mouseDownY = 0;
-let lon = -90, mouseDownLon = 0;
-let lat = 0, mouseDownLat = 0;
-let isUserInteracting = false;
-let selectedObject = null;
-
-
-function initMoveCameraWithMouse() {
-    //set up event handlers
-    const div3D = document.getElementById('THREEcontainer');
-    div3D.addEventListener('mousedown', div3DMouseDown, false);
-    div3D.addEventListener('mousemove', div3DMouseMove, false);
-    window.addEventListener('mouseup', windowMouseUp, false);  //window in case they wander off the div
-    div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
-    window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
-    window.addEventListener('resize', onWindowResize, false);
-    //document.addEventListener('keydown', onDocumentKeyDown, false);
-    camera.target = new THREE.Vector3(0, 0, 0);  //something for the camera to look at
-}
-
-function div3DDoubleClick(event) {
-    let mouse = { x: event.clientX, y: event.clientY };
-    const pos = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
-    FB.addNewThingToFirebase("objects", { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } });
-}
-
-function div3DMouseDown(event) {
-    isUserInteracting = true;
-    selectedObject = findObjectUnderMouse(event.clientX, event.clientY);
-    mouseDownX = event.clientX;
-    mouseDownY = event.clientY;
-    mouseDownLon = lon;
-    mouseDownLat = lat;
-
-}
-
-function div3DMouseMove(event) {
-    if (isUserInteracting) {
-        lon = (mouseDownX - event.clientX) * 0.1 + mouseDownLon;
-        lat = (event.clientY - mouseDownY) * 0.1 + mouseDownLat;
-        //either move the selected object or the camera 
-        if (selectedObject) {
-            let pos = project2DCoordsInto3D(100, { x: event.clientX, y: event.clientY });
-            const updates = { position: pos };
-            FB.updateJSONFieldInFirebase("objects", selectedObject.firebaseKey, updates);
-        } else {
-            computeCameraOrientation();
-        }
-    }
-}
-
-
-function windowMouseUp(event) {
-    isUserInteracting = false;
-
-}
-
-function div3DMouseWheel(event) {
-    camera.fov += event.deltaY * 0.05;
-    camera.fov = Math.max(5, Math.min(100, camera.fov)); //limit zoom
-    camera.updateProjectionMatrix();
-}
-
-function computeCameraOrientation() {
-    lat = Math.max(- 30, Math.min(30, lat));  //restrict movement
-    let phi = THREE.MathUtils.degToRad(90 - lat);  //restrict movement
-    let theta = THREE.MathUtils.degToRad(lon);
-    //move the target that the camera is looking at
-    camera.target.x = 100 * Math.sin(phi) * Math.cos(theta);
-    camera.target.y = 100 * Math.cos(phi);
-    camera.target.z = 100 * Math.sin(phi) * Math.sin(theta);
-    camera.lookAt(camera.target);
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    console.log('Resized');
-}
 

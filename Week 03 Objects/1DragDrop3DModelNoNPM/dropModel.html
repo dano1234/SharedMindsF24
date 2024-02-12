@@ -1,0 +1,26 @@
+<html>
+
+<head>
+  <title>Add P5 Sketch</title>
+  <meta charset="UTF-8">
+  <meta http-equiv='cache-control' content='no-cache'>
+  <meta http-equiv='expires' content='0'>
+</head>
+
+
+<body>
+  <!-- this maps a standard import to a url,
+  this allows you to have use a standard import in js without using npm to import the models -->
+  <script type="importmap">
+              {
+                "imports": {
+                  "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
+                  "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
+                }
+              }
+            </script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.js"></script>
+  <script src="dropModel.js" type="module"></script>
+</body>
+
+</html>

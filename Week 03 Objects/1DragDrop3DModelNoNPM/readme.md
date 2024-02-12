@@ -1,0 +1,1 @@
+This demontrates loading a .glb model. Either drag and drop a .glb model on the window or double click (to get a rubber duck).  This uses an import map in html to allow you to still use a url and avoid hassle of the npm style of importing files. (see option 1 of https://threejs.org/docs/#manual/en/introduction/Installation)
