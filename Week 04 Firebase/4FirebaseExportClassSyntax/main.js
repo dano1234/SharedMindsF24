@@ -1,6 +1,10 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 import * as FB from './firebaseStuff.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
+import { SharedMindsText } from './TextObjectClass.js';
+import { SharedMindsImage } from './ImageObjectClass.js';
+import { SharedMindsP5Sketch } from './P5ObjectClass.js';
+
 
 let camera, scene, renderer;
 let texturesThatNeedUpdating = [];  //for updating textures
@@ -18,20 +22,34 @@ function recall() {
     FB.subscribeToData('objects'); //get notified if anything changes in this folder
 }
 
+function fileObjectInVariousPlaces(newObject) {
+    scene.add(newObject.mesh);
+    texturesThatNeedUpdating.push(newObject);
+    clickableMeshes.push(newObject.mesh);
+    myObjectsByThreeID[newObject.mesh.uuid] = newObject;
+    myObjectsByFirebaseKey[newObject.firebaseKey] = newObject;
+}
+
 export function reactToFirebase(reaction, data, key) {
     if (reaction === "added") {
+        let newObject;
         if (data.type === "text") {
-            new SharedMindsText(data.text, data.position, key);
+            newObject = new SharedMindsText(data.text, data.position, key);
+            fileObjectInVariousPlaces(newObject);
         } else if (data.type === "image") {
             let img = new Image();  //create a new image
             img.onload = function () {
-                new SharedMindsImage(img, data.position, data.base64, key);
+                newObject = new SharedMindsImage(img, data.position, data.base64, key);
+                fileObjectInVariousPlaces(newObject);
             }
+            console.log("new img", newObject);
             img.src = data.base64;
         } else if (data.type === "p5ParticleSystem") {
-            let newp5 = new SharedMindsP5Sketch(data.position, key);
-            console.log("new p5", newp5);
+            newObject = new SharedMindsP5Sketch(data.position, key);
+            fileObjectInVariousPlaces(newObject);
+            console.log("new p5", newObject);
         }
+
     } else if (reaction === "changed") {
         console.log("changed", data);
         let thisObject = myObjectsByFirebaseKey[key];
@@ -64,101 +82,6 @@ export function reactToFirebase(reaction, data, key) {
     }
 }
 
-
-class AnyObject {
-    constructor(canvas, pos, key) {
-        this.type = "any";
-        this.position = pos;
-        this.firebaseKey = key;
-        this.canvas = canvas;
-        this.context = this.canvas.getContext("2d");
-        this.texture = new THREE.Texture(this.canvas);
-        this.texture.needsUpdate = true;
-        this.material = new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-        this.geo = new THREE.PlaneGeometry(1, 1);
-        this.mesh = new THREE.Mesh(this.geo, this.material);
-        this.mesh.lookAt(0, 0, 0);
-        this.mesh.scale.set(10, 10, 10);
-        scene.add(this.mesh);
-        texturesThatNeedUpdating.push(this);
-        clickableMeshes.push(this.mesh);
-        myObjectsByThreeID[this.mesh.uuid] = this;
-        myObjectsByFirebaseKey[this.firebaseKey] = this;
-    }
-    redraw() {
-        this.mesh.position.x = this.position.x;
-        this.mesh.position.y = this.position.y;
-        this.mesh.position.z = this.position.z;
-        this.mesh.lookAt(0, 0, 0);
-        this.texture.needsUpdate = true;
-    }
-}
-
-class SharedMindsImage extends AnyObject {
-    constructor(img, pos, base64, key) {
-        let canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        super(canvas, pos, key);
-        this.type = "image";
-        this.img = img;
-        this.base64 = base64;
-        this.redraw();
-    }
-    redraw() {
-        super.redraw();
-        this.context.drawImage(this.img, 0, 0);
-
-    }
-    getJSONForFirebase() {
-        return { type: "image", position: this.position, base64: this.base64 };
-    }
-
-}
-
-class SharedMindsText extends AnyObject {
-    constructor(_words, pos, key) {
-        let canvas = document.createElement("canvas");
-        canvas.width = 512;
-        canvas.height = 512;
-        super(canvas, pos, key);
-        this.type = "text";
-        this.text = _words;
-        this.redraw();
-    }
-    redraw() {
-        super.redraw();
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        let fontSize = Math.max(camera.fov / 2, 72);
-        this.context.font = fontSize + "pt Arial";
-        this.context.textAlign = "center";
-        this.context.fillStyle = "red";
-        this.context.fillText(this.text, this.canvas.width / 2, this.canvas.height / 2);
-
-    }
-    getJSONForFirebase() {
-        return { type: "text", position: this.position, text: this.text };
-    }
-}
-
-class SharedMindsP5Sketch extends AnyObject {
-    constructor(pos, key) {
-        let newP5 = birthP5Object(200, 200);
-        //pull the p5 canvas out of sketch 
-        //and then regular (elt) js canvas out of special p5 canvas
-        let p5Canvas = newP5.getP5Canvas();
-        let canvas = p5Canvas.elt;
-        super(canvas, pos, key);
-        this.type = "p5Sketch";
-        this.redraw();
-    }
-    redraw() {
-        super.redraw();
-    }
-    getJSONForFirebase() {
-        return { type: "P5Sketch", position: this.position };
-    }
-}
 
 
 export function findObjectUnderMouse(x, y) {
@@ -230,59 +153,7 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-function birthP5Object(w, h) {
-    let sketch = function (p) {
-        let particles = [];
-        let myCanvas;
-        p.setup = function () {
-            myCanvas = p.createCanvas(w, h);
 
-        };
-        p.getP5Canvas = function () {
-            return myCanvas;
-        }
-
-        p.draw = function () {
-            p.clear();
-            for (let i = 0; i < 5; i++) {
-                let p = new Particle();
-                particles.push(p);
-            }
-            for (let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                particles[i].show();
-                if (particles[i].finished()) {
-                    // remove this particle
-                    particles.splice(i, 1);
-                }
-            }
-        };
-
-        class Particle {
-            constructor() {
-                this.x = p.width / 2;
-                this.y = p.height / 2;
-                this.vx = p.random(-1, 1);
-                this.vy = p.random(-4, 1);
-                this.alpha = 255;
-            }
-            finished() {
-                return this.alpha < 0;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= 10;
-            }
-            show() {
-                p.noStroke();
-                p.fill(255, 0, 255, this.alpha);
-                p.ellipse(this.x, this.y, 5);
-            }
-        }
-    };
-    return new p5(sketch);
-}
 
 
 

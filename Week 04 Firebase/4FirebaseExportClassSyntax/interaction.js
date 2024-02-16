@@ -1,5 +1,5 @@
 
-import * as MAIN from './mainClass.js';
+import * as MAIN from './main.js';
 import * as FB from './firebaseStuff.js';
 import { MathUtils } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 
