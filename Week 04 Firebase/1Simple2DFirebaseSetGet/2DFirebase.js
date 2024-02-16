@@ -6,6 +6,7 @@ let isInteracting = false;
 let localObjects = [];
 let canvas;
 let db;
+let exampleName = "SimpleSetGet";
 
 intitHTML();
 initFirebase()
@@ -15,7 +16,7 @@ recall();
 function save() {
     let title = document.getElementById('title').value;
     let forFirebase = { title: title, objects: localObjects };
-    setDataInFirebase(title, forFirebase);
+    setDataInFirebase(exampleName + "/" + title, forFirebase);
 }
 
 function recall() {

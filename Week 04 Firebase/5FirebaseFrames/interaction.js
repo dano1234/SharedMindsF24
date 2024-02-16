@@ -41,16 +41,104 @@ export function initHTML() {
     textInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
             const inputRect = textInput.getBoundingClientRect();
-
             const mouse = { x: inputRect.left, y: inputRect.top };
-            const pos = MAIN.project2DCoordsInto3D(150 - camera.fov, mouse);
-            const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: textInput.value };
-            FB.addNewThingToFirebase("objects", data);//put empty for the key when you are making a new thing.
+            MAIN.addText(textInput.value, mouse);
             //don't make it locally until you hear back from firebase
-            console.log("Entered Text, Send to Firebase", textInput.value);
         }
     });
 
+    const titleBox = document.createElement('input');
+    titleBox.setAttribute('type', 'text');
+    titleBox.setAttribute('id', 'title');
+    titleBox.value = 'War and Peace';
+    titleBox.style.position = 'absolute';
+    titleBox.style.left = '50%';
+    titleBox.style.top = '10%';
+    titleBox.style.transform = 'translate(-50%, -50%)';
+    titleBox.style.zIndex = '200';
+    titleBox.style.fontSize = '20px';
+    titleBox.style.fontFamily = 'Arial';
+    titleBox.style.textAlign = 'center';
+
+    document.body.appendChild(titleBox);
+
+    titleBox.addEventListener('mousedown', function (event) {
+        event.stopPropagation();
+    });
+
+
+    const titleLabel = document.createElement('label');
+    titleLabel.setAttribute('for', 'title');
+    titleLabel.textContent = 'Title:';
+    titleLabel.style.position = 'absolute';
+    titleLabel.style.left = '50%';
+    titleLabel.style.top = '3%';
+    titleLabel.style.transform = 'translate(-50%, -50%)';
+    titleLabel.style.zIndex = '100';
+    titleLabel.style.fontSize = '15px';
+    titleLabel.style.fontFamily = 'Arial';
+
+    document.body.appendChild(titleLabel);
+
+    const nextFrameButton = document.createElement('button');
+    nextFrameButton.textContent = 'Next Frame';
+    nextFrameButton.style.position = 'absolute';
+    nextFrameButton.style.left = '60%';
+    nextFrameButton.style.top = '90%';
+    nextFrameButton.style.transform = 'translate(-50%, -50%)';
+    nextFrameButton.style.zIndex = '200';
+    nextFrameButton.addEventListener('click', nextFrame);
+
+    document.body.appendChild(nextFrameButton);
+
+    const previousFrameButton = document.createElement('button');
+    previousFrameButton.textContent = 'Previous Frame';
+    previousFrameButton.style.position = 'absolute';
+    previousFrameButton.style.left = '40%';
+    previousFrameButton.style.top = '90%';
+    previousFrameButton.style.transform = 'translate(-50%, -50%)';
+    previousFrameButton.style.zIndex = '200';
+    previousFrameButton.addEventListener('click', previousFrame);
+
+    document.body.appendChild(previousFrameButton);
+
+    const currentFrameDisplay = document.createElement('div');
+    currentFrameDisplay.textContent = 'Current Frame: 1';
+    currentFrameDisplay.style.position = 'absolute';
+    currentFrameDisplay.style.left = '50%';
+    currentFrameDisplay.style.top = '90%';
+    currentFrameDisplay.style.transform = 'translate(-50%, -50%)';
+    currentFrameDisplay.style.zIndex = '200';
+
+    document.body.appendChild(currentFrameDisplay);
+
+    const addFrameButton = document.createElement('button');
+    addFrameButton.textContent = 'Add Frame';
+    addFrameButton.style.position = 'absolute';
+    addFrameButton.style.left = '70%';
+    addFrameButton.style.top = '90%';
+    addFrameButton.style.transform = 'translate(-50%, -50%)';
+    addFrameButton.style.zIndex = '200';
+    addFrameButton.addEventListener('click', addFrame);
+
+    document.body.appendChild(addFrameButton);
+
+
+    function nextFrame() {
+        currentFrame++;
+        currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
+    }
+
+    function previousFrame() {
+        if (currentFrame > 1) {
+            currentFrame--;
+            currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
+        }
+    }
+
+    function addFrame() {
+        // Add your logic for adding a frame here
+    }
 }
 
 function enableDragDrop() {
