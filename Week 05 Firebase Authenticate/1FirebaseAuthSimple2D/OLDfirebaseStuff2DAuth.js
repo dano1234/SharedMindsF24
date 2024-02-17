@@ -16,7 +16,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-let appName = "SharedMindsExample";
+let appName = "SharedMinds2DSimpleAuthExample";
 
 let db = getDatabase();
 const auth = getAuth();
