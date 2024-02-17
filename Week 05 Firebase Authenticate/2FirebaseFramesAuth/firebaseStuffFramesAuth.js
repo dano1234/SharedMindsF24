@@ -1,91 +1,15 @@
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
-
-let isInteracting = false;
-
-
-// Get the input box and the canvas element
-const canvas = document.createElement('canvas');
-canvas.setAttribute('id', 'myCanvas');
-canvas.style.position = 'absolute';
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-canvas.style.left = '0';
-canvas.style.top = '0';
-canvas.style.width = '100%';
-canvas.style.height = '100%';
-document.body.appendChild(canvas);
-console.log('canvas', canvas.width, canvas.height);
-
-
-const inputBox = document.createElement('input');
-inputBox.setAttribute('type', 'text');
-inputBox.setAttribute('id', 'inputBox');
-inputBox.setAttribute('placeholder', 'Enter text here');
-inputBox.style.position = 'absolute';
-inputBox.style.left = '50%';
-inputBox.style.top = '50%';
-inputBox.style.transform = 'translate(-50%, -50%)';
-inputBox.style.zIndex = '100';
-inputBox.style.fontSize = '30px';
-inputBox.style.fontFamily = 'Arial';
-document.body.appendChild(inputBox);
-
-// Add event listener to the input box
-inputBox.addEventListener('keydown', function (event) {
-    // Check if the Enter key is pressed
-
-    if (event.key === 'Enter') {
-        const inputValue = inputBox.value;
-        const inputBoxRect = inputBox.getBoundingClientRect();
-        const x = inputBoxRect.left;
-        const y = inputBoxRect.top;
-        // Add the text to the database
-        const user = auth.currentUser;
-        if (!user) {
-            document.getElementById('inputBox').value = "Please Log in";
-            return;
-        }
-        let userName = user.displayName;
-        if (!userName) userName = user.email.split("@")[0];
-        const data = { type: 'text', position: { x: x, y: y }, text: inputValue, userName: userName };
-        addNewThingToFirebase('texts', data);
-        //don't draw it locally until you hear back from firebase
-    }
-});
-
-function drawText(x, y, text, userName) {
-    const ctx = canvas.getContext('2d');
-    ctx.font = '30px Arial';
-    ctx.fillStyle = 'black';
-    ctx.fillText(userName + ": " + text, x, y);
-}
-
-// Add event listener to the document for mouse down event
-document.addEventListener('mousedown', (event) => {
-    // Set the location of the input box to the mouse location
-    isInteracting = true;
-});
-document.addEventListener('mousemove', (event) => {
-    // Set the location of the input box to the mouse location
-    if (isInteracting) {
-        inputBox.style.left = event.clientX + 'px';
-        inputBox.style.top = event.clientY + 'px';
-    }
-});
-document.addEventListener('mouseup', (event) => {
-    isInteracting = false;
-});
-
-////FIREBASE STUFF
+import { initAll } from "./main.js";
 
 let db, auth, app;
 let googleAuthProvider;
-let appName = "SharedMinds2DAuthExample";
-initFirebase();
+let appName = "SharedMindsFramesAuthExample";
 
-function initFirebase() {
+
+export function initFirebase() {
     const firebaseConfig = {
         apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
         authDomain: "sharedmindss24.firebaseapp.com",
@@ -102,86 +26,76 @@ function initFirebase() {
     db = getDatabase();
     auth = getAuth();
     googleAuthProvider = new GoogleAuthProvider();
-
-    subscribeToData('texts', function (reaction, data, key) {
-        if (reaction === "added") {
-            drawText(data.position.x, data.position.y, data.text, data.userName);
-        } else if (reaction === "changed") {
-            console.log("changed", data, key);
-        } else if (reaction === "removed") {
-            console.log("removed", data, key);
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // User is signed in, see docs for a list of available properties
+            // https://firebase.google.com/docs/reference/js/auth.user
+            const uid = user.uid;
+            console.log("userino is signed in", user);
+            showLogOutButton(user);
+            initAll();
+            // ...
+        } else {
+            console.log("userino is signed out");
+            showLoginButtons();
+            // User is signed out
+            // ...
         }
     });
+
+    return auth.currentUser;
 }
 
 
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/auth.user
-        const uid = user.uid;
-        console.log("userino is signed in", user);
-        showLogOutButton(user);
-        // ...
-    } else {
-        console.log("userino is signed out");
-        showLoginButtons();
-        // User is signed out
-        // ...
-    }
-});
 
-
-
-function addNewThingToFirebase(folder, data) {
+export function addNewThingToFirebase(folder, data) {
     //firebase will supply the key,  this will trigger "onChildAdded" below
-    const dbRef = ref(db, appName + '/' + folder);
+    const dbRef = ref(db, folder);
     const newKey = push(dbRef, data).key;
     return newKey; //useful for later updating
 }
 
-function subscribeToData(folder, callback) {
-    //get callbacks when there are changes either by you locally or others remotely
-    const commentsRef = ref(db, appName + '/' + folder + '/');
-    onChildAdded(commentsRef, (data) => {
-        callback("added", data.val(), data.key);
-    });
-    onChildChanged(commentsRef, (data) => {
-        callback("changed", data.val(), data.key);
-        //just drawing on screen so hard to change
-    });
-    onChildRemoved(commentsRef, (data) => {
-        callback("removed", data.val(), data.key);
-        //just drawing on screen so hard to delete
-    });
-}
-
-////THIS EXAMPLE IS NOT USING THESE FUNCTIONS
-function updateJSONFieldInFirebase(folder, key, data) {
-    console.log(appName + '/' + folder + '/' + key)
-    const dbRef = ref(db, appName + '/' + folder + '/' + key);
+export function updateJSONFieldInFirebase(folder, key, data) {
+    console.log(folder + '/' + key)
+    const dbRef = ref(db, folder + '/' + key);
     update(dbRef, data);
 }
 
-function deleteFromFirebase(folder, key) {
-    console.log("deleting", appName + '/' + folder + '/' + key);
-    const dbRef = ref(db, appName + '/' + folder + '/' + key);
+export function deleteFromFirebase(folder, key) {
+    console.log("deleting", folder + '/' + key);
+    const dbRef = ref(db, folder + '/' + key);
     set(dbRef, null);
 }
 
-function setDataInFirebase(folder, key, data) {
+export function subscribeToData(folder, callback) {
+    //get callbacks when there are changes either by you locally or others remotely
+    const commentsRef = ref(db, folder + '/');
+    onChildAdded(commentsRef, (data) => {
+        callback("added", data.val(), data.key);
+        //reactToFirebase("added", data.val(), data.key);
+    });
+    onChildChanged(commentsRef, (data) => {
+        callback("changed", data.val(), data.key);
+        //reactToFirebase("changed", data.val(), data.key)
+    });
+    onChildRemoved(commentsRef, (data) => {
+        callback("removed", data.val(), data.key);
+        //reactToFirebase("removed", data.val(), data.key)
+    });
+}
+
+export function unSubscribeToData(folder) {
+    const oldRef = ref(db, folder + '/');
+    console.log("unsubscribing from", folder, oldRef);
+    off(oldRef);
+}
+
+
+export function setDataInFirebase(folder, key, data) {
     //if it doesn't exist, it adds (pushes) with you providing the key
     //if it does exist, it overwrites
     const dbRef = ref(db, appName + '/' + folder)
     set(dbRef, data);
-}
-
-function getStuffFromFirebase() {
-    //make a one time ask, not a subscription
-    const dbRef = ref(db, appName + folder);
-    onValue(dbRef, (snapshot) => {
-        console.log("here is a snapshot of everyting", snapshot.val());
-    });
 }
 
 
@@ -319,9 +233,6 @@ function showLoginButtons() {
             });
     });
 }
-
-
-
 
 
 
