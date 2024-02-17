@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 
 
 
@@ -18,7 +18,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 let db = getDatabase();
-
 
 export function addNewThingToFirebase(folder, data) {
     //firebase will supply the key,  this will trigger "onChildAdded" below
@@ -56,6 +55,11 @@ export function subscribeToData(folder, callback) {
     });
 }
 
+export function unSubscribeToData(folder) {
+    const oldRef = ref(db, folder + '/');
+    console.log("unsubscribing from", folder, oldRef);
+    off(oldRef);
+}
 
 
 export function setDataInFirebase(folder, key, data) {

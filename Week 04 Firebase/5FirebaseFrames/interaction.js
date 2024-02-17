@@ -1,6 +1,6 @@
 
 import * as MAIN from './main.js';
-import * as FB from './firebaseStuff.js';
+import * as FB from './firebaseStuffFrames.js';
 import { MathUtils } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
 
 
@@ -13,6 +13,7 @@ let selectedObject = null;
 let camera = null;
 let renderer = null;
 enableDragDrop();
+let currentFrame = 1;
 
 
 export function initHTML() {
@@ -42,7 +43,7 @@ export function initHTML() {
         if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
             const inputRect = textInput.getBoundingClientRect();
             const mouse = { x: inputRect.left, y: inputRect.top };
-            MAIN.addText(textInput.value, mouse);
+            MAIN.addTextRemote(textInput.value, mouse);
             //don't make it locally until you hear back from firebase
         }
     });
@@ -87,7 +88,7 @@ export function initHTML() {
     nextFrameButton.style.top = '90%';
     nextFrameButton.style.transform = 'translate(-50%, -50%)';
     nextFrameButton.style.zIndex = '200';
-    nextFrameButton.addEventListener('click', nextFrame);
+    nextFrameButton.addEventListener('click', MAIN.nextFrame);
 
     document.body.appendChild(nextFrameButton);
 
@@ -98,11 +99,12 @@ export function initHTML() {
     previousFrameButton.style.top = '90%';
     previousFrameButton.style.transform = 'translate(-50%, -50%)';
     previousFrameButton.style.zIndex = '200';
-    previousFrameButton.addEventListener('click', previousFrame);
+    previousFrameButton.addEventListener('click', MAIN.previousFrame);
 
     document.body.appendChild(previousFrameButton);
 
     const currentFrameDisplay = document.createElement('div');
+    currentFrameDisplay.setAttribute('id', 'currentFrameDisplay');
     currentFrameDisplay.textContent = 'Current Frame: 1';
     currentFrameDisplay.style.position = 'absolute';
     currentFrameDisplay.style.left = '50%';
@@ -112,33 +114,6 @@ export function initHTML() {
 
     document.body.appendChild(currentFrameDisplay);
 
-    const addFrameButton = document.createElement('button');
-    addFrameButton.textContent = 'Add Frame';
-    addFrameButton.style.position = 'absolute';
-    addFrameButton.style.left = '70%';
-    addFrameButton.style.top = '90%';
-    addFrameButton.style.transform = 'translate(-50%, -50%)';
-    addFrameButton.style.zIndex = '200';
-    addFrameButton.addEventListener('click', addFrame);
-
-    document.body.appendChild(addFrameButton);
-
-
-    function nextFrame() {
-        currentFrame++;
-        currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
-    }
-
-    function previousFrame() {
-        if (currentFrame > 1) {
-            currentFrame--;
-            currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
-        }
-    }
-
-    function addFrame() {
-        // Add your logic for adding a frame here
-    }
 }
 
 function enableDragDrop() {
@@ -161,14 +136,13 @@ function enableDragDrop() {
                     const img = new Image();
                     img.onload = function () {
                         let mouse = { x: e.clientX, y: e.clientY };
-                        const pos = MAIN.project2DCoordsInto3D(150 - camera.fov, mouse);
                         const quickCanvas = document.createElement("canvas");
                         const quickContext = quickCanvas.getContext("2d");
                         quickCanvas.width = img.width;
                         quickCanvas.height = img.height;
                         quickContext.drawImage(img, 0, 0);
                         const base64 = quickCanvas.toDataURL();
-                        FB.addNewThingToFirebase("objects", { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, filename: files[i], base64: base64 });
+                        MAIN.addImageRemote(base64, mouse);
                     };
                     img.src = event.target.result;
                 };
@@ -208,8 +182,7 @@ function div3DKeyDown(event) {
 
 function div3DDoubleClick(event) {
     let mouse = { x: event.clientX, y: event.clientY };
-    const pos = project2DCoordsInto3D(300 - camera.fov * 3, mouse);
-    FB.addNewThingToFirebase("objects", { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } });
+    MAIN.addP5Remote(mouse);
 }
 
 function div3DMouseDown(event) {

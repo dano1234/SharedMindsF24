@@ -1,7 +1,6 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
-import * as FB from './firebaseStuff.js';
+import * as FB from './firebaseStuffFrames.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
-
 let camera, scene, renderer;
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
@@ -9,23 +8,95 @@ let clickableMeshes = []; //for use with raycasting
 let myObjectsByFirebaseKey = {}; //for converting from firebase key to my JSON object
 
 let exampleName = "SharedMindsExampleSequence";
-
-let currentFrame = 0;
+let currentFrame = 1;
 initHTML();
 init3D();
-listenForChanges();
+listenForChangesInNewFrame(null, currentFrame);
 
-function listenForChanges() {
-    console.log("subscribe to these frames");
+export function nextFrame() {
+    let oldFrame = currentFrame;
+    currentFrame++;
+    let currentFrameDisplay = document.getElementById("currentFrameDisplay");
+    currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
+    listenForChangesInNewFrame(oldFrame, currentFrame);
+}
+
+export function previousFrame() {
+    let oldFrame = currentFrame;
+    if (currentFrame > 1) {
+        currentFrame--;
+        let currentFrameDisplay = document.getElementById("currentFrameDisplay");
+        currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
+        listenForChangesInNewFrame(oldFrame, currentFrame);
+    }
+}
+
+function clearLocalScene() {
+    for (let key in myObjectsByFirebaseKey) {
+        let thisObject = myObjectsByFirebaseKey[key];
+        scene.remove(thisObject.mesh);
+        console.log("removing", thisObject);
+    }
+    texturesThatNeedUpdating = [];  //for updating textures
+    myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
+    clickableMeshes = []; //for use with raycasting
+    myObjectsByFirebaseKey = {}; //for converting from firebase key to my JSON object
+}
+
+function listenForChangesInNewFrame(oldFrame, currentFrame) {
     let title = document.getElementById("title").value;
-    FB.subscribeToData(exampleName + "/" + title + "/frames/" + currentFrame, (change, data, key) => {
+    if (oldFrame) FB.unSubscribeToData(exampleName + "/" + title + "/frames/" + oldFrame);
+    clearLocalScene();
+    FB.subscribeToData(exampleName + "/" + title + "/frames/" + currentFrame, (reaction, data, key) => {
         if (data) {
-            console.log("got data", change, data, key);
+            if (reaction === "added") {
+                if (data.type === "text") {
+                    createNewText(data, key);
+                } else if (data.type === "image") {
+                    let img = new Image();  //create a new image
+                    img.onload = function () {
+                        let posInWorld = data.position;
+                        createNewImage(img, posInWorld, key);
+                    }
+                    img.src = data.base64;
+                } else if (data.type === "p5ParticleSystem") {
+                    createNewP5(data, key);
+                }
+            } else if (reaction === "changed") {
+                console.log("changed", data);
+                let thisObject = myObjectsByFirebaseKey[key];
+                if (thisObject) {
+                    if (data.type === "text") {
+                        thisObject.text = data.text;
+                        thisObject.position = data.position;
+                        redrawText(thisObject);
+                    } else if (data.type === "image") {
+                        let img = new Image();  //create a new image
+                        img.onload = function () {
+                            thisObject.img = img;
+                            thisObject.position = data.position;
+                            redrawImage(thisObject);
+                        }
+                        img.src = data.base64;
+
+                    } else if (data.type === "p5ParticleSystem") {
+                        thisObject.position = data.position;
+                        redrawP5(thisObject);
+                    }
+                }
+            } else if (reaction === "removed") {
+                console.log("removed", data);
+                let thisObject = myObjectsByFirebaseKey[key];
+                if (thisObject) {
+                    scene.remove(thisObject.mesh);
+                    delete myObjectsByThreeID[thisObject.threeID];
+                }
+            }
         }; //get notified if anything changes in this folder
     });
 }
 
-export function addText(text, mouse) {
+export function addTextRemote(text, mouse) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: text };
@@ -34,54 +105,23 @@ export function addText(text, mouse) {
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
-
-
-export function reactToFirebase(reaction, data, key) {
-    if (reaction === "added") {
-        if (data.type === "text") {
-            createNewText(data, key);
-        } else if (data.type === "image") {
-            let img = new Image();  //create a new image
-            img.onload = function () {
-                let posInWorld = data.position;
-                createNewImage(img, posInWorld, key);
-            }
-            img.src = data.base64;
-        } else if (data.type === "p5ParticleSystem") {
-            createNewP5(data, key);
-        }
-    } else if (reaction === "changed") {
-        console.log("changed", data);
-        let thisObject = myObjectsByFirebaseKey[key];
-        if (thisObject) {
-            if (data.type === "text") {
-                thisObject.text = data.text;
-                thisObject.position = data.position;
-                redrawText(thisObject);
-            } else if (data.type === "image") {
-                let img = new Image();  //create a new image
-                img.onload = function () {
-                    thisObject.img = img;
-                    thisObject.position = data.position;
-                    redrawImage(thisObject);
-                }
-                img.src = data.base64;
-
-            } else if (data.type === "p5ParticleSystem") {
-                thisObject.position = data.position;
-                redrawP5(thisObject);
-            }
-        }
-    } else if (reaction === "removed") {
-        console.log("removed", data);
-        let thisObject = myObjectsByFirebaseKey[key];
-        if (thisObject) {
-            scene.remove(thisObject.mesh);
-            delete myObjectsByThreeID[thisObject.threeID];
-        }
-    }
+export function addImageRemote(b64, mouse) {
+    let title = document.getElementById("title").value;
+    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64 };
+    let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+    console.log("Entered Image, Send to Firebase", folder, title, exampleName);
+    FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
+export function addP5Remote(mouse) {
+    let title = document.getElementById("title").value;
+    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+    const data = { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } };
+    let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+    console.log("Entered Image, Send to Firebase", folder, title, exampleName);
+    FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
+}
 
 export function findObjectUnderMouse(x, y) {
     let raycaster = new THREE.Raycaster(); // create once
