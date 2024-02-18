@@ -3,7 +3,9 @@ import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChan
 import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
 
 let isInteracting = false;
-
+let isEditing = false;
+let editingObject = null;
+let objects = {};
 
 // Get the input box and the canvas element
 const canvas = document.createElement('canvas');
@@ -50,26 +52,74 @@ inputBox.addEventListener('keydown', function (event) {
         let userName = user.displayName;
         if (!userName) userName = user.email.split("@")[0];
         const data = { type: 'text', position: { x: x, y: y }, text: inputValue, userName: userName };
-        addNewThingToFirebase('texts', data);
+        if (isEditing) {
+            console.log("update editing", editingObject.key, data);
+            updateJSONFieldInFirebase('texts', editingObject.key, data);
+            isEditing = false;
+        } else {
+            addNewThingToFirebase('texts', data);
+        }
+        // Clear the input box
+        inputBox.value = '';
         //don't draw it locally until you hear back from firebase
     }
 });
 
-function drawText(x, y, text, userName) {
+function redrawAll() {
     const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = '30px Arial';
     ctx.fillStyle = 'black';
-    ctx.fillText(userName + ": " + text, x, y);
+    for (let key in objects) {
+        const object = objects[key];
+        if (object.type === 'text') {
+            ctx.fillText(object.userName + ": " + object.text, object.position.x, object.position.y,);
+        }
+    }
 }
+
+document.addEventListener('keydown', (event) => {
+
+    if (event.key === 'Escape') {
+        isEditing = false;
+        inputBox.value = "";
+
+
+    } else if (isEditing && event.shiftKey && (event.key === 'Backspace' || event.key === 'Delete')) {
+        console.log("delete");
+        deleteFromFirebase('texts', editingObject.key);
+    }
+});
+
+
+
+
 
 // Add event listener to the document for mouse down event
 document.addEventListener('mousedown', (event) => {
-    // Set the location of the input box to the mouse location
+    // Set the location of the input box to the mouse locatio
     isInteracting = true;
+    editingObject = findNearbyObjects(event.clientX, event.clientY, 150);
+    if (editingObject) {
+        isEditing = true
+        console.log("editing", isEditing);
+        inputBox.value = editingObject.text;
+        inputBox.style.left = (editingObject.position.x + 150) + 'px';
+        inputBox.style.top = (editingObject.position.y - 10) + 'px';
+        inputBox.style.color = "red";
+
+    } else {
+        isEditing = false;
+        inputBox.style.left = event.clientX + 'px';
+        inputBox.style.top = event.clientY + 'px';
+        inputBox.style.color = "black";
+        inputBox.value = "";
+    }
+    inputBox.focus();
 });
 document.addEventListener('mousemove', (event) => {
     // Set the location of the input box to the mouse location
-    if (isInteracting) {
+    if (isInteracting && !isEditing) {
         inputBox.style.left = event.clientX + 'px';
         inputBox.style.top = event.clientY + 'px';
     }
@@ -103,15 +153,22 @@ function initFirebase() {
     auth = getAuth();
     googleAuthProvider = new GoogleAuthProvider();
 
-    subscribeToData('texts', function (reaction, data, key) {
-        if (reaction === "added") {
-            drawText(data.position.x, data.position.y, data.text, data.userName);
-        } else if (reaction === "changed") {
-            console.log("changed", data, key);
-        } else if (reaction === "removed") {
-            console.log("removed", data, key);
+    subscribeToData('texts');
+}
+
+function findNearbyObjects(x, y, radius) {
+    let closeObject = null;
+    let smallestDistance = Infinity;
+    for (let key in objects) {
+        const object = objects[key];
+        const distance = Math.sqrt((object.position.x - x) ** 2 + (object.position.y - y) ** 2);
+        if (distance < radius && distance < smallestDistance) {
+            closeObject = object;
+            smallestDistance = distance;
         }
-    });
+    }
+    console.log("closest object", closeObject);
+    return closeObject;
 }
 
 
@@ -140,21 +197,32 @@ function addNewThingToFirebase(folder, data) {
     return newKey; //useful for later updating
 }
 
-function subscribeToData(folder, callback) {
+function subscribeToData(folder) {
     //get callbacks when there are changes either by you locally or others remotely
     const commentsRef = ref(db, appName + '/' + folder + '/');
     onChildAdded(commentsRef, (data) => {
-        callback("added", data.val(), data.key);
+        console.log("added", data, data.key, data.val());
+        let localData = data.val();
+        localData.key = data.key;
+        objects[data.key] = localData;
+        redrawAll();
     });
     onChildChanged(commentsRef, (data) => {
-        callback("changed", data.val(), data.key);
-        //just drawing on screen so hard to change
+        console.log("changed", data.key, data.val());
+        objects[data.key] = data.val();
+        redrawAll();
     });
     onChildRemoved(commentsRef, (data) => {
-        callback("removed", data.val(), data.key);
-        //just drawing on screen so hard to delete
+        console.log("removed", data, data.key, data.val());
+        delete objects[data.key];
+        isEditing = false;
+        inputBox.value = "";
+        inputBox.style.color = "black";
+        redrawAll();
     });
 }
+
+
 
 ////THIS EXAMPLE IS NOT USING THESE FUNCTIONS
 function updateJSONFieldInFirebase(folder, key, data) {

@@ -9,6 +9,10 @@ let googleAuthProvider;
 let appName = "SharedMindsFramesAuthExample";
 
 
+export function getUser() {
+    return auth.currentUser;
+}
+
 export function initFirebase() {
     const firebaseConfig = {
         apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
@@ -45,8 +49,6 @@ export function initFirebase() {
 
     return auth.currentUser;
 }
-
-
 
 export function addNewThingToFirebase(folder, data) {
     //firebase will supply the key,  this will trigger "onChildAdded" below
@@ -103,11 +105,21 @@ let authDiv = document.createElement("div");
 authDiv.style.position = "absolute";
 authDiv.style.top = "10%";
 authDiv.style.left = "85%";
-authDiv.style.width = "150px";
+//authDiv.style.width = "150px";
 //authDiv.style.height = "150px";
 authDiv.style.backgroundColor = "lightpink";
-authDiv.style.border = "1px solid black";
+authDiv.style.border = "3px solid darkred";
 authDiv.style.padding = "10px";
+authDiv.style.zIndex = "1000";
+authDiv.style.borderRadius = "10px"; // Add this line to set rounded corners
+//align elements in the center
+authDiv.style.display = "flex";
+authDiv.style.flexDirection = "column";
+authDiv.style.alignItems = "center";
+document.body.appendChild(authDiv);
+
+// Rest of the code...
+
 authDiv.style.zIndex = "1000";
 document.body.appendChild(authDiv);
 
@@ -145,39 +157,51 @@ function showLogOutButton(user) {
 
 function showLoginButtons() {
     authDiv.innerHTML = "";
+
     let signUpWithGoogleButton = document.createElement("button");
     signUpWithGoogleButton.innerHTML = "Google Login";
     signUpWithGoogleButton.setAttribute("id", "signInWithGoogle");
     authDiv.appendChild(signUpWithGoogleButton);
 
     authDiv.appendChild(document.createElement("br"));
-    authDiv.appendChild(document.createElement("br"));
+
 
     let emailDiv = document.createElement("div");
     emailDiv.innerHTML = "Email";
     authDiv.appendChild(emailDiv);
 
+    let form = document.createElement("form");
+    authDiv.appendChild(form);
+
     let emailInput = document.createElement("input");
     emailInput.setAttribute("id", "email");
     emailInput.setAttribute("type", "text");
     emailInput.setAttribute("placeholder", "email@email.com");
-    authDiv.appendChild(emailInput);
+    form.appendChild(emailInput);
 
     let passwordInput = document.createElement("input");
     passwordInput.setAttribute("id", "password");
     passwordInput.setAttribute("type", "password");
+    passwordInput.setAttribute("suggest", "current-password");
     passwordInput.setAttribute("placeholder", "password");
-    authDiv.appendChild(passwordInput);
+
+    form.appendChild(passwordInput);
+    let buttonSpan = document.createElement("span");
+    buttonSpan.style.display = "flex";
+    buttonSpan.style.justifyContent = "space-around";
+    buttonSpan.style.width = "100%";
+    form.appendChild(buttonSpan);
 
     let signUpWithEmailButton = document.createElement("button");
-    signUpWithEmailButton.innerHTML = "Sign Up";
+    signUpWithEmailButton.innerHTML = "SignUp";
     signUpWithEmailButton.setAttribute("id", "signUpWithEmail");
-    authDiv.appendChild(signUpWithEmailButton);
+    buttonSpan.appendChild(signUpWithEmailButton);
 
     let signInWithEmailButton = document.createElement("button");
-    signInWithEmailButton.innerHTML = "Sign In";
+    signInWithEmailButton.innerHTML = "SignIn";
     signInWithEmailButton.setAttribute("id", "signInWithEmail");
-    authDiv.appendChild(signInWithEmailButton);
+    buttonSpan.appendChild(signInWithEmailButton);
+
 
     document.getElementById("signInWithGoogle").addEventListener("click", function () {
         signInWithPopup(auth, googleAuthProvider)

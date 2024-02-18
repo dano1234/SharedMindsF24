@@ -15,7 +15,6 @@ let renderer = null;
 enableDragDrop();
 let currentFrame = 1;
 
-
 export function initHTML() {
     const THREEcontainer = document.createElement("div");
     THREEcontainer.setAttribute("id", "THREEcontainer");
@@ -35,6 +34,8 @@ export function initHTML() {
     textInput.style.position = "absolute";
     textInput.style.top = "50%";
     textInput.style.left = "50%";
+    //override css
+    textInput.style.width = "200px";
     textInput.style.transform = "translate(-50%, -50%)";
     textInput.style.zIndex = "5";
 
@@ -58,6 +59,8 @@ export function initHTML() {
     titleBox.style.transform = 'translate(-50%, -50%)';
     titleBox.style.zIndex = '200';
     titleBox.style.fontSize = '20px';
+    //override css
+    titleBox.style.width = "200px";
     titleBox.style.fontFamily = 'Arial';
     titleBox.style.textAlign = 'center';
 
@@ -187,6 +190,7 @@ function div3DDoubleClick(event) {
 
 function div3DMouseDown(event) {
     isUserInteracting = true;
+
     selectedObject = MAIN.findObjectUnderMouse(event.clientX, event.clientY);
     // if (selectedObject) {
     //     selectedObject.hilite = true;
@@ -205,9 +209,8 @@ function div3DMouseMove(event) {
         lat = (event.clientY - mouseDownY) * 0.1 + mouseDownLat;
         //either move the selected object or the camera 
         if (selectedObject) {
-            let pos = MAIN.project2DCoordsInto3D(100, { x: event.clientX, y: event.clientY });
-            const updates = { position: pos };
-            FB.updateJSONFieldInFirebase("objects", selectedObject.firebaseKey, updates);
+            MAIN.moveObject(selectedObject, event.clientX, event.clientY);
+
         } else {
             computeCameraOrientation();
         }
