@@ -128,12 +128,20 @@ function showLogOutButton(user) {
     authDiv.innerHTML = "";
     let userNameDiv = document.createElement("div");
     if (user.photoURL) {
+        console.log("photo url", user.photoURL);
         let userPic = document.createElement("img");
-        userPic.src = user.photoURL;
         userPic.style.width = "50px";
         userPic.style.height = "50px";
-        authDiv.appendChild(userPic);
+
+        userPic.onload = function (img) {
+            console.log("loaded", img);
+            authDiv.appendChild(userPic);
+        }
+        userPic.src = user.photoURL;
+
+
     }
+
     if (user.displayName) {
         userNameDiv.innerHTML = user.displayName;
     } else {

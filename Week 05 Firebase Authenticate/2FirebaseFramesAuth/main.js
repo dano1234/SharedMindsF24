@@ -13,8 +13,11 @@ let user = FB.initFirebase();
 if (user) initAll();  //don't show much if the have not logged in yet.
 
 export function initAll() {
-    initHTML();
-    init3D();
+    //if it doesn't already exist
+    if (!document.getElementById("THREEcontainer")) {
+        initHTML();
+        init3D();
+    }
     listenForChangesInNewFrame(null, currentFrame);
 }
 
