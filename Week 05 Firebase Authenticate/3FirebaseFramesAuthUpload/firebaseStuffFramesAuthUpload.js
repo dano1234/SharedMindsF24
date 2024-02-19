@@ -62,9 +62,7 @@ export async function uploadFile(directory, file, filename, callback) {
             callback(downloadURL);
         });
     });
-
 }
-
 
 export async function uploadImageToFirebaseStorage() {
     //get the image from the canvas
