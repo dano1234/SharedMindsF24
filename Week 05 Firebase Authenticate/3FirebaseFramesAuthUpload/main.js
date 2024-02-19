@@ -1,6 +1,10 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
-import * as FB from './firebaseStuffFramesAuth.js';
+import { SphereGeometry, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
+
+
+
 let camera, scene, renderer;
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
@@ -21,6 +25,19 @@ export function initAll() {
     listenForChangesInNewFrame(null, currentFrame);
 }
 
+// Create a new GLTFLoader instance to load the 3D model
+const loader = new GLTFLoader();
+// Function to load and add a duck to the scene
+function creatNewModel(url, pos) {
+    console.log("creatNewModel", url);
+    loader.load(url, function (gltf) {
+        const model = gltf.scene;
+        model.scale.set(5, 5, 5);
+        model.position.set(pos.x, pos.y, pos.z);
+        scene.add(model);
+        thingsThatNeedSpinning.push(model);
+    });
+}
 
 export function nextFrame() {
     let oldFrame = currentFrame;
@@ -80,6 +97,8 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                     img.src = data.base64;
                 } else if (data.type === "p5ParticleSystem") {
                     createNewP5(data, key);
+                } else if (data.type === "3DModel") {
+                    creatNewModel(data.url, data.position);
                 }
             } else if (reaction === "changed") {
                 console.log("changed", data);
@@ -128,6 +147,24 @@ export function addTextRemote(text, mouse) {
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
+export function add3DModelRemote(file, mouse, filename) {
+    //  console.log("add3DModelRemote", file);
+    let title = document.getElementById("title").value;
+    let directory = exampleName + "/" + title + "/frames/" + currentFrame + "/";
+    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+    FB.uploadFile(directory, file, filename, (url) => {
+        console.log("Uploaded 3D Model");
+        let user = FB.getUser();
+        if (!user) return;
+        let userName = user.displayName;
+        if (!userName) userName = user.email.split("@")[0];
+        const data = { type: "3DModel", url: url, position: { x: pos.x, y: pos.y, z: pos.z }, userName: user.displayName };
+        let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+        console.log("Entered 3DModel, Send to Firebase", folder, title, exampleName);
+        FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
+    });
+}
+
 export function addImageRemote(b64, mouse) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
@@ -155,8 +192,8 @@ export function addP5Remote(mouse) {
 }
 
 export function findObjectUnderMouse(x, y) {
-    let raycaster = new THREE.Raycaster(); // create once
-    //var mouse = new THREE.Vector2(); // create once
+    let raycaster = new Raycaster(); // create once
+    //var mouse = new Vector2(); // create once
     let mouse = {};
     mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
     mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
@@ -176,7 +213,7 @@ export function findObjectUnderMouse(x, y) {
 }
 
 export function project2DCoordsInto3D(distance, mouse) {
-    let vector = new THREE.Vector3();
+    let vector = new Vector3();
     vector.set(
         (mouse.x / window.innerWidth) * 2 - 1,
         - (mouse.y / window.innerHeight) * 2 + 1,
@@ -189,24 +226,24 @@ export function project2DCoordsInto3D(distance, mouse) {
 }
 
 function init3D() {
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.target = new THREE.Vector3(0, 0, 0);  //mouse controls move this around and camera looks at it 
-    renderer = new THREE.WebGLRenderer();
+    scene = new Scene();
+    camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.target = new Vector3(0, 0, 0);  //mouse controls move this around and camera looks at it 
+    renderer = new WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     ///document.body.appendChild(renderer.domElement);
 
     //this puts the three.js stuff in a particular div
     document.getElementById('THREEcontainer').appendChild(renderer.domElement)
 
-    let bgGeometery = new THREE.SphereGeometry(1000, 60, 40);
-    // let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
+    let bgGeometery = new SphereGeometry(1000, 60, 40);
+    // let bgGeometery = new CylinderGeometry(725, 725, 1000, 10, 10, true)
     bgGeometery.scale(-1, 1, 1);
     // has to be power of 2 like (4096 x 2048) or(8192x4096).  i think it goes upside down because texture is not right size
-    let panotexture = new THREE.TextureLoader().load("itp.jpg");
-    // let material = new THREE.MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
-    let backMaterial = new THREE.MeshBasicMaterial({ map: panotexture });
-    let back = new THREE.Mesh(bgGeometery, backMaterial);
+    let panotexture = new TextureLoader().load("itp.jpg");
+    // let material = new MeshBasicMaterial({ map: panotexture, transparent: true,   alphaTest: 0.02,opacity: 0.3});
+    let backMaterial = new MeshBasicMaterial({ map: panotexture });
+    let back = new Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
     initMoveCameraWithMouse(camera, renderer);
@@ -233,11 +270,11 @@ function createNewImage(img, posInWorld, firebaseKey) {
     canvas.height = img.height;
     let context = canvas.getContext("2d");
 
-    let texture = new THREE.Texture(canvas);
+    let texture = new Texture(canvas);
     texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
-    let mesh = new THREE.Mesh(geo, material);
+    let material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, alphaTest: 0.5 });
+    let geo = new PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
+    let mesh = new Mesh(geo, material);
 
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
@@ -275,11 +312,11 @@ function createNewText(data, firebaseKey) {
     canvas.width = 512;
     canvas.height = 512;
 
-    let texture = new THREE.Texture(canvas);
+    let texture = new Texture(canvas);
 
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(1, 1);
-    let mesh = new THREE.Mesh(geo, material);
+    let material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, alphaTest: 0.5 });
+    let geo = new PlaneGeometry(1, 1);
+    let mesh = new Mesh(geo, material);
     mesh.lookAt(0, 0, 0);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
@@ -373,11 +410,11 @@ function createNewP5(data, firebaseKey) {  //called from double click
     let myCanvas = newP5.getP5Canvas();
     let canvas = myCanvas.elt;
 
-    let texture = new THREE.Texture(canvas);
+    let texture = new Texture(canvas);
     texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    let geo = new THREE.PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
-    let mesh = new THREE.Mesh(geo, material);
+    let material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, alphaTest: 0.5 });
+    let geo = new PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
+    let mesh = new Mesh(geo, material);
     mesh.scale.set(10, 10, 10);
     scene.add(mesh);
 
