@@ -16,46 +16,50 @@ let renderer = null;
 let videoCanvas;
 
 
-function birthP5Video(w, h) {
+function birthP5Video(w, h, callback) {
     let sketch = function (p) {
         let myCanvas;
         let myVideo;
         p.setup = function () {
             myCanvas = p.createCanvas(w, h);
             myVideo = p.createCapture(p.VIDEO);
-            myVideo.size(myCanvas.width, myCanvas.height);
+            myVideo.size(p.width, p.height);
             myVideo.elt.muted = true;
             myVideo.hide()
-
+            callback(myCanvas);
         };
-        p.getP5Canvas = function () {
-            return myCanvas;
-        }
+
         p.draw = function () {
-            p.image(myVideo, 0, 0, myCanvas.width, myCanvas.height);
+            if (myVideo)
+                p.image(myVideo, 0, 0, myCanvas.width, myCanvas.height);
         };
     };
     return new p5(sketch);
 }
 
+export function gotVideo(P5Canvas) {
+
+
+
+}
+
+
 export function initHTML() {
 
 
-    let localVideo = birthP5Video(320, 240);
-    videoCanvas = localVideo.getP5Canvas().elt;
+    let p5Sketch = birthP5Video(320, 240, function (P5Canvas) {
+        videoCanvas = P5Canvas.elt; //pull out html version of canvas from p5 versions
+        let localVideoDiv = document.createElement("div");
+        localVideoDiv.setAttribute("id", "localVideoDiv");
+        document.body.appendChild(localVideoDiv);
+        localVideoDiv.appendChild(videoCanvas);
 
-    let localVideoDiv = document.createElement("div");
-    localVideoDiv.setAttribute("id", "localVideoDiv");
-    document.body.appendChild(localVideoDiv);
-    localVideoDiv.appendChild(videoCanvas);
-
-    localVideoDiv.style.position = "absolute";
-    localVideoDiv.style.top = "50%";
-    localVideoDiv.style.left = "50%";
-    localVideoDiv.style.transform = "translate(-50%, -50%)";
-    localVideoDiv.style.zIndex = "2000";
-
-
+        localVideoDiv.style.position = "absolute";
+        localVideoDiv.style.top = "50%";
+        localVideoDiv.style.left = "50%";
+        localVideoDiv.style.transform = "translate(-50%, -50%)";
+        localVideoDiv.style.zIndex = "2000";
+    });
 
     const THREEcontainer = document.createElement("div");
     THREEcontainer.setAttribute("id", "THREEcontainer");

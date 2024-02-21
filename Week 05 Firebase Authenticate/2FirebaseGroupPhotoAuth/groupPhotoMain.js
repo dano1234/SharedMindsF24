@@ -5,25 +5,17 @@ import * as FB from './firebaseStuffPhotoAuth.js';
 
 
 let camera, scene, renderer;
-let texturesThatNeedUpdating = [];  //for updating textures
+
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
 let clickableMeshes = []; //for use with raycasting
 let myObjectsByFirebaseKey = {}; //for converting from firebase key to my JSON object
 
-let currentFrame = 1;
+
 let exampleName = "SharedMindsExampleGroupPhoto";
-let user = FB.initFirebase();
-if (user) initAll();  //don't show much if the have not logged in yet.
-
-export function initAll() {
-    //if it doesn't already exist
-    if (!document.getElementById("THREEcontainer")) {
-        initHTML();
-        init3D();
-    }
-    listenForChanges();
-}
-
+initHTML();
+init3D();
+FB.initFirebase();
+listenForChanges();
 
 
 export function moveObject(selectedObject, x, y) {
@@ -37,18 +29,23 @@ export function moveObject(selectedObject, x, y) {
 export function takePicture(mouse, videoCanvas) {
 
     let user = FB.getUser();
-    if (!user) return;
+    if (!user) {
+        alert("You must be logged in to take a picture");
+        console.log("no user");
+        return;
+    }
     let userName = user.displayName;
     if (!userName) userName = user.email.split("@")[0];
 
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
 
     let base64 = videoCanvas.toDataURL();
-    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: base64, userName: user.displayName };
+    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: base64, userName: userName };
 
     //use set instead of add to enforce one picture per user
-    const dbPath = exampleName + "/" + "/people/" + FB.getUser().uid;
-    FB.setDataInFirebase(dbPath, data);//put empty for the key when you are making a new thing.
+
+    const dbPath = exampleName + "/" + "/people/" + user.uid;
+    FB.setDataInFirebase(dbPath, data);
 
 }
 
@@ -216,67 +213,6 @@ function redrawFace(object) {
     object.mesh.position.z = object.position.z;
     object.mesh.lookAt(0, 0, 0);
     object.texture.needsUpdate = true;
-}
-
-
-function allowCameraSelection(w, h) {
-    //This whole thing is to build a pulldown menu for selecting between cameras
-
-    //manual alternative to all of this pull down stuff:
-    //type this in the console and unfold resulst to find the device id of your preferredwebcam, put in sourced id below
-    //navigator.mediaDevices.enumerateDevices()
-
-    //default settings
-    let videoOptions = {
-        audio: true, video: {
-            width: w,
-            height: h
-        }
-    };
-
-    let preferredCam = localStorage.getItem('preferredCam')
-    //if you changed it in the past and stored setting
-    if (preferredCam) {
-        videoOptions = {
-            video: {
-                width: w,
-                height: h,
-                sourceId: preferredCam
-            }
-        };
-    }
-    //create a pulldown menu for picking source
-    navigator.mediaDevices.enumerateDevices().then(function (d) {
-        var sel = createSelect();
-        sel.position(10, 10);
-        for (var i = 0; i < d.length; i++) {
-            if (d[i].kind == "videoinput") {
-                let label = d[i].label;
-                let ending = label.indexOf('(');
-                if (ending == -1) ending = label.length;
-                label = label.substring(0, ending);
-                sel.option(label, d[i].deviceId)
-            }
-            if (preferredCam) sel.selected(preferredCam);
-        }
-        sel.changed(function () {
-            let item = sel.value();
-            //console.log(item);
-            localStorage.setItem('preferredCam', item);
-            videoOptions = {
-                video: {
-                    optional: [{
-                        sourceId: item
-                    }]
-                }
-            };
-            myVideo.remove();
-            myVideo = createCapture(videoOptions, VIDEO);
-            myVideo.hide();
-            console.log("Preferred Camera", videoOptions);
-        });
-    });
-    return videoOptions;
 }
 
 

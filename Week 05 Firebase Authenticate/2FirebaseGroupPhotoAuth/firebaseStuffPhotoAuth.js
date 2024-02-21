@@ -2,11 +2,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
-import { initAll } from "./groupPhotoMain.js";
+
 
 let db, auth, app;
 let googleAuthProvider;
-let appName = "SharedMindsFramesAuthExample";
+
 
 
 export function getUser() {
@@ -37,7 +37,6 @@ export function initFirebase() {
             const uid = user.uid;
             console.log("userino is signed in", user);
             showLogOutButton(user);
-            initAll();
             // ...
         } else {
             console.log("userino is signed out");
@@ -239,10 +238,12 @@ function showLoginButtons() {
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
                 // Signed in 
+                console.log("signed in");
                 const user = userCredential.user;
                 // ...
             })
             .catch((error) => {
+                console.log("error signing in");
                 const errorCode = error.code;
                 const errorMessage = error.message;
             });
@@ -259,6 +260,7 @@ function showLoginButtons() {
                 // ...
             })
             .catch((error) => {
+                console.log("error signing up");
                 const errorCode = error.code;
                 const errorMessage = error.message;
                 // ..

@@ -4,7 +4,6 @@ import { getDatabase, ref, onValue, update, set, push, onChildAdded, onChildChan
 import { reactToFirebase } from './main.js';
 
 
-
 const firebaseConfig = {
     apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
     authDomain: "shared-minds.firebaseapp.com",
