@@ -234,15 +234,18 @@ function showLoginButtons() {
     });
 
     document.getElementById("signInWithEmail").addEventListener("click", function () {
+        console.log("signed in email", auth);
         let email = document.getElementById("email").value;
         let password = document.getElementById("password").value;
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
                 // Signed in 
+                console.log("signed in", userCredential);
                 const user = userCredential.user;
                 // ...
             })
             .catch((error) => {
+                console.log("error signing in", error);
                 const errorCode = error.code;
                 const errorMessage = error.message;
             });
@@ -259,6 +262,7 @@ function showLoginButtons() {
                 // ...
             })
             .catch((error) => {
+                console.log("error signing up", error);
                 const errorCode = error.code;
                 const errorMessage = error.message;
                 // ..
