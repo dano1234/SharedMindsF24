@@ -1,4 +1,4 @@
-import { SphereGeometry, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
+import { SphereGeometry, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
@@ -246,6 +246,9 @@ function init3D() {
     let backMaterial = new MeshBasicMaterial({ map: panotexture });
     let back = new Mesh(bgGeometery, backMaterial);
     scene.add(back);
+
+    let ambientLight = new AmbientLight(new Color('hsl(0, 0%, 100%)'), 0.75);
+    scene.add(ambientLight);
 
     initMoveCameraWithMouse(camera, renderer);
 
