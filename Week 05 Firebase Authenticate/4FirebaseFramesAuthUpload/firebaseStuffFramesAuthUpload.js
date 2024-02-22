@@ -210,6 +210,7 @@ function showLoginButtons() {
     let signUpWithGoogleButton = document.createElement("button");
     signUpWithGoogleButton.innerHTML = "Google Login";
     signUpWithGoogleButton.setAttribute("id", "signInWithGoogle");
+    signUpWithGoogleButton.setAttribute("class", "authButton");
     authDiv.appendChild(signUpWithGoogleButton);
 
     authDiv.appendChild(document.createElement("br"));
@@ -219,15 +220,15 @@ function showLoginButtons() {
     emailDiv.innerHTML = "Email";
     authDiv.appendChild(emailDiv);
 
-    let form = document.createElement("form");
-    authDiv.appendChild(form);
+    //let form = document.createElement("form");
+    //authDiv.appendChild(form);
 
     let emailInput = document.createElement("input");
     emailInput.setAttribute("id", "email");
     emailInput.setAttribute("class", "authInput");
     emailInput.setAttribute("type", "text");
     emailInput.setAttribute("placeholder", "email@email.com");
-    form.appendChild(emailInput);
+    authDiv.appendChild(emailInput);
 
     let passwordInput = document.createElement("input");
     passwordInput.setAttribute("id", "password");
@@ -237,12 +238,12 @@ function showLoginButtons() {
     passwordInput.setAttribute("autocomplete", "on");
     passwordInput.setAttribute("placeholder", "password");
 
-    form.appendChild(passwordInput);
+    authDiv.appendChild(passwordInput);
     let buttonSpan = document.createElement("span");
     buttonSpan.style.display = "flex";
     buttonSpan.style.justifyContent = "space-around";
     buttonSpan.style.width = "100%";
-    form.appendChild(buttonSpan);
+    authDiv.appendChild(buttonSpan);
 
     let signUpWithEmailButton = document.createElement("button");
     signUpWithEmailButton.innerHTML = "SignUp";
@@ -255,6 +256,7 @@ function showLoginButtons() {
     signInWithEmailButton.setAttribute("id", "signInWithEmail");
     signInWithEmailButton.setAttribute("class", "authButton");
     buttonSpan.appendChild(signInWithEmailButton);
+
 
 
     document.getElementById("signInWithGoogle").addEventListener("click", function () {

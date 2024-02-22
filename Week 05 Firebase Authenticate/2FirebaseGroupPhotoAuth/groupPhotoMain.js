@@ -26,6 +26,8 @@ export function moveObject(selectedObject, x, y) {
     FB.updateJSONFieldInFirebase(dbPath, selectedObject.firebaseKey, updates);
 }
 
+
+
 export function takePicture(mouse, videoCanvas) {
 
     let user = FB.getUser();
@@ -36,6 +38,7 @@ export function takePicture(mouse, videoCanvas) {
     }
     let userName = user.displayName;
     if (!userName) userName = user.email.split("@")[0];
+    userName = userName.split(" ")[0];
 
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
 

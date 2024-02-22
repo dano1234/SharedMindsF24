@@ -45,9 +45,9 @@ export function initFirebase() {
             // ...
         }
     });
-
     return auth.currentUser;
 }
+
 
 export function addNewThingToFirebase(folder, data) {
     //firebase will supply the key,  this will trigger "onChildAdded" below
@@ -137,8 +137,6 @@ function showLogOutButton(user) {
             authDiv.appendChild(userPic);
         }
         userPic.src = user.photoURL;
-
-
     }
 
     if (user.displayName) {
@@ -178,15 +176,15 @@ function showLoginButtons() {
     emailDiv.innerHTML = "Email";
     authDiv.appendChild(emailDiv);
 
-    let form = document.createElement("form");
-    authDiv.appendChild(form);
+    //let form = document.createElement("form");
+    //authDiv.appendChild(form);
 
     let emailInput = document.createElement("input");
     emailInput.setAttribute("id", "email");
     emailInput.setAttribute("class", "authInput");
     emailInput.setAttribute("type", "text");
     emailInput.setAttribute("placeholder", "email@email.com");
-    form.appendChild(emailInput);
+    authDiv.appendChild(emailInput);
 
     let passwordInput = document.createElement("input");
     passwordInput.setAttribute("id", "password");
@@ -196,12 +194,12 @@ function showLoginButtons() {
     passwordInput.setAttribute("autocomplete", "on");
     passwordInput.setAttribute("placeholder", "password");
 
-    form.appendChild(passwordInput);
+    authDiv.appendChild(passwordInput);
     let buttonSpan = document.createElement("span");
     buttonSpan.style.display = "flex";
     buttonSpan.style.justifyContent = "space-around";
     buttonSpan.style.width = "100%";
-    form.appendChild(buttonSpan);
+    authDiv.appendChild(buttonSpan);
 
     let signUpWithEmailButton = document.createElement("button");
     signUpWithEmailButton.innerHTML = "SignUp";
@@ -238,7 +236,11 @@ function showLoginButtons() {
             });
     });
 
-    document.getElementById("signInWithEmail").addEventListener("click", function () {
+
+    document.getElementById("signInWithEmail").addEventListener("click", function (event) {
+
+        console.log("signing in with email");
+        event.stopPropagation();
         let email = document.getElementById("email").value;
         let password = document.getElementById("password").value;
         signInWithEmailAndPassword(auth, email, password)
@@ -254,6 +256,7 @@ function showLoginButtons() {
                 const errorMessage = error.message;
             });
     });
+
 
     document.getElementById("signUpWithEmail").addEventListener("click", function () {
         let email = document.getElementById("email").value;

@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
+import { getAuth, signOut, signInWithRedirect, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
 import { initAll } from "./main.js";
 
 let db, auth, app;
@@ -179,15 +179,15 @@ function showLoginButtons() {
     emailDiv.innerHTML = "Email";
     authDiv.appendChild(emailDiv);
 
-    let form = document.createElement("form");
-    authDiv.appendChild(form);
+    //let form = document.createElement("form");
+    //authDiv.appendChild(form);
 
     let emailInput = document.createElement("input");
     emailInput.setAttribute("id", "email");
     emailInput.setAttribute("class", "authInput");
     emailInput.setAttribute("type", "text");
     emailInput.setAttribute("placeholder", "email@email.com");
-    form.appendChild(emailInput);
+    authDiv.appendChild(emailInput);
 
     let passwordInput = document.createElement("input");
     passwordInput.setAttribute("id", "password");
@@ -197,12 +197,12 @@ function showLoginButtons() {
     passwordInput.setAttribute("autocomplete", "on");
     passwordInput.setAttribute("placeholder", "password");
 
-    form.appendChild(passwordInput);
+    authDiv.appendChild(passwordInput);
     let buttonSpan = document.createElement("span");
     buttonSpan.style.display = "flex";
     buttonSpan.style.justifyContent = "space-around";
     buttonSpan.style.width = "100%";
-    form.appendChild(buttonSpan);
+    authDiv.appendChild(buttonSpan);
 
     let signUpWithEmailButton = document.createElement("button");
     signUpWithEmailButton.innerHTML = "SignUp";
@@ -213,12 +213,12 @@ function showLoginButtons() {
     let signInWithEmailButton = document.createElement("button");
     signInWithEmailButton.innerHTML = "SignIn";
     signInWithEmailButton.setAttribute("id", "signInWithEmail");
-    signUpWithEmailButton.setAttribute("class", "authButton");
+    signInWithEmailButton.setAttribute("class", "authButton");
     buttonSpan.appendChild(signInWithEmailButton);
 
 
     document.getElementById("signInWithGoogle").addEventListener("click", function () {
-        signInWithPopup(auth, googleAuthProvider)
+        signInWithPopup(auth, googleAuthProvider) //
             .then((result) => {
                 // This gives you a Google Access Token. You can use it to access the Google API.
                 const credential = GoogleAuthProvider.credentialFromResult(result);

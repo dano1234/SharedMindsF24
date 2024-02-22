@@ -115,27 +115,30 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
     });
 }
 
+function getUserName(user) {
+    let userName = user.displayName;
+    if (!userName) userName = user.email.split("@")[0];
+    userName = userName.split(" ")[0];
+    return userName;
+}
 export function addTextRemote(text, mouse) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     let user = FB.getUser();
     if (!user) return;
-    let userName = user.displayName.split(" ")[0];
-    if (!userName) userName = user.email.split("@")[0].split(" ")[0];
-    const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: text, userID: user.uid, userName: user.displayName };
+    const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: text, userID: user.uid, userName: getUserName(user) };
     let folder = exampleName + "/" + title + "/frames/" + currentFrame;
     console.log("Entered Text, Send to Firebase", folder, title, exampleName);
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
+
 
 export function addImageRemote(b64, mouse) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     let user = FB.getUser();
     if (!user) return;
-    let userName = user.displayName;
-    if (!userName) userName = user.email.split("@")[0];
-    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64, userName: user.displayName };
+    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64, userName: getUserName(user) };
     let folder = exampleName + "/" + title + "/frames/" + currentFrame;
     console.log("Entered Image, Send to Firebase", folder, title, exampleName);
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
@@ -146,14 +149,11 @@ export function addP5Remote(mouse) {
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     let user = FB.getUser();
     if (!user) return;
-    let userName = user.displayName;
-    if (!userName) userName = user.email.split("@")[0];
-    const data = { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z } };
+    const data = { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z }, userName: getUserName(user) };
     let folder = exampleName + "/" + title + "/frames/" + currentFrame;
     console.log("Entered Image, Send to Firebase", folder, title, exampleName);
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
-
 export function findObjectUnderMouse(x, y) {
     let raycaster = new THREE.Raycaster(); // create once
     //var mouse = new THREE.Vector2(); // create once
