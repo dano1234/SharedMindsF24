@@ -168,6 +168,7 @@ function showLoginButtons() {
     let signUpWithGoogleButton = document.createElement("button");
     signUpWithGoogleButton.innerHTML = "Google Login";
     signUpWithGoogleButton.setAttribute("id", "signInWithGoogle");
+    signUpWithGoogleButton.setAttribute("class", "authButton");
     authDiv.appendChild(signUpWithGoogleButton);
 
     authDiv.appendChild(document.createElement("br"));
@@ -182,14 +183,17 @@ function showLoginButtons() {
 
     let emailInput = document.createElement("input");
     emailInput.setAttribute("id", "email");
+    emailInput.setAttribute("class", "authInput");
     emailInput.setAttribute("type", "text");
     emailInput.setAttribute("placeholder", "email@email.com");
     form.appendChild(emailInput);
 
     let passwordInput = document.createElement("input");
     passwordInput.setAttribute("id", "password");
+    passwordInput.setAttribute("class", "authInput");
     passwordInput.setAttribute("type", "password");
     passwordInput.setAttribute("suggest", "current-password");
+    passwordInput.setAttribute("autocomplete", "on");
     passwordInput.setAttribute("placeholder", "password");
 
     form.appendChild(passwordInput);
@@ -202,11 +206,13 @@ function showLoginButtons() {
     let signUpWithEmailButton = document.createElement("button");
     signUpWithEmailButton.innerHTML = "SignUp";
     signUpWithEmailButton.setAttribute("id", "signUpWithEmail");
+    signUpWithEmailButton.setAttribute("class", "authButton");
     buttonSpan.appendChild(signUpWithEmailButton);
 
     let signInWithEmailButton = document.createElement("button");
     signInWithEmailButton.innerHTML = "SignIn";
     signInWithEmailButton.setAttribute("id", "signInWithEmail");
+    signInWithEmailButton.setAttribute("class", "authButton");
     buttonSpan.appendChild(signInWithEmailButton);
 
 

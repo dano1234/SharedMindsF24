@@ -1,4 +1,4 @@
-button {
+.authButton {
     background-color: #c9328a;
     /* Green */
     border: none;
@@ -11,11 +11,11 @@ button {
     font-size: 16px;
 }
 
-button:hover {
+.authButton:hover {
     background-color: #45a049;
 }
 
-input {
+.authInput {
     padding: 5px 10px;
     font-size: 12px;
     width: 100%;

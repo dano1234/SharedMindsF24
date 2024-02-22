@@ -1,4 +1,4 @@
-import { SphereGeometry, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
+import { SphereGeometry, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
@@ -6,6 +6,7 @@ import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 
 
 let camera, scene, renderer;
+let thingsThatNeedSpinning = [];
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
 let clickableMeshes = []; //for use with raycasting
@@ -246,6 +247,9 @@ function init3D() {
     let back = new Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
+    let ambientLight = new AmbientLight(new Color('hsl(0, 0%, 100%)'), 0.75);
+    scene.add(ambientLight);
+
     initMoveCameraWithMouse(camera, renderer);
 
     camera.position.z = 0;
@@ -253,6 +257,10 @@ function init3D() {
 }
 
 function animate() {
+    for (let i = 0; i < thingsThatNeedSpinning.length; i++) {
+        thingsThatNeedSpinning[i].rotation.y += 0.01;
+        thingsThatNeedSpinning[i].rotation.x += 0.01;
+    }
     for (let i = 0; i < texturesThatNeedUpdating.length; i++) {
         texturesThatNeedUpdating[i].texture.needsUpdate = true;
     }

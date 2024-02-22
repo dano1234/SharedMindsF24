@@ -154,7 +154,7 @@ function enableDragDrop() {
                 const filename = files[i].name;
                 reader.onload = function (event) {
                     let mouse = { x: e.clientX, y: e.clientY };
-                    MAIN.add3DModelRemote(event.target.result, mouse, filename);
+                    MAIN.add3DModelRemote(files[i], mouse, filename);
                 };
                 reader.readAsDataURL(files[i]);
             }
