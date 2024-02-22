@@ -6,6 +6,7 @@ import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 
 
 let camera, scene, renderer;
+let thingsThatNeedSpinning = [];
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
 let clickableMeshes = []; //for use with raycasting
@@ -253,6 +254,10 @@ function init3D() {
 }
 
 function animate() {
+    for (let i = 0; i < thingsThatNeedSpinning.length; i++) {
+        thingsThatNeedSpinning[i].rotation.y += 0.01;
+        thingsThatNeedSpinning[i].rotation.x += 0.01;
+    }
     for (let i = 0; i < texturesThatNeedUpdating.length; i++) {
         texturesThatNeedUpdating[i].texture.needsUpdate = true;
     }
