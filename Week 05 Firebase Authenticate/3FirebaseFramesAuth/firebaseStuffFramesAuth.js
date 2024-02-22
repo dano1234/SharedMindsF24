@@ -37,6 +37,7 @@ export function initFirebase() {
             const uid = user.uid;
             console.log("userino is signed in", user);
             showLogOutButton(user);
+            initAll();
             // ...
         } else {
             console.log("userino is signed out");
