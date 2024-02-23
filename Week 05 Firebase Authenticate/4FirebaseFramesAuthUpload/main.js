@@ -29,7 +29,7 @@ export function initAll() {
 // Create a new GLTFLoader instance to load the 3D model
 const loader = new GLTFLoader();
 // Function to load and add a duck to the scene
-function creatNewModel(url, pos) {
+function createNewModel(url, pos, firebaseKey) {
     console.log("creatNewModel", url);
     loader.load(url, function (gltf) {
         const model = gltf.scene;
@@ -37,6 +37,10 @@ function creatNewModel(url, pos) {
         model.position.set(pos.x, pos.y, pos.z);
         scene.add(model);
         thingsThatNeedSpinning.push(model);
+        let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: model, uuid: model.uuid };
+        clickableMeshes.push(model);
+        myObjectsByThreeID[model.uuid] = thisObject;
+        myObjectsByFirebaseKey[firebaseKey] = thisObject;
     });
 }
 
@@ -99,7 +103,7 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                 } else if (data.type === "p5ParticleSystem") {
                     createNewP5(data, key);
                 } else if (data.type === "3DModel") {
-                    creatNewModel(data.url, data.position);
+                    createNewModel(data.url, data.position, key);
                 }
             } else if (reaction === "changed") {
                 console.log("changed", data);
@@ -134,6 +138,8 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
         }; //get notified if anything changes in this folder
     });
 }
+
+
 
 export function addTextRemote(text, mouse) {
     let title = document.getElementById("title").value;

@@ -116,6 +116,7 @@ document.addEventListener('mousedown', (event) => {
         inputBox.value = "";
     }
     inputBox.focus();
+
 });
 document.addEventListener('mousemove', (event) => {
     // Set the location of the input box to the mouse location
@@ -262,7 +263,7 @@ authDiv.style.width = "150px";
 authDiv.style.backgroundColor = "lightpink";
 authDiv.style.border = "1px solid black";
 authDiv.style.padding = "10px";
-authDiv.style.zIndex = "1000";
+authDiv.style.zIndex = "3000";
 document.body.appendChild(authDiv);
 
 
@@ -296,6 +297,7 @@ function showLogOutButton(user) {
             console.log("error signing out");
         });
     });
+
 }
 
 function showLoginButtons() {
@@ -341,7 +343,7 @@ function showLoginButtons() {
     signInWithEmailButton.setAttribute("class", "authButton");
     authDiv.appendChild(signInWithEmailButton);
 
-    document.getElementById("signInWithGoogle").addEventListener("click", function () {
+    document.getElementById("signInWithGoogle").addEventListener("click", function (event) {
         signInWithPopup(auth, googleAuthProvider)
             .then((result) => {
                 // This gives you a Google Access Token. You can use it to access the Google API.
@@ -361,9 +363,10 @@ function showLoginButtons() {
                 const credential = GoogleAuthProvider.credentialFromError(error);
                 // ...
             });
+        event.stopPropagation();
     });
 
-    document.getElementById("signInWithEmail").addEventListener("click", function () {
+    document.getElementById("signInWithEmail").addEventListener("click", function (event) {
         let email = document.getElementById("email").value;
         let password = document.getElementById("password").value;
         signInWithEmailAndPassword(auth, email, password)
@@ -376,9 +379,10 @@ function showLoginButtons() {
                 const errorCode = error.code;
                 const errorMessage = error.message;
             });
+        event.stopPropagation();
     });
 
-    document.getElementById("signUpWithEmail").addEventListener("click", function () {
+    document.getElementById("signUpWithEmail").addEventListener("click", function (event) {
         let email = document.getElementById("email").value;
         let password = document.getElementById("password").value;
         createUserWithEmailAndPassword(auth, email, password)
@@ -393,6 +397,7 @@ function showLoginButtons() {
                 const errorMessage = error.message;
                 // ..
             });
+        event.stopPropagation();
     });
 }
 
