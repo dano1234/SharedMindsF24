@@ -85,7 +85,7 @@ async function askForPicture(inputField) {
     prompt = "360 degree equirectangular spherical panorama seamless wrapping" + p_prompt;
 
     let data = {
-        "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
+        "version": "86c8af86f82a9c170ab9c54e6c94a19c8afa68362844ee2799d6baa83ac9708c", //"c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
             "prompt": prompt,
             "width": 1024,
