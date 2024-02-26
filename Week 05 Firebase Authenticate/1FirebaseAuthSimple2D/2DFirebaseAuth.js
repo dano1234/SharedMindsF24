@@ -21,6 +21,15 @@ document.body.appendChild(canvas);
 console.log('canvas', canvas.width, canvas.height);
 
 
+const mainDiv = document.createElement('div');
+mainDiv.style.position = 'absolute';
+mainDiv.style.left = '0%';
+mainDiv.style.top = '0%';
+mainDiv.style.width = '100%';
+mainDiv.style.height = '100%';
+mainDiv.style.zIndex = '0';
+document.body.appendChild(mainDiv);
+
 const inputBox = document.createElement('input');
 inputBox.setAttribute('type', 'text');
 inputBox.setAttribute('id', 'inputBox');
@@ -83,8 +92,6 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         isEditing = false;
         inputBox.value = "";
-
-
     } else if (isEditing && event.shiftKey && (event.key === 'Backspace' || event.key === 'Delete')) {
         console.log("delete");
         deleteFromFirebase('texts', editingObject.key);
@@ -96,7 +103,7 @@ document.addEventListener('keydown', (event) => {
 
 
 // Add event listener to the document for mouse down event
-document.addEventListener('mousedown', (event) => {
+mainDiv.addEventListener('mousedown', (event) => {
     // Set the location of the input box to the mouse locatio
     isInteracting = true;
     editingObject = findNearbyObjects(event.clientX, event.clientY, 150);
@@ -118,14 +125,14 @@ document.addEventListener('mousedown', (event) => {
     inputBox.focus();
 
 });
-document.addEventListener('mousemove', (event) => {
+mainDiv.addEventListener('mousemove', (event) => {
     // Set the location of the input box to the mouse location
     if (isInteracting && !isEditing) {
         inputBox.style.left = event.clientX + 'px';
         inputBox.style.top = event.clientY + 'px';
     }
 });
-document.addEventListener('mouseup', (event) => {
+mainDiv.addEventListener('mouseup', (event) => {
     isInteracting = false;
 });
 
