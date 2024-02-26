@@ -1,4 +1,4 @@
-document.body.appendChild(document.createElement("h1")).textContent = "Test for ML APIs";
+document.body.appendChild(document.createElement("h1")).textContent = "Test for Many ML APIs";
 
 let inputDiv = document.createElement("div");
 inputDiv.style.position = "absolute";

@@ -29,24 +29,27 @@ async function myFetch(url, data) {
     return json_response;
 }
 
+let outputDiv = document.createElement("div");
+outputDiv.style.position = "absolute";
+outputDiv.style.top = "10px";
+outputDiv.style.left = "55%";
+outputDiv.style.width = "300px";
+outputDiv.style.height = "100%";
+document.body.appendChild(outputDiv);
 
 let outputText = document.createElement("textarea");
 outputText.id = "outputText";
-outputText.style.position = "absolute";
-outputText.style.top = "10px";
-outputText.style.left = "60%";
-outputText.style.width = "300px";
-outputText.style.height = "150px";
-document.body.appendChild(outputText);
+outputText.style.width = "512px";
+outputText.style.height = "250px";
+outputDiv.appendChild(outputText);
 
 let outputImage = document.createElement("img");
 outputImage.id = "outputImage";
 outputImage.style.position = "absolute";
-outputImage.style.top = "50%";
-outputImage.style.left = "60%";
+outputImage.style.top = "30%";
 outputImage.style.width = "512px";
 outputImage.style.height = "512px";
-document.body.appendChild(outputImage);
+outputDiv.appendChild(outputImage);
 
 
 let askButtons = document.createElement("div");
@@ -125,6 +128,7 @@ askReplicateImageButton.addEventListener("click", async function () {
     }
 });
 
+
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 askButtons.appendChild(document.createElement("br"));
@@ -156,6 +160,44 @@ askReplicateFastImageButton.addEventListener("click", async function () {
         image.src = imageURL;
 
     }
+});
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+askButtons.appendChild(document.createElement("br"));
+askButtons.appendChild(document.createElement("br"));
+
+let askReplicateMusicButton = document.createElement("button");
+askReplicateMusicButton.textContent = "Replicate Text to Music";
+askButtons.appendChild(askReplicateMusicButton);
+askReplicateMusicButton.addEventListener("click", async function () {
+    let data = {
+        //replicate / riffusion / riffusion
+        "version": "8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+        input: {
+            "prompt_a": document.getElementById("textInput").value,
+        },
+    };
+    console.log("Asking for Sound Info From Replicate via Proxy", data);
+    let options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    };
+
+
+    feedback.innerHTML = "Waiting for reply from API...";
+    let url = replicateProxy + "/create_n_get/";
+    let replicateJSON = await myFetch(url, data,);
+    let audioURL = replicateJSON.output.audio;
+    let audio = new Audio(audioURL);
+    audio.controls = true;
+    audio.play();
+    outputDiv.appendChild(audio);
+    feedback.innerHTML = "";
 });
 
 
