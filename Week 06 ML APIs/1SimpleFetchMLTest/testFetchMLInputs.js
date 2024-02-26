@@ -1,3 +1,4 @@
+document.body.appendChild(document.createElement("h1")).textContent = "Test for ML APIs";
 
 let inputDiv = document.createElement("div");
 inputDiv.style.position = "absolute";
@@ -23,11 +24,12 @@ function setupTextInput() {
     inputDiv.appendChild(document.createElement("br"));
     inputDiv.appendChild(document.createElement("br"));
     const textInput = document.createElement("input");
-    inputDiv.appendChild(document.createElement("label")).textContent = "Text Input";
+    inputDiv.appendChild(document.createElement("h2")).textContent = "Text Input";
     textInput.setAttribute("type", "text");
     textInput.setAttribute("id", "textInput");
+    textInput.style.width = "400px";
     //textInput.setAttribute("placeholder", "How tall is the empire state building?");
-    textInput.value = "How tall is the empire state building?";
+    textInput.value = "A man juggling balls at the circus in a poem";
     textInput.height = "20px";
     inputDiv.appendChild(textInput);
     textInput.style.zIndex = "5";
@@ -39,7 +41,7 @@ function setupAudioInput() {
     inputDiv.appendChild(document.createElement("br"));
     inputDiv.appendChild(document.createElement("br"));
     inputDiv.appendChild(document.createElement("br"));
-    inputDiv.appendChild(document.createElement("label")).textContent = "Sound Input";
+    inputDiv.appendChild(document.createElement("h2")).textContent = "Sound Input";
     // Set up the audio context and media stream
     const audioContext = new AudioContext();
     let mediaStream;
@@ -102,12 +104,12 @@ function setupImageInput() {
     inputDiv.appendChild(document.createElement("br"));
     inputDiv.appendChild(document.createElement("br"));
     inputDiv.appendChild(document.createElement("br"));
-    inputDiv.appendChild(document.createElement("label")).textContent = "Image Input";
+    inputDiv.appendChild(document.createElement("h2")).textContent = "Image Input";
 
 
     const dropArea = document.createElement("div");
-    dropArea.style.width = "40%";
-    dropArea.style.height = "20%";
+    dropArea.style.width = "80%";
+    dropArea.style.height = "10%";
     dropArea.style.border = "2px dashed #ccc";
     dropArea.style.display = "flex";
     dropArea.style.justifyContent = "center";
@@ -129,6 +131,7 @@ function setupImageInput() {
     imageElement.setAttribute("id", "inputImage");
     imageElement.style.zIndex = "5";
     inputDiv.appendChild(imageElement);
+    imageElement.src = "./jacob.png";
 
     fileUpload.addEventListener("change", function (e) {
         const file = e.target.files[0];
