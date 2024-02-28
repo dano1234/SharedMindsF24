@@ -2,6 +2,7 @@ import { SphereGeometry, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
+import { showAskButtons } from './askButtons.js';
 
 
 
@@ -13,7 +14,7 @@ let clickableMeshes = []; //for use with raycasting
 let myObjectsByFirebaseKey = {}; //for converting from firebase key to my JSON object
 
 let currentFrame = 1;
-let exampleName = "SharedMindsExampleSequenceAuthUpload";
+let exampleName = "SharedMindsExampleSequenceAuthUploadML";
 let user = FB.initFirebase();
 if (user) initAll();  //don't show much if the have not logged in yet.
 
@@ -24,6 +25,7 @@ export function initAll() {
         init3D();
     }
     listenForChangesInNewFrame(null, currentFrame);
+    showAskButtons();
 }
 
 // Create a new GLTFLoader instance to load the 3D model
@@ -185,16 +187,7 @@ function getUserName(user) {
     userName = userName.split(" ")[0];
     return userName;
 }
-export function addP5Remote(mouse) {
-    let title = document.getElementById("title").value;
-    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
-    let user = FB.getUser();
-    if (!user) return;
-    const data = { type: "p5ParticleSystem", position: { x: pos.x, y: pos.y, z: pos.z }, userName: getUserName(user) };
-    let folder = exampleName + "/" + title + "/frames/" + currentFrame;
-    console.log("Entered Image, Send to Firebase", folder, title, exampleName);
-    FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
-}
+
 
 export function findObjectUnderMouse(x, y) {
     let raycaster = new Raycaster(); // create once
@@ -354,92 +347,6 @@ function redrawText(thisObject) {
     }
 
     thisObject.texture.needsUpdate = true;
-    thisObject.mesh.position.x = thisObject.position.x;
-    thisObject.mesh.position.y = thisObject.position.y;
-    thisObject.mesh.position.z = thisObject.position.z;
-    thisObject.mesh.lookAt(0, 0, 0);
-    thisObject.texture.needsUpdate = true;
-}
-
-function birthP5Object(w, h) {
-    let sketch = function (p) {
-        let particles = [];
-        let myCanvas;
-        p.setup = function () {
-            myCanvas = p.createCanvas(w, h);
-
-        };
-        p.getP5Canvas = function () {
-            return myCanvas;
-        }
-
-        p.draw = function () {
-            p.clear();
-            for (let i = 0; i < 5; i++) {
-                let p = new Particle();
-                particles.push(p);
-            }
-            for (let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                particles[i].show();
-                if (particles[i].finished()) {
-                    // remove this particle
-                    particles.splice(i, 1);
-                }
-            }
-        };
-
-        class Particle {
-            constructor() {
-                this.x = p.width / 2;
-                this.y = p.height / 2;
-                this.vx = p.random(-1, 1);
-                this.vy = p.random(-4, 1);
-                this.alpha = 255;
-            }
-            finished() {
-                return this.alpha < 0;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= 10;
-            }
-            show() {
-                p.noStroke();
-                p.fill(255, 0, 255, this.alpha);
-                p.ellipse(this.x, this.y, 5);
-            }
-        }
-    };
-    return new p5(sketch);
-}
-
-function createNewP5(data, firebaseKey) {  //called from double click
-    let newP5 = birthP5Object(200, 200);
-    //pull the p5 canvas out of sketch 
-    //and then regular (elt) js canvas out of special p5 canvas
-    let myCanvas = newP5.getP5Canvas();
-    let canvas = myCanvas.elt;
-
-    let texture = new Texture(canvas);
-    texture.needsUpdate = true;
-    let material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, alphaTest: 0.5 });
-    let geo = new PlaneGeometry(canvas.width / canvas.width, canvas.height / canvas.width);
-    let mesh = new Mesh(geo, material);
-    mesh.scale.set(10, 10, 10);
-    scene.add(mesh);
-
-    let thisObject = { type: "p5ParticleSystem", firebaseKey: firebaseKey, threeID: mesh.uuid, position: data.position, canvas: canvas, mesh: mesh, texture: texture };
-    redrawP5(thisObject);
-    texturesThatNeedUpdating.push(thisObject);
-    clickableMeshes.push(mesh);
-    mesh.lookAt(0, 0, 0);
-    myObjectsByThreeID[mesh.uuid] = thisObject;
-    myObjectsByFirebaseKey[firebaseKey] = thisObject;
-}
-
-function redrawP5(thisObject) {
     thisObject.mesh.position.x = thisObject.position.x;
     thisObject.mesh.position.y = thisObject.position.y;
     thisObject.mesh.position.z = thisObject.position.z;

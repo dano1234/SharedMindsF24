@@ -12,8 +12,8 @@ let isUserInteracting = false;
 let selectedObject = null;
 let camera = null;
 let renderer = null;
-enableDragDrop();
-let currentFrame = 1;
+
+
 
 export function initHTML() {
     const THREEcontainer = document.createElement("div");
@@ -37,17 +37,17 @@ export function initHTML() {
     //override css
     textInput.style.width = "200px";
     textInput.style.transform = "translate(-50%, -50%)";
-    textInput.style.zIndex = "5";
+    textInput.style.zIndex = "7";
 
 
-    textInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
-            const inputRect = textInput.getBoundingClientRect();
-            const mouse = { x: inputRect.left, y: inputRect.top };
-            MAIN.addTextRemote(textInput.value, mouse);
-            //don't make it locally until you hear back from firebase
-        }
-    });
+    // textInput.addEventListener("keydown", function (e) {
+    //     if (e.key === "Enter") {  //checks whether the pressed key is "Enter"
+    //         const inputRect = textInput.getBoundingClientRect();
+    //         const mouse = { x: inputRect.left, y: inputRect.top };
+    //         MAIN.addTextRemote(textInput.value, mouse);
+    //         //don't make it locally until you hear back from firebase
+    //     }
+    // });
 
     const titleBox = document.createElement('input');
     titleBox.setAttribute('type', 'text');
@@ -119,50 +119,6 @@ export function initHTML() {
 
 }
 
-function enableDragDrop() {
-    window.addEventListener("dragover", function (e) {
-        e.preventDefault();  //prevents browser from opening the file
-    }, false);
-
-    window.addEventListener("drop", (e) => {
-        e.preventDefault();
-        const files = e.dataTransfer.files;
-        for (let i = 0; i < files.length; i++) {
-            if (files[i].type.match("image")) {
-                // Process the dropped image file here
-                console.log("Dropped image file:", files[i]);
-
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const img = new Image();
-                    img.onload = function () {
-                        let mouse = { x: e.clientX, y: e.clientY };
-                        const quickCanvas = document.createElement("canvas");
-                        const quickContext = quickCanvas.getContext("2d");
-                        quickCanvas.width = img.width;
-                        quickCanvas.height = img.height;
-                        quickContext.drawImage(img, 0, 0);
-                        const base64 = quickCanvas.toDataURL();
-                        MAIN.addImageRemote(base64, mouse);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(files[i]);
-            } else if (files[i].name.match(/\.glb/)) {
-                console.log("Dropped 3d file:", files[i]);
-                const reader = new FileReader();
-                const filename = files[i].name;
-                reader.onload = function (event) {
-                    let mouse = { x: e.clientX, y: e.clientY };
-                    MAIN.add3DModelRemote(files[i], mouse, filename);
-                };
-                reader.readAsDataURL(files[i]);
-            }
-
-        }
-    }, true);
-}
-
 
 export function initMoveCameraWithMouse(_camera, _renderer) {
     //set up event handlers
@@ -173,7 +129,7 @@ export function initMoveCameraWithMouse(_camera, _renderer) {
     div3D.addEventListener('mousemove', div3DMouseMove, false);
     window.addEventListener('mouseup', windowMouseUp, false);  //window in case they wander off the div
     div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
-    window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
+    // window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('keydown', div3DKeyDown, false);
 
@@ -189,10 +145,7 @@ function div3DKeyDown(event) {
     }
 }
 
-function div3DDoubleClick(event) {
-    let mouse = { x: event.clientX, y: event.clientY };
-    MAIN.addP5Remote(mouse);
-}
+
 
 function div3DMouseDown(event) {
     isUserInteracting = true;

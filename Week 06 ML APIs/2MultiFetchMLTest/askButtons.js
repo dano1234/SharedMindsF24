@@ -247,6 +247,40 @@ askReplicateImageImageButton.addEventListener("click", async function () {
 });
 
 
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+askButtons.appendChild(document.createElement("br"));
+askButtons.appendChild(document.createElement("br"));
+
+let askOpenAITextButton = document.createElement("button");
+askOpenAITextButton.textContent = "OpenAI Text to Text";
+askButtons.appendChild(askOpenAITextButton);
+askOpenAITextButton.addEventListener("click", async function () {
+
+    const data = {
+        model: "gpt-3.5-turbo-instruct",  //"gpt-4-1106-preview", //
+        prompt: document.getElementById("textInput").value,
+        temperature: 0,
+        max_tokens: 1000,
+        //  n: 1,
+        //  stop: "\n",
+    };
+    feedback.innerHTML = "Waiting for reply from API...";
+    let url = openAIProxy + "/AskOpenAIImage/"
+    let openAI_json = await myFetch(url, data);
+    if (openAI_json.choices.length == 0) {
+        feedback.html("Something went wrong, try it again");
+    } else {
+        let choicesjoin = "";
+        for (let i = 0; i < openAI_json.choices.length; i++) {
+            choicesjoin += openAI_json.choices[i].text;
+        }
+        document.getElementById("outputText").value = choicesjoin;
+    }
+});
+
+
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 askButtons.appendChild(document.createElement("br"));
