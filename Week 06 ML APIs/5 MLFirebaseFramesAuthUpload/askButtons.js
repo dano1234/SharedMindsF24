@@ -151,14 +151,27 @@ export function showAskButtons() {
             feedback.innerHTML = "Something went wrong, try it again";
         } else {
             let audioURL = replicateJSON.output.audio;
-            let audio = new Audio(audioURL);
-            audio.controls = true;
-            audio.play();
-            outputDiv.appendChild(audio);
-            feedback.innerHTML = "";
+            let incomingData = await fetch(audioURL);
+            const ctx = new AudioContext();
+            let arrayBuffer = await incomingData.arrayBuffer();
+            let b64 = bufferToBase64(arrayBuffer);
+            let inputBox = document.getElementById("textInput");
+            let rect = inputBox.getBoundingClientRect();
+            let mouse = { x: rect.left, y: rect.top };
+            MAIN.addSoundRemote(b64, mouse, audioURL, document.getElementById("textInput").value);
+
         }
     });
 
+    function bufferToBase64(buffer) {
+        var bytes = new Uint8Array(buffer);
+        var len = buffer.byteLength;
+        var binary = "";
+        for (var i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    };
 
     /////////////////////////////////////////////////////
     /////////////////////////////////////////////////////
@@ -168,10 +181,10 @@ export function showAskButtons() {
     askButtons.appendChild(askReplicate3DButton);
     askReplicate3DButton.addEventListener("click", async function () {
         let data = {
-            //replicate / riffusion / riffusion
-            "version": "8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+            //replicate adirik/imagedream
+            "version": "8cae74eb2723bbb5ded70ba449b5b145ec82f1e0d5e9cc6b314b37fee7a10f80",
             input: {
-                "prompt_a": document.getElementById("textInput").value,
+                "prompt": document.getElementById("textInput").value,
             },
         };
         console.log("Asking for 3D From Replicate via Proxy", data);
@@ -188,9 +201,11 @@ export function showAskButtons() {
         if (replicateJSON.output.length == 0) {
             feedback.innerHTML = "Something went wrong, try it again";
         } else {
-            //
+            console.log("glb", replicateJSON.output);
         }
     });
+
+
 
 }
 

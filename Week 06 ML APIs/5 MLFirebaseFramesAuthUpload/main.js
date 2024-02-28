@@ -30,21 +30,8 @@ export function initAll() {
 
 // Create a new GLTFLoader instance to load the 3D model
 const loader = new GLTFLoader();
-// Function to load and add a duck to the scene
-function createNewModel(url, pos, firebaseKey) {
-    console.log("creatNewModel", url);
-    loader.load(url, function (gltf) {
-        const model = gltf.scene;
-        model.scale.set(5, 5, 5);
-        model.position.set(pos.x, pos.y, pos.z);
-        scene.add(model);
-        thingsThatNeedSpinning.push(model);
-        let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: model, uuid: model.uuid };
-        clickableMeshes.push(model);
-        myObjectsByThreeID[model.uuid] = thisObject;
-        myObjectsByFirebaseKey[firebaseKey] = thisObject;
-    });
-}
+
+
 
 export function nextFrame() {
     let oldFrame = currentFrame;
@@ -102,8 +89,8 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                         createNewImage(img, posInWorld, key);
                     }
                     img.src = data.base64;
-                } else if (data.type === "p5ParticleSystem") {
-                    createNewP5(data, key);
+                } else if (data.type === "audio") {
+                    createNewSound(data, key);
                 } else if (data.type === "3DModel") {
                     createNewModel(data.url, data.position, key);
                 }
@@ -170,6 +157,17 @@ export function add3DModelRemote(file, mouse, filename) {
     });
 }
 
+export function addAudioRemote(b64, mouse, url, prompt) {
+    let title = document.getElementById("title").value;
+    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+    let user = FB.getUser();
+    if (!user) return;
+    const data = { type: "audio", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64, userName: getUserName(user), url: url, prompt: prompt };
+    let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+    console.log("Entered Image, Send to Firebase", folder, title, exampleName);
+    FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
+}
+
 export function addImageRemote(b64, mouse) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
@@ -181,13 +179,13 @@ export function addImageRemote(b64, mouse) {
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
+
 function getUserName(user) {
     let userName = user.displayName;
     if (!userName) userName = user.email.split("@")[0];
     userName = userName.split(" ")[0];
     return userName;
 }
-
 
 export function findObjectUnderMouse(x, y) {
     let raycaster = new Raycaster(); // create once
@@ -354,6 +352,81 @@ function redrawText(thisObject) {
     thisObject.texture.needsUpdate = true;
 }
 
+function createNewSound(data, firebaseKey) {
+
+
+
+    let me = {};
+    me.url = data.url;
+    me.soundAvatarContext = document.createElement("canvas").getContext("2d");
+
+    me.soundAvatarTexture = new THREE.Texture(me.soundAvatarContext);
+    me.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
+    var material = new THREE.MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
+    var geo = new THREE.PlaneGeometry(512, 512);
+    //let geo = new THREE.SphereGeometry(100, 32, 32);
+    me.soundAvatar = new THREE.Mesh(geo, material);
+    scene.add(me.soundAvatar);
+    me.soundAvatarContext.font = fontSize + "pt Arial";
+    me.soundAvatarContext.textAlign = "center";
+    me.soundAvatarContext.fillStyle = "red";
+    me.soundAvatarContext.fillText(thisObject.userName, canvas.width / 2, canvas.height - 20);
+    let words = thisObject.text.split(" ");
+    for (let i = 0; i < words.length; i++) {
+        context.fillText(words[i], canvas.width / 2, (i + 1) * fontSize);
+    }
+
+    me.soundAvatarTexture.needsUpdate = true;
+
+    const posInWorld = new THREE.Vector3();
+    in_front_of_you.position.set(0, 0, -(distanceFromCenter));  //base the the z position on camera field of view
+    in_front_of_you.getWorldPosition(posInWorld);
+    //place it where ever you are looking at
+    me.soundAvatar.position.set(posInWorld.x, posInWorld.y, posInWorld.z + 10);
+    me.soundAvatar.lookAt(0, 0, 0);
+
+    me.sound = new THREE.PositionalAudio(listener);
+    me.sound.setVolume(1);
+    me.sound.setRefDistance(10);
+    me.sound.setRolloffFactor(1);
+    me.sound.setDistanceModel('linear');
+    me.sound.setMaxDistance(1000);
+    me.sound.setDirectionalCone(90, 180, 0.1);
+    me.sound.setLoop(true);
+
+    // load a sound and set it as the PositionalAudio object's buffer
+    const audioLoader = new THREE.AudioLoader();
+    let b64 = "data:audio/wav;base64," + data.b64;
+    audioLoader.load(b64, function (buffer) {
+        me.sound.setBuffer(buffer);
+        me.sound.setRefDistance(20);
+        me.sound.play();
+        me.sound.setLoop(true);
+    });
+    me.soundAvatar.add(me.sound);
+
+    //sounds.push(me);
+    clickableMeshes.push(me.soundAvatar);
+    myObjectsByThreeID[me.soundAvatar.uuid] = me;
+    myObjectsByFirebaseKey[firebaseKey] = me;
+}
+
+
+// Function to load and add a duck to the scene
+function createNewModel(url, pos, firebaseKey) {
+    console.log("creatNewModel", url);
+    loader.load(url, function (gltf) {
+        const model = gltf.scene;
+        model.scale.set(5, 5, 5);
+        model.position.set(pos.x, pos.y, pos.z);
+        scene.add(model);
+        thingsThatNeedSpinning.push(model);
+        let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: model, uuid: model.uuid };
+        clickableMeshes.push(model);
+        myObjectsByThreeID[model.uuid] = thisObject;
+        myObjectsByFirebaseKey[firebaseKey] = thisObject;
+    });
+}
 
 
 
