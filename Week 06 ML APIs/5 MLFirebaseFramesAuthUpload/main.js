@@ -1,4 +1,4 @@
-import { SphereGeometry, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
+import { PositionalAudio, AudioLoader, AudioListener, BoxGeometry, SphereGeometry, LinearFilter, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
@@ -6,7 +6,7 @@ import { showAskButtons } from './askButtons.js';
 
 
 
-let camera, scene, renderer;
+let camera, scene, renderer, listener, in_front_of_you; //notice I had to make a listener in init3D and make it global
 let thingsThatNeedSpinning = [];
 let texturesThatNeedUpdating = [];  //for updating textures
 let myObjectsByThreeID = {}  //for converting from three.js object to my JSON object
@@ -75,6 +75,7 @@ function clearLocalScene() {
 
 function listenForChangesInNewFrame(oldFrame, currentFrame) {
     let title = document.getElementById("title").value;
+    //change frames?
     if (oldFrame) FB.unSubscribeToData(exampleName + "/" + title + "/frames/" + oldFrame);
     clearLocalScene();
     FB.subscribeToData(exampleName + "/" + title + "/frames/" + currentFrame, (reaction, data, key) => {
@@ -95,7 +96,7 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                     createNewModel(data.url, data.position, key);
                 }
             } else if (reaction === "changed") {
-                console.log("changed", data);
+                // console.log("changed", data);
                 let thisObject = myObjectsByFirebaseKey[key];
                 if (thisObject) {
                     if (data.type === "text") {
@@ -242,6 +243,19 @@ function init3D() {
     let back = new Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
+    //just a place holder the follows the camera and marks location to drop incoming  pictures
+    //tiny little dot (could be invisible) 
+    var geometryFront = new BoxGeometry(1, 1, 1);
+    var materialFront = new MeshBasicMaterial({ color: 0x00ff00 });
+    in_front_of_you = new Mesh(geometryFront, materialFront);
+    in_front_of_you.position.set(0, 0, -200);  //base the the z position on camera field of view
+    camera.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
+
+
+    //add a listener to the camera
+    listener = new AudioListener();
+    in_front_of_you.add(listener);  //maybe add it to camera is better?
+
     let ambientLight = new AmbientLight(new Color('hsl(0, 0%, 100%)'), 0.75);
     scene.add(ambientLight);
 
@@ -354,49 +368,47 @@ function redrawText(thisObject) {
 
 function createNewSound(data, firebaseKey) {
 
-
-
     let me = {};
     me.url = data.url;
-    me.soundAvatarContext = document.createElement("canvas").getContext("2d");
+    me.canvas = document.createElement("canvas");
+    me.soundAvatarContext = me.canvas.getContext("2d");
 
-    me.soundAvatarTexture = new THREE.Texture(me.soundAvatarContext);
-    me.soundAvatarTexture.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
-    var material = new THREE.MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
-    var geo = new THREE.PlaneGeometry(512, 512);
-    //let geo = new THREE.SphereGeometry(100, 32, 32);
-    me.soundAvatar = new THREE.Mesh(geo, material);
+    me.soundAvatarTexture = new Texture(me.soundAvatarContext);
+    me.soundAvatarTexture.minFilter = LinearFilter;  //otherwise lots of power of 2 errors
+    var material = new MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
+    var geo = new PlaneGeometry(512, 512);
+    //let geo = new SphereGeometry(100, 32, 32);
+    me.soundAvatar = new Mesh(geo, material);
     scene.add(me.soundAvatar);
+    let fontSize = 24;
     me.soundAvatarContext.font = fontSize + "pt Arial";
     me.soundAvatarContext.textAlign = "center";
     me.soundAvatarContext.fillStyle = "red";
-    me.soundAvatarContext.fillText(thisObject.userName, canvas.width / 2, canvas.height - 20);
-    let words = thisObject.text.split(" ");
+    me.soundAvatarContext.fillText(me.userName, me.canvas.width / 2, me.canvas.height - 20);
+    let words = data.prompt.split(" ");
     for (let i = 0; i < words.length; i++) {
-        context.fillText(words[i], canvas.width / 2, (i + 1) * fontSize);
+        me.soundAvatarContext.fillText(words[i], me.canvas.width / 2, (i + 1) * fontSize);
     }
 
-    me.soundAvatarTexture.needsUpdate = true;
+    // me.soundAvatarTexture.needsUpdate = true;
 
-    const posInWorld = new THREE.Vector3();
-    in_front_of_you.position.set(0, 0, -(distanceFromCenter));  //base the the z position on camera field of view
-    in_front_of_you.getWorldPosition(posInWorld);
-    //place it where ever you are looking at
-    me.soundAvatar.position.set(posInWorld.x, posInWorld.y, posInWorld.z + 10);
+
+    me.soundAvatar.position.set(data.position.x, data.position.y, data.position.z + 10);
     me.soundAvatar.lookAt(0, 0, 0);
-
-    me.sound = new THREE.PositionalAudio(listener);
+    //ONLY WORKS IF YOU MAKE A LISTENER IN INIT3D
+    me.sound = new PositionalAudio(listener);
     me.sound.setVolume(1);
     me.sound.setRefDistance(10);
     me.sound.setRolloffFactor(1);
     me.sound.setDistanceModel('linear');
     me.sound.setMaxDistance(1000);
     me.sound.setDirectionalCone(90, 180, 0.1);
-    me.sound.setLoop(true);
+    //me.sound.setLoop(true);
 
     // load a sound and set it as the PositionalAudio object's buffer
-    const audioLoader = new THREE.AudioLoader();
-    let b64 = "data:audio/wav;base64," + data.b64;
+    const audioLoader = new AudioLoader();
+
+    let b64 = data.base64; //"data:audio/wav;base64," + data.b64;
     audioLoader.load(b64, function (buffer) {
         me.sound.setBuffer(buffer);
         me.sound.setRefDistance(20);

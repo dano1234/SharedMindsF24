@@ -115,7 +115,8 @@ export function subscribeToData(folder, callback) {
     const commentsRef = ref(db, folder + '/');
     onChildAdded(commentsRef, (data) => {
         callback("added", data.val(), data.key);
-        //reactToFirebase("added", data.val(), data.key);
+        console.log("added", data.val(), data.key);
+
     });
     onChildChanged(commentsRef, (data) => {
         callback("changed", data.val(), data.key);
@@ -123,7 +124,7 @@ export function subscribeToData(folder, callback) {
     });
     onChildRemoved(commentsRef, (data) => {
         callback("removed", data.val(), data.key);
-        //reactToFirebase("removed", data.val(), data.key)
+
     });
 }
 

@@ -155,10 +155,11 @@ export function showAskButtons() {
             const ctx = new AudioContext();
             let arrayBuffer = await incomingData.arrayBuffer();
             let b64 = bufferToBase64(arrayBuffer);
+            b64 = "data:audio/wav;base64," + b64;
             let inputBox = document.getElementById("textInput");
             let rect = inputBox.getBoundingClientRect();
             let mouse = { x: rect.left, y: rect.top };
-            MAIN.addSoundRemote(b64, mouse, audioURL, document.getElementById("textInput").value);
+            MAIN.addAudioRemote(b64, mouse, audioURL, document.getElementById("textInput").value);
 
         }
     });
