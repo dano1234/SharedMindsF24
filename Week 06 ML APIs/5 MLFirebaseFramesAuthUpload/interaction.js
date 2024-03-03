@@ -26,18 +26,6 @@ export function initHTML() {
     THREEcontainer.style.height = "100%";
     THREEcontainer.style.zIndex = "1";
 
-    const textInput = document.createElement("input");
-    textInput.setAttribute("type", "text");
-    textInput.setAttribute("id", "textInput");
-    textInput.setAttribute("placeholder", "Enter text here");
-    document.body.appendChild(textInput);
-    textInput.style.position = "absolute";
-    textInput.style.top = "50%";
-    textInput.style.left = "50%";
-    //override css
-    textInput.style.width = "200px";
-    textInput.style.transform = "translate(-50%, -50%)";
-    textInput.style.zIndex = "7";
 
 
     // textInput.addEventListener("keydown", function (e) {
@@ -88,7 +76,7 @@ export function initHTML() {
     nextFrameButton.textContent = 'Next Frame';
     nextFrameButton.style.position = 'absolute';
     nextFrameButton.style.left = '60%';
-    nextFrameButton.style.top = '90%';
+    nextFrameButton.style.top = '95%';
     nextFrameButton.style.transform = 'translate(-50%, -50%)';
     nextFrameButton.style.zIndex = '200';
     nextFrameButton.addEventListener('click', MAIN.nextFrame);
@@ -99,7 +87,7 @@ export function initHTML() {
     previousFrameButton.textContent = 'Previous Frame';
     previousFrameButton.style.position = 'absolute';
     previousFrameButton.style.left = '40%';
-    previousFrameButton.style.top = '90%';
+    previousFrameButton.style.top = '95%';
     previousFrameButton.style.transform = 'translate(-50%, -50%)';
     previousFrameButton.style.zIndex = '200';
     previousFrameButton.addEventListener('click', MAIN.previousFrame);
@@ -111,7 +99,7 @@ export function initHTML() {
     currentFrameDisplay.textContent = 'Current Frame: 1';
     currentFrameDisplay.style.position = 'absolute';
     currentFrameDisplay.style.left = '50%';
-    currentFrameDisplay.style.top = '90%';
+    currentFrameDisplay.style.top = '95%';
     currentFrameDisplay.style.transform = 'translate(-50%, -50%)';
     currentFrameDisplay.style.zIndex = '200';
 
@@ -132,6 +120,7 @@ export function initMoveCameraWithMouse(_camera, _renderer) {
     window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('keydown', div3DKeyDown, false);
+    event.stopPropagation();
 
 }
 
@@ -154,6 +143,7 @@ function div3DKeyDown(event) {
             FB.deleteFromFirebase("objects", selectedObject.firebaseKey);
         }
     }
+    event.stopPropagation();
 }
 
 
@@ -171,6 +161,7 @@ function div3DMouseDown(event) {
     mouseDownY = event.clientY;
     mouseDownLon = lon;
     mouseDownLat = lat;
+    event.stopPropagation();
 }
 
 function div3DMouseMove(event) {
@@ -185,6 +176,7 @@ function div3DMouseMove(event) {
             computeCameraOrientation();
         }
     }
+    event.stopPropagation();
 }
 
 function windowMouseUp(event) {

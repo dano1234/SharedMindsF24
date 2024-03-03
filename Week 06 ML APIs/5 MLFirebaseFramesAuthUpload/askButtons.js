@@ -25,19 +25,32 @@ export function showAskButtons() {
 
     let askButtons = document.createElement("div");
     askButtons.style.position = "absolute";
-    askButtons.style.top = "60%";
+    askButtons.style.top = "80%";
     askButtons.style.left = "50%";
     askButtons.style.transform = "translate(-50%, -50%)";
     askButtons.style.width = "300px";
     askButtons.style.zIndex = "5";
     document.body.appendChild(askButtons);
 
-    let feedback = document.createElement("p");
+    let feedback = document.createElement("div");
     //feedback.style.position = "absolute";
     //feedback.style.top = "0px";
     //feedback.style.left = "30%";
     //feedback.style.zIndex = "5";
     askButtons.appendChild(feedback);
+
+    const textInput = document.createElement("input");
+    textInput.setAttribute("type", "text");
+    textInput.setAttribute("id", "textInput");
+    textInput.setAttribute("placeholder", "Enter text here");
+    askButtons.appendChild(textInput);
+    // textInput.style.position = "absolute";
+    //textInput.style.top = "50%";
+    // textInput.style.left = "50%";
+    //override css
+    textInput.style.width = "265px";
+    //textInput.style.transform = "translate(-50%, -50%)";
+    textInput.style.zIndex = "7";
 
 
     /////////////////////////////////////////////////////
@@ -182,11 +195,15 @@ export function showAskButtons() {
     askButtons.appendChild(askReplicate3DButton);
     askReplicate3DButton.addEventListener("click", async function () {
         let data = {
-            //replicate adirik/imagedream
-            "version": "8cae74eb2723bbb5ded70ba449b5b145ec82f1e0d5e9cc6b314b37fee7a10f80",
-            input: {
+            "version": "5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c",
+            "input": {
                 "prompt": document.getElementById("textInput").value,
-            },
+                "save_mesh": true,
+                "batch_size": 1,
+                "render_mode": "nerf",
+                "render_size": 32,
+                "guidance_scale": 15
+            }
         };
         console.log("Asking for 3D From Replicate via Proxy", data);
         let options = {
@@ -202,10 +219,17 @@ export function showAskButtons() {
         if (replicateJSON.output.length == 0) {
             feedback.innerHTML = "Something went wrong, try it again";
         } else {
-            console.log("glb", replicateJSON.output);
+            let inputBox = document.getElementById("textInput");
+            let rect = inputBox.getBoundingClientRect();
+            let mouse = { x: rect.left, y: rect.top };
+
+            // MAIN.addImageRemote(base64, mouse);
+            let objURL = replicateJSON.output[1];
+            console.log("3D Object", objURL);
+            MAIN.add3DModelRemote(objURL, mouse, document.getElementById("textInput").value);
+            feedback.innerHTML = "";
         }
     });
-
 
 
 }

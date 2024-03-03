@@ -27,7 +27,6 @@ export function initFirebase() {
     app = initializeApp(firebaseConfig);
     //make a folder in your firebase for this example
 
-
     db = getDatabase();
     auth = getAuth();
     googleAuthProvider = new GoogleAuthProvider();
@@ -180,10 +179,7 @@ function showLogOutButton(user) {
             authDiv.appendChild(userPic);
         }
         userPic.src = user.photoURL;
-
-
     }
-
     if (user.displayName) {
         userNameDiv.innerHTML = user.displayName;
     } else {

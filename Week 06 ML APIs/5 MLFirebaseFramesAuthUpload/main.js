@@ -1,5 +1,6 @@
 import { PositionalAudio, AudioLoader, AudioListener, BoxGeometry, SphereGeometry, LinearFilter, AmbientLight, Color, DoubleSide, Texture, PlaneGeometry, Mesh, MeshBasicMaterial, TextureLoader, CylinderGeometry, PerspectiveCamera, Scene, Raycaster, WebGLRenderer, Vector3 } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+//import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 import { showAskButtons } from './askButtons.js';
@@ -29,9 +30,35 @@ export function initAll() {
 }
 
 // Create a new GLTFLoader instance to load the 3D model
-const loader = new GLTFLoader();
+//const loader = new GLTFLoader();
+const objLoader = new OBJLoader();
 
 
+
+export function add3DModelRemote(url, mouse, prompt) {
+    //download data from url
+    fetch(url).then(res => {
+        return res.blob();
+    }).then(blob => {
+        let directory = exampleName + "/" + document.getElementById("title").value + "/frames/" + currentFrame + "/";
+        let filename = prompt + Date.now() + ".obj";
+        //uploading blob to firebase storage
+        //upload to firebase storage
+        FB.uploadFile(directory, blob, filename, (url) => {
+            console.log("Uploaded 3D Model", url);
+            let title = document.getElementById("title").value;
+            const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+            let user = FB.getUser();
+            if (!user) return;
+            const data = { type: "3DModel", url: url, position: { x: pos.x, y: pos.y, z: pos.z }, userName: getUserName(user), prompt: prompt };
+            let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+            console.log("Entered 3DModel, Send to Firebase", folder, title, exampleName);
+            FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
+        });
+    }).catch(error => {
+        console.error(error);
+    });
+}
 
 export function nextFrame() {
     let oldFrame = currentFrame;
@@ -142,21 +169,21 @@ export function addTextRemote(text, mouse) {
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
-export function add3DModelRemote(file, mouse, filename) {
-    //  console.log("add3DModelRemote", file);
-    let title = document.getElementById("title").value;
-    let directory = exampleName + "/" + title + "/frames/" + currentFrame + "/";
-    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
-    FB.uploadFile(directory, file, filename, (url) => {
-        console.log("Uploaded 3D Model");
-        let user = FB.getUser();
-        if (!user) return;
-        const data = { type: "3DModel", url: url, position: { x: pos.x, y: pos.y, z: pos.z }, userName: getUserName(user) };
-        let folder = exampleName + "/" + title + "/frames/" + currentFrame;
-        console.log("Entered 3DModel, Send to Firebase", folder, title, exampleName);
-        FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
-    });
-}
+// export function add3DModelRemote(file, mouse, filename) {
+//     //  console.log("add3DModelRemote", file);
+//     let title = document.getElementById("title").value;
+//     let directory = exampleName + "/" + title + "/frames/" + currentFrame + "/";
+//     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
+//     FB.uploadFile(directory, file, filename, (url) => {
+//         console.log("Uploaded 3D Model");
+//         let user = FB.getUser();
+//         if (!user) return;
+//         const data = { type: "3DModel", url: url, position: { x: pos.x, y: pos.y, z: pos.z }, userName: getUserName(user) };
+//         let folder = exampleName + "/" + title + "/frames/" + currentFrame;
+//         console.log("Entered 3DModel, Send to Firebase", folder, title, exampleName);
+//         FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
+//     });
+// }
 
 export function addAudioRemote(b64, mouse, url, prompt) {
 
@@ -441,6 +468,27 @@ function redrawSound(thisObject) {
 // Function to load and add a duck to the scene
 function createNewModel(url, pos, firebaseKey) {
     console.log("creatNewModel", url);
+    objLoader.load(url,
+        function (modelMesh) {
+            modelMesh.scale.set(5, 5, 5);
+            modelMesh.lookAt(0, 0, 0);
+            modelMesh.position.set(pos.x, pos.y, pos.z);
+            thingsThatNeedSpinning.push(modelMesh);
+            scene.add(modelMesh);
+            thingsThatNeedSpinning.push(modelMesh);
+            clickableMeshes.push(modelMesh);
+            let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: modelMesh, uuid: modelMesh.uuid };
+
+            myObjectsByThreeID[model.uuid] = thisObject;
+            myObjectsByFirebaseKey[firebaseKey] = thisObject;
+        },
+        function (xhr) {
+            //  console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        }, function (error) {
+            console.log('An error happened', error);
+
+        });
+
     loader.load(url, function (gltf) {
         const model = gltf.scene;
         model.scale.set(5, 5, 5);
@@ -453,6 +501,9 @@ function createNewModel(url, pos, firebaseKey) {
         myObjectsByFirebaseKey[firebaseKey] = thisObject;
     });
 }
+
+
+
 
 
 
