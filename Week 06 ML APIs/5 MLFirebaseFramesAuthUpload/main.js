@@ -112,9 +112,9 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                         }
                         img.src = data.base64;
 
-                    } else if (data.type === "p5ParticleSystem") {
+                    } else if (data.type === "audio") {
                         thisObject.position = data.position;
-                        redrawP5(thisObject);
+                        redrawSound(thisObject);
                     }
                 }
             } else if (reaction === "removed") {
@@ -159,6 +159,7 @@ export function add3DModelRemote(file, mouse, filename) {
 }
 
 export function addAudioRemote(b64, mouse, url, prompt) {
+
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     let user = FB.getUser();
@@ -248,7 +249,7 @@ function init3D() {
     var geometryFront = new BoxGeometry(1, 1, 1);
     var materialFront = new MeshBasicMaterial({ color: 0x00ff00 });
     in_front_of_you = new Mesh(geometryFront, materialFront);
-    in_front_of_you.position.set(0, 0, -200);  //base the the z position on camera field of view
+    in_front_of_you.position.set(0, 0, 200);  //base the the z position on camera field of view
     camera.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
 
 
@@ -302,6 +303,7 @@ function createNewImage(img, posInWorld, firebaseKey) {
     };
     redrawImage(thisObject);
     clickableMeshes.push(mesh);
+    texturesThatNeedUpdating.push(thisObject);
     myObjectsByThreeID[mesh.uuid] = thisObject;
     myObjectsByFirebaseKey[firebaseKey] = thisObject;
 }
@@ -340,6 +342,7 @@ function createNewText(data, firebaseKey) {
     let thisObject = { type: "text", firebaseKey: firebaseKey, threeID: mesh.uuid, text: text_msg, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture, userName: data.userName };
     redrawText(thisObject);
     clickableMeshes.push(mesh);
+    texturesThatNeedUpdating.push(thisObject);
     myObjectsByThreeID[mesh.uuid] = thisObject;
     myObjectsByFirebaseKey[firebaseKey] = thisObject;
 }
@@ -363,64 +366,75 @@ function redrawText(thisObject) {
     thisObject.mesh.position.y = thisObject.position.y;
     thisObject.mesh.position.z = thisObject.position.z;
     thisObject.mesh.lookAt(0, 0, 0);
-    thisObject.texture.needsUpdate = true;
 }
 
 function createNewSound(data, firebaseKey) {
+    let canvas = document.createElement("canvas");
+    let context = canvas.getContext("2d");
 
-    let me = {};
-    me.url = data.url;
-    me.canvas = document.createElement("canvas");
-    me.soundAvatarContext = me.canvas.getContext("2d");
-
-    me.soundAvatarTexture = new Texture(me.soundAvatarContext);
-    me.soundAvatarTexture.minFilter = LinearFilter;  //otherwise lots of power of 2 errors
-    var material = new MeshBasicMaterial({ map: me.soundAvatarTexture, transparent: true });
-    var geo = new PlaneGeometry(512, 512);
+    let texture = new Texture(canvas);
+    texture.minFilter = LinearFilter;  //otherwise lots of power of 2 errors
+    let material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, alphaTest: 0.5 });
+    let geo = new PlaneGeometry(1, 1);
     //let geo = new SphereGeometry(100, 32, 32);
-    me.soundAvatar = new Mesh(geo, material);
-    scene.add(me.soundAvatar);
-    let fontSize = 24;
-    me.soundAvatarContext.font = fontSize + "pt Arial";
-    me.soundAvatarContext.textAlign = "center";
-    me.soundAvatarContext.fillStyle = "red";
-    me.soundAvatarContext.fillText(me.userName, me.canvas.width / 2, me.canvas.height - 20);
-    let words = data.prompt.split(" ");
-    for (let i = 0; i < words.length; i++) {
-        me.soundAvatarContext.fillText(words[i], me.canvas.width / 2, (i + 1) * fontSize);
-    }
+    let mesh = new Mesh(geo, material);
 
-    // me.soundAvatarTexture.needsUpdate = true;
+    mesh.scale.set(10, 10, 10);
+    scene.add(mesh);
 
-
-    me.soundAvatar.position.set(data.position.x, data.position.y, data.position.z + 10);
-    me.soundAvatar.lookAt(0, 0, 0);
     //ONLY WORKS IF YOU MAKE A LISTENER IN INIT3D
-    me.sound = new PositionalAudio(listener);
-    me.sound.setVolume(1);
-    me.sound.setRefDistance(10);
-    me.sound.setRolloffFactor(1);
-    me.sound.setDistanceModel('linear');
-    me.sound.setMaxDistance(1000);
-    me.sound.setDirectionalCone(90, 180, 0.1);
-    //me.sound.setLoop(true);
+    let sound = new PositionalAudio(listener);
+    sound.setVolume(1);
+    sound.setRefDistance(10);
+    sound.setRolloffFactor(1);
+    sound.setDistanceModel('linear');
+    sound.setMaxDistance(1000);
+    sound.setDirectionalCone(90, 180, 0.1);;
 
     // load a sound and set it as the PositionalAudio object's buffer
     const audioLoader = new AudioLoader();
 
     let b64 = data.base64; //"data:audio/wav;base64," + data.b64;
     audioLoader.load(b64, function (buffer) {
-        me.sound.setBuffer(buffer);
-        me.sound.setRefDistance(20);
-        me.sound.play();
-        me.sound.setLoop(true);
+        sound.setBuffer(buffer);
+        sound.setRefDistance(20);
+        sound.play();
+        sound.setLoop(true);
     });
-    me.soundAvatar.add(me.sound);
+    mesh.add(sound);
 
     //sounds.push(me);
-    clickableMeshes.push(me.soundAvatar);
-    myObjectsByThreeID[me.soundAvatar.uuid] = me;
-    myObjectsByFirebaseKey[firebaseKey] = me;
+    let thisObject = { type: "audio", sound: sound, firebaseKey: firebaseKey, position: data.position, mesh: mesh, sound: sound, texture: texture, canvas: canvas, context: context, threeID: mesh.uuid, userName: data.userName, prompt: data.prompt };
+    redrawSound(thisObject);
+    clickableMeshes.push(mesh);
+    texturesThatNeedUpdating.push(thisObject);
+    myObjectsByThreeID[mesh.uuid] = thisObject;
+    myObjectsByFirebaseKey[firebaseKey] = thisObject;
+
+}
+
+
+function redrawSound(thisObject) {
+    let canvas = thisObject.canvas;
+    let context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    let fontSize = 14;
+    context.font = fontSize + "pt Arial";
+    context.textAlign = "center";
+    context.fillStyle = "red";
+    //context.fillText(thisObject.userName, canvas.width / 2, canvas.height - 20);
+    let words = thisObject.prompt.split(" ");
+    words.unshift(thisObject.userName + ":");
+    words.push("(Double Click Sound)");
+    for (let i = 0; i < words.length; i++) {
+        context.fillText(words[i], canvas.width / 2, (i + 2) * fontSize);
+    }
+
+    thisObject.texture.needsUpdate = true;
+    thisObject.mesh.position.x = thisObject.position.x;
+    thisObject.mesh.position.y = thisObject.position.y;
+    thisObject.mesh.position.z = thisObject.position.z;
+    thisObject.mesh.lookAt(0, 0, 0);
 }
 
 

@@ -159,8 +159,8 @@ export function showAskButtons() {
             let inputBox = document.getElementById("textInput");
             let rect = inputBox.getBoundingClientRect();
             let mouse = { x: rect.left, y: rect.top };
-            MAIN.addAudioRemote(b64, mouse, audioURL, document.getElementById("textInput").value);
-
+            MAIN.addAudioRemote(b64, mouse, audioURL, inputBox.value);
+            feedback.innerHTML = "";
         }
     });
 

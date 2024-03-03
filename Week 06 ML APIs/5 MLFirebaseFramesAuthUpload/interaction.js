@@ -129,10 +129,21 @@ export function initMoveCameraWithMouse(_camera, _renderer) {
     div3D.addEventListener('mousemove', div3DMouseMove, false);
     window.addEventListener('mouseup', windowMouseUp, false);  //window in case they wander off the div
     div3D.addEventListener('wheel', div3DMouseWheel, { passive: true });
-    // window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
+    window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('keydown', div3DKeyDown, false);
 
+}
+
+function div3DDoubleClick(event) {
+    if (selectedObject && selectedObject.type === "audio") {
+        if (selectedObject.sound.isPlaying) {
+            selectedObject.sound.pause();
+        } else {
+            selectedObject.sound.play();
+        }
+
+    }
 }
 
 function div3DKeyDown(event) {
