@@ -82,8 +82,7 @@ export function showAskButtons() {
             feedback.innerHTML = "";
             console.log("proxy_said", replicateJSON.output.join(""));
             let incomingText = replicateJSON.output.join("");
-            let rect = inputBox.getBoundingClientRect();
-            let mouse = { x: rect.left, y: rect.top };
+            let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             MAIN.addTextRemote(incomingText, mouse);
         }
     });
@@ -109,6 +108,7 @@ export function showAskButtons() {
         feedback.innerHTML = "Waiting for reply from API...";
         let url = replicateProxy + "/create_n_get/";
         let replicateJSON = await myFetch(url, data,);
+        console.log("replicateJSON", replicateJSON);
         if (replicateJSON.output.length == 0) {
             feedback.innerHTML = "Something went wrong, try it again";
         } else {
@@ -119,16 +119,14 @@ export function showAskButtons() {
             image.crossOrigin = "Anonymous";
             image.onload = function () {
                 console.log("image loaded", image);
-                let inputBox = document.getElementById("textInput");
-                let rect = inputBox.getBoundingClientRect();
-                let mouse = { x: rect.left, y: rect.top };
+                let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
                 let canvas = document.createElement("canvas");
                 canvas.width = image.width;
                 canvas.height = image.height;
                 let context = canvas.getContext("2d");
                 context.drawImage(image, 0, 0);
                 let base64 = canvas.toDataURL();
-                MAIN.addImageRemote(base64, mouse);
+                MAIN.addImageRemote(base64, mouse, document.getElementById("textInput").value);
             }
             image.src = imageURL;
 
@@ -169,9 +167,7 @@ export function showAskButtons() {
             let arrayBuffer = await incomingData.arrayBuffer();
             let b64 = bufferToBase64(arrayBuffer);
             b64 = "data:audio/wav;base64," + b64;
-            let inputBox = document.getElementById("textInput");
-            let rect = inputBox.getBoundingClientRect();
-            let mouse = { x: rect.left, y: rect.top };
+            let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             MAIN.addAudioRemote(b64, mouse, audioURL, inputBox.value);
             feedback.innerHTML = "";
         }
@@ -219,11 +215,7 @@ export function showAskButtons() {
         if (replicateJSON.output.length == 0) {
             feedback.innerHTML = "Something went wrong, try it again";
         } else {
-            let inputBox = document.getElementById("textInput");
-            let rect = inputBox.getBoundingClientRect();
-            let mouse = { x: rect.left, y: rect.top };
-
-            // MAIN.addImageRemote(base64, mouse);
+            let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             let objURL = replicateJSON.output[1];
             console.log("3D Object", objURL);
             MAIN.add3DModelRemote(objURL, mouse, document.getElementById("textInput").value);

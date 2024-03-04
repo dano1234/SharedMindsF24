@@ -5,8 +5,6 @@ import * as FB from './firebaseStuffFramesAuthUpload.js';
 import { initMoveCameraWithMouse, initHTML } from './interaction.js';
 import { showAskButtons } from './askButtons.js';
 
-
-
 let camera, scene, renderer, listener, in_front_of_you; //notice I had to make a listener in init3D and make it global
 let thingsThatNeedSpinning = [];
 let texturesThatNeedUpdating = [];  //for updating textures
@@ -32,8 +30,6 @@ export function initAll() {
 // Create a new GLTFLoader instance to load the 3D model
 //const loader = new GLTFLoader();
 const objLoader = new OBJLoader();
-
-
 
 export function add3DModelRemote(url, mouse, prompt) {
     //download data from url
@@ -113,14 +109,13 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                 } else if (data.type === "image") {
                     let img = new Image();  //create a new image
                     img.onload = function () {
-                        let posInWorld = data.position;
-                        createNewImage(img, posInWorld, key);
+                        createNewImage(img, data, key);
                     }
                     img.src = data.base64;
                 } else if (data.type === "audio") {
                     createNewSound(data, key);
                 } else if (data.type === "3DModel") {
-                    createNewModel(data.url, data.position, key);
+                    createNewModel(data, key);
                 }
             } else if (reaction === "changed") {
                 // console.log("changed", data);
@@ -138,10 +133,12 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                             redrawImage(thisObject);
                         }
                         img.src = data.base64;
-
                     } else if (data.type === "audio") {
                         thisObject.position = data.position;
                         redrawSound(thisObject);
+                    } else if (data.type === "audio") {
+                        thisObject.position = data.position;
+                        redrawModel(thisObject);
                     }
                 }
             } else if (reaction === "removed") {
@@ -197,12 +194,12 @@ export function addAudioRemote(b64, mouse, url, prompt) {
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
-export function addImageRemote(b64, mouse) {
+export function addImageRemote(b64, mouse, prompt) {
     let title = document.getElementById("title").value;
     const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     let user = FB.getUser();
     if (!user) return;
-    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64, userName: getUserName(user) };
+    const data = { type: "image", position: { x: pos.x, y: pos.y, z: pos.z }, base64: b64, userName: getUserName(user), prompt: prompt };
     let folder = exampleName + "/" + title + "/frames/" + currentFrame;
     console.log("Entered Image, Send to Firebase", folder, title, exampleName);
     FB.addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
@@ -308,7 +305,7 @@ function animate() {
 
 
 
-function createNewImage(img, posInWorld, firebaseKey) {
+function createNewImage(img, data, firebaseKey) {
 
     let canvas = document.createElement("canvas");
     canvas.width = img.width;
@@ -326,7 +323,7 @@ function createNewImage(img, posInWorld, firebaseKey) {
     scene.add(mesh);
     let base64 = canvas.toDataURL();
     let thisObject = {
-        type: "image", firebaseKey: firebaseKey, position: posInWorld, context: context, texture: texture, img: img, base64: base64, threeID: mesh.uuid, position: posInWorld, canvas: canvas, mesh: mesh, texture: texture
+        type: "image", firebaseKey: firebaseKey, prompt: data.prompt, context: context, texture: texture, img: img, base64: base64, threeID: mesh.uuid, position: data.position, canvas: canvas, mesh: mesh, userName: data.userName, texture: texture
     };
     redrawImage(thisObject);
     clickableMeshes.push(mesh);
@@ -342,7 +339,9 @@ function redrawImage(object) {
     object.context.font = fontSize + "pt Arial";
     object.context.textAlign = "center";
     object.context.fillStyle = "red";
-    object.context.fillText(object.userName, object.canvas.width / 2, object.canvas.height - 30);
+    object.context.fillText(object.userName, object.canvas.width / 2, 30);
+    object.context.fillText(object.prompt, object.canvas.width / 2, 60);
+
     object.mesh.position.x = object.position.x;
     object.mesh.position.y = object.position.y;
     object.mesh.position.z = object.position.z;
@@ -466,17 +465,24 @@ function redrawSound(thisObject) {
 
 
 // Function to load and add a duck to the scene
-function createNewModel(url, pos, firebaseKey) {
+function createNewModel(data, firebaseKey) {
+    let url = data.url;
+    let pos = data.position;
     console.log("creatNewModel", url);
     objLoader.load(url,
         function (modelMesh) {
             modelMesh.scale.set(5, 5, 5);
             modelMesh.lookAt(0, 0, 0);
             modelMesh.position.set(pos.x, pos.y, pos.z);
+            let singleMesh = modelMesh.children[0];
             thingsThatNeedSpinning.push(modelMesh);
             scene.add(modelMesh);
             thingsThatNeedSpinning.push(modelMesh);
-            clickableMeshes.push(modelMesh);
+            console.log("clicable", clickableMeshes);
+            console.log("singleMesh", singleMesh);
+
+            clickableMeshes.push(singleMesh);
+
             let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: modelMesh, uuid: modelMesh.uuid };
 
             myObjectsByThreeID[model.uuid] = thisObject;
@@ -489,18 +495,29 @@ function createNewModel(url, pos, firebaseKey) {
 
         });
 
-    loader.load(url, function (gltf) {
-        const model = gltf.scene;
-        model.scale.set(5, 5, 5);
-        model.position.set(pos.x, pos.y, pos.z);
-        scene.add(model);
-        thingsThatNeedSpinning.push(model);
-        let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: model, uuid: model.uuid };
-        clickableMeshes.push(model);
-        myObjectsByThreeID[model.uuid] = thisObject;
-        myObjectsByFirebaseKey[firebaseKey] = thisObject;
-    });
 }
+
+function redrawModel(thisObject) {
+    // let canvas = thisObject.canvas;
+    // let context = canvas.getContext("2d");
+    // context.clearRect(0, 0, canvas.width, canvas.height);
+    // let fontSize = 24;
+    // context.font = fontSize + "pt Arial";
+    // context.textAlign = "center";
+    // context.fillStyle = "red";
+    // context.fillText(thisObject.userName, canvas.width / 2, canvas.height - 20);
+    // let words = thisObject.text.split(" ");
+    // for (let i = 0; i < words.length; i++) {
+    //     context.fillText(words[i], canvas.width / 2, (i + 1) * fontSize);
+    // }
+
+    thisObject.texture.needsUpdate = true;
+    thisObject.mesh.position.x = thisObject.position.x;
+    thisObject.mesh.position.y = thisObject.position.y;
+    thisObject.mesh.position.z = thisObject.position.z;
+    thisObject.mesh.lookAt(0, 0, 0);
+}
+
 
 
 

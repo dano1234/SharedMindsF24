@@ -152,6 +152,7 @@ function div3DMouseDown(event) {
     isUserInteracting = true;
 
     selectedObject = MAIN.findObjectUnderMouse(event.clientX, event.clientY);
+    console.log(selectedObject);
     // if (selectedObject) {
     //     selectedObject.hilite = true;
     // } else {
