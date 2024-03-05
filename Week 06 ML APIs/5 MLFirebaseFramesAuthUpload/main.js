@@ -136,7 +136,7 @@ function listenForChangesInNewFrame(oldFrame, currentFrame) {
                     } else if (data.type === "audio") {
                         thisObject.position = data.position;
                         redrawSound(thisObject);
-                    } else if (data.type === "audio") {
+                    } else if (data.type === "3DModel") {
                         thisObject.position = data.position;
                         redrawModel(thisObject);
                     }
@@ -301,8 +301,6 @@ function animate() {
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }
-
-
 
 
 function createNewImage(img, data, firebaseKey) {
@@ -474,18 +472,17 @@ function createNewModel(data, firebaseKey) {
             modelMesh.scale.set(5, 5, 5);
             modelMesh.lookAt(0, 0, 0);
             modelMesh.position.set(pos.x, pos.y, pos.z);
+
             let singleMesh = modelMesh.children[0];
             thingsThatNeedSpinning.push(modelMesh);
             scene.add(modelMesh);
             thingsThatNeedSpinning.push(modelMesh);
-            console.log("clicable", clickableMeshes);
-            console.log("singleMesh", singleMesh);
 
             clickableMeshes.push(singleMesh);
 
-            let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: modelMesh, uuid: modelMesh.uuid };
+            let thisObject = { type: "3DModel", url: url, firebaseKey: firebaseKey, position: pos, mesh: modelMesh, uuid: singleMesh.uuid };
 
-            myObjectsByThreeID[model.uuid] = thisObject;
+            myObjectsByThreeID[singleMesh.uuid] = thisObject;
             myObjectsByFirebaseKey[firebaseKey] = thisObject;
         },
         function (xhr) {
@@ -511,7 +508,6 @@ function redrawModel(thisObject) {
     //     context.fillText(words[i], canvas.width / 2, (i + 1) * fontSize);
     // }
 
-    thisObject.texture.needsUpdate = true;
     thisObject.mesh.position.x = thisObject.position.x;
     thisObject.mesh.position.y = thisObject.position.y;
     thisObject.mesh.position.z = thisObject.position.z;
