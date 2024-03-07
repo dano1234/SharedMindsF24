@@ -15,16 +15,14 @@ let myContainer;
 let appName = "authImage";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-    authDomain: "shared-minds.firebaseapp.com",
-    databaseURL: "https://shared-minds-default-rtdb.firebaseio.com",
-    projectId: "shared-minds",
-    storageBucket: "shared-minds.appspot.com",
-    messagingSenderId: "258871453280",
-    appId: "1:258871453280:web:4c103da9b230e982544505",
-    measurementId: "G-LN0GNWFZQQ"
+    apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
+    authDomain: "sharedmindss24.firebaseapp.com",
+    databaseURL: "https://sharedmindss24-default-rtdb.firebaseio.com",
+    projectId: "sharedmindss24",
+    storageBucket: "sharedmindss24.appspot.com",
+    messagingSenderId: "1039430447930",
+    appId: "1:1039430447930:web:edf98d7d993c21017ad603"
 };
-
 
 init(); //same as setup but we call it ourselves
 
