@@ -18,10 +18,10 @@ function setup() {
   inputBox = createInput("Old Man");
   inputBox.position(530, 10);
 
-  //video = createCapture(VIDEO);  //simpler if you don't need to pick between cameras
+  video = createCapture(VIDEO);  //simpler if you don't need to pick between cameras
   //if you want to pick a different camera than default
-  let captureConstraints = allowCameraSelection(canvas.width, canvas.height);
-  video = createCapture(captureConstraints);//, captureLoaded);
+  //let captureConstraints = allowCameraSelection(canvas.width, canvas.height);
+  //video = createCapture(captureConstraints);//, captureLoaded);
 
   video.size(512, 512);
   video.hide();
