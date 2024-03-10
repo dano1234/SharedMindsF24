@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
+import { getAuth, browserSessionPersistence, setPersistence, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
 import { getStorage, ref as ref_storage, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-storage.js"
 import { initAll } from "./main.js";
 
@@ -30,6 +30,7 @@ export function initFirebase() {
 
     db = getDatabase();
     auth = getAuth();
+    setPersistence(auth, browserSessionPersistence);
     googleAuthProvider = new GoogleAuthProvider();
     onAuthStateChanged(auth, (user) => {
         if (user) {

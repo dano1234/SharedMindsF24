@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
+import { getAuth, setPersistence, browserSessionPersistence, signOut, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"
 
 
 let db, auth, app;
@@ -12,7 +12,7 @@ export function getUser() {
     return auth.currentUser;
 }
 
-export function initFirebase() {
+export function initFirebase(callback) {
     const firebaseConfig = {
         apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
         authDomain: "sharedmindss24.firebaseapp.com",
@@ -28,6 +28,7 @@ export function initFirebase() {
 
     db = getDatabase();
     auth = getAuth();
+    setPersistence(auth, browserSessionPersistence)
     googleAuthProvider = new GoogleAuthProvider();
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -36,12 +37,11 @@ export function initFirebase() {
             const uid = user.uid;
             console.log("userino is signed in", user);
             showLogOutButton(user);
-            // ...
+            callback(user);
         } else {
             console.log("userino is signed out");
             showLoginButtons();
-            // User is signed out
-            // ...
+            callback(null);
         }
     });
     return auth.currentUser;
@@ -148,7 +148,6 @@ document.getElementById("logoutButton").addEventListener("click", function () {
 document.getElementById("signInWithEmail").addEventListener("click", function (event) {
 
     console.log("signing in with email");
-    event.stopPropagation();
     let email = document.getElementById("email").value;
     let password = document.getElementById("password").value;
     signInWithEmailAndPassword(auth, email, password)

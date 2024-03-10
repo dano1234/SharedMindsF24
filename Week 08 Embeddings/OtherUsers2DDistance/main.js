@@ -1,10 +1,68 @@
 import * as FB from './firebaseAuth.js';
 
+let others = {};
+let me;
 const replicateProxy = "https://replicate-api-proxy.glitch.me";
 let exampleName = "2DEmbeddingDistances";
 
-FB.initFirebase();
+FB.initFirebase(function (user) {
+    if (user) {
+        document.getElementById("localUser").style.display = "block";
+        FB.subscribeToData(exampleName, reactToFirebase);
+    } else {
+        document.getElementById("localUser").style.display = "none";
+    }
+});
 
+function reactToFirebase(action, data, key) {
+    if (action == "added") {
+        console.log("new from FB", data, key);
+        if (key == FB.getUser().uid) {
+            document.getElementById("inputText").value = data.prompt;
+            let localImage = document.getElementById("outputImage");
+            localImage.src = data.base64;
+            me = data;
+        } else {
+            others[key] = data;
+            renderOthers();
+        }
+    } else if (action == "changed") {
+        if (key == FB.getUser().uid) {
+            document.getElementById("inputText").value = data.prompt;
+            let localImage = document.getElementById("outputImage");
+            localImage.src = data.base64;
+            me = data;
+        } else {
+            others[key] = data;
+            renderOthers();
+        }
+    } else if (action == "removed") {
+        console.log("removed from FB", data, key);
+    }
+}
+
+function renderOthers() {
+    let angle = 0;
+    let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);
+    for (let key in others) {
+        let other = others[key];
+        let otherDiv = document.getElementById(key);
+        if (!otherDiv) {
+            otherDiv = document.createElement("div");
+            otherDiv.setAttribute("id", key);
+            document.body.appendChild(otherDiv);
+        }
+        let x = 200 * Math.cos(angle);
+        let y = 200 * Math.sin(angle);
+        angle += angleStep;
+        otherDiv.style.position = "absolute";
+        otherDiv.style.left = (window.innerWidth / 2 + x) + "px";
+        otherDiv.style.top = (window.innerHeight / 2 + y) + "px";
+
+        otherDiv.innerHTML = "<p>" + other.userName + "</p><img src='" + other.base64 + "' />";
+    }
+
+}
 
 
 let inputField = document.getElementById("inputText");
@@ -15,6 +73,52 @@ inputField.addEventListener("keyup", function (event) {
 });
 
 
+async function askForEmbedding(prompt, base64) {
+
+    const data = {
+        "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+        "input": {
+            "text_input": prompt,
+            "modality": "text"
+        },
+    };
+
+    // const data = {
+    //     "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+    //     "input": {
+    //         "input": "https://replicate.delivery/pbxt/IqLXryIoF3aK3loaAUERG2lxnZX8x0yTZ9Nas9JtMxqcgotD/astronaut.png",
+    //         "modality": "vision"
+    //     },
+    // };
+    feedback.innerHTML = "Waiting for reply from API...";
+    let url = replicateProxy + "/create_n_get/";
+    document.body.style.cursor = "progress";
+    console.log("Making a Fetch Request", data);
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: 'application/json',
+        },
+        body: JSON.stringify(data),
+    };
+    const raw_response = await fetch(url, options);
+    //turn it into json
+    const replicateJSON = await raw_response.json();
+    document.body.style.cursor = "auto";
+
+    console.log("replicateJSON", replicateJSON);
+    if (replicateJSON.output.length == 0) {
+        feedback.innerHTML = "Something went wrong, try it again";
+    } else {
+        feedback.innerHTML = "";
+        console.log("embedding", replicateJSON.output);
+        let user = FB.getUser();
+        console.log("user", user);
+        let userName = user.displayName ? user.displayName : user.email.split("@")[0];
+        FB.setDataInFirebase(exampleName + "/" + user.uid, { userName: userName, prompt: prompt, base64: base64, embedding: replicateJSON.output });
+    }
+}
 
 async function askForPicture(prompt) {
     const data = {
@@ -55,9 +159,10 @@ async function askForPicture(prompt) {
             canvas.width = localImage.width;
             canvas.height = localImage.height;
             let context = canvas.getContext("2d");
-            context.drawImage(localImage, 0, 0);
+            context.drawImage(localImage, 0, 0, localImage.width, localImage.height);
             let base64 = canvas.toDataURL();
             //addImageRemote(base64,prompt);
+            askForEmbedding(prompt, base64);
         }
         localImage.src = imageURL;
 
