@@ -4,7 +4,7 @@ let inputBox;
 let mask1;
 let maskBase64 = "";
 let canvas;
-const NGrokAddress = "https://7d98-34-125-99-80.ngrok.io";
+const NGrokAddress = "https://dano.ngrok.dev";
 
 let picture1;
 let picture2;
