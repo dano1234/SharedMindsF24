@@ -1,0 +1,121 @@
+<html>
+
+<head>
+    <title>Other People 2D Distance</title>
+    <meta charset="UTF-8">
+    <meta http-equiv='cache-control' content='no-cache'>
+    <meta http-equiv='expires' content='0'>
+    <link rel="shortcut icon" href="#" />
+</head>
+
+
+<body>
+    <style>
+        .authButton {
+            background-color: #c9328a;
+            border: none;
+            color: rgb(225, 212, 212);
+            padding: 5px 5px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 16px;
+        }
+
+        .authButton:hover {
+            background-color: #45a049;
+        }
+
+        .authInput {
+            padding: 5px 10px;
+            font-size: 12px;
+            width: 100%;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .authDiv {
+            position: absolute;
+            top: 10%;
+            left: 85%;
+
+            border: 3px solid darkred;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: lightpink;
+            z-Index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #localUser {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 256px;
+            height: 256px;
+            z-Index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #inputText {
+            width: 256px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+
+    <div id="localUser">
+        <div id="localUserName"></div>
+        <img id="outputImage" width="256" height="256">
+        <input type="text" id="inputText">
+
+        <div id="feedback"></div>
+    </div>
+
+
+
+    <div id="login" class="authDiv">
+        <button id="signInWithGoogle" class="authButton">Log in with Google</button>
+        <br>
+        <br>
+        ...or login with email:
+        <br>
+        <form>
+            <input type="text" id="email" placeholder="Email">
+            <br>
+            <input type="password" id="password" placeholder="Password" autocomplete="on">
+            <br>
+        </form>
+        <span id="emailButtons">
+            <button id="signUpWithEmail" class="authButton">SignUp</button>
+            <button id="signInWithEmail" class="authButton">Log in</button>
+        </span>
+
+    </div>
+    <!-- don't display this at first -->
+    <div id="logout" style="display:none" class="authDiv">
+        <p id="userName"></p>
+        <img id="userPic" width="50">
+        <br>
+        <br>
+        <button id="logoutButton" class="authButton">Log out</button>
+    </div>
+
+    <script src="firebaseAuth.js" type="module"></script>
+    <script src="main.js" type="module"></script>
+
+</body>
+
+</html>
