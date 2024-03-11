@@ -42,6 +42,7 @@ function reactToFirebase(action, data, key) {
 }
 
 function renderOthers() {
+    getNormalized2DDistance(me, others);
     let angle = 0;
     let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);
     for (let key in others) {
@@ -52,8 +53,9 @@ function renderOthers() {
             otherDiv.setAttribute("id", key);
             document.body.appendChild(otherDiv);
         }
-        let x = 200 * Math.cos(angle);
-        let y = 200 * Math.sin(angle);
+        let distance = other.normalizedDistance * 200;
+        let x = distance * Math.cos(angle);
+        let y = distance * Math.sin(angle);
         angle += angleStep;
         otherDiv.style.position = "absolute";
         otherDiv.style.left = (window.innerWidth / 2 + x) + "px";
@@ -63,6 +65,36 @@ function renderOthers() {
     }
 
 }
+
+function getNormalized2DDistance(me, others) {
+    let maxDistance = 0;
+    let minDistance = infinity;
+    for (let key in others) {
+        let other = others[key];
+        other.distance = cosineSimilarity(me.embedding, other.embedding);
+        if (other.distance > maxDistance) maxDistance = other.distance;
+        if (other.distance < minDistance) minDistance = other.distance;
+    }
+    for (let key in others) {
+        let other = others[key];
+        other.normalizedDistance = (other.distance - minDistance) / (maxDistance - minDistance);
+    }
+}
+
+function cosineSimilarity(a, b) {
+    let dotProduct = 0;
+    let magnitudeA = 0;
+    let magnitudeB = 0;
+    for (let i = 0; i < a.length; i++) {
+        dotProduct += (a[i] * b[i]);
+        magnitudeA += (a[i] * a[i]);
+        magnitudeB += (b[i] * b[i]);
+    }
+    magnitudeA = Math.sqrt(magnitudeA);
+    magnitudeB = Math.sqrt(magnitudeB);
+    return dotProduct / (magnitudeA * magnitudeB);
+}
+
 
 
 let inputField = document.getElementById("inputText");
