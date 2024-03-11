@@ -16,7 +16,6 @@ FB.initFirebase(function (user) {
 
 function reactToFirebase(action, data, key) {
     if (action == "added") {
-        console.log("new from FB", data, key);
         if (key == FB.getUser().uid) {
             document.getElementById("inputText").value = data.prompt;
             let localImage = document.getElementById("outputImage");
@@ -39,9 +38,11 @@ function reactToFirebase(action, data, key) {
     } else if (action == "removed") {
         console.log("removed from FB", data, key);
     }
+    console.log("others", others);
 }
 
 function renderOthers() {
+    if (!me) return;
     getNormalized2DDistance(me, others);
     let angle = 0;
     let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);
@@ -64,13 +65,16 @@ function renderOthers() {
         otherDiv.innerHTML = "<p>" + other.userName + "</p><img src='" + other.base64 + "' />";
     }
 
+
 }
 
 function getNormalized2DDistance(me, others) {
+
     let maxDistance = 0;
-    let minDistance = infinity;
+    let minDistance = 10000000;
     for (let key in others) {
         let other = others[key];
+        console.log("me", me, other);
         other.distance = cosineSimilarity(me.embedding, other.embedding);
         if (other.distance > maxDistance) maxDistance = other.distance;
         if (other.distance < minDistance) minDistance = other.distance;
