@@ -21,6 +21,7 @@ function reactToFirebase(action, data, key) {
             let localImage = document.getElementById("outputImage");
             localImage.src = data.base64;
             me = data;
+            renderOthers();
         } else {
             others[key] = data;
             renderOthers();
@@ -31,6 +32,7 @@ function reactToFirebase(action, data, key) {
             let localImage = document.getElementById("outputImage");
             localImage.src = data.base64;
             me = data;
+            renderOthers();
         } else {
             others[key] = data;
             renderOthers();
@@ -42,10 +44,12 @@ function reactToFirebase(action, data, key) {
 }
 
 function renderOthers() {
+
     if (!me) return;
+    console.log("renderOthers", others);
     getNormalized2DDistance(me, others);
     let angle = 0;
-    let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);
+    let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);;
     for (let key in others) {
         let other = others[key];
         let otherDiv = document.getElementById(key);
@@ -54,13 +58,15 @@ function renderOthers() {
             otherDiv.setAttribute("id", key);
             document.body.appendChild(otherDiv);
         }
-        let distance = other.normalizedDistance * 200;
+        let distance = 200 + (1 - other.normalizedDistance) * 200;
         let x = distance * Math.cos(angle);
         let y = distance * Math.sin(angle);
+        //console.log("x,y", x, y, angle);
         angle += angleStep;
         otherDiv.style.position = "absolute";
         otherDiv.style.left = (window.innerWidth / 2 + x) + "px";
         otherDiv.style.top = (window.innerHeight / 2 + y) + "px";
+        otherDiv.style.transform = "translate(-50%,-50%)";
 
         otherDiv.innerHTML = "<p>" + other.userName + "</p><img src='" + other.base64 + "' />";
     }
@@ -76,12 +82,14 @@ function getNormalized2DDistance(me, others) {
         let other = others[key];
         console.log("me", me, other);
         other.distance = cosineSimilarity(me.embedding, other.embedding);
+        console.log("distance", other.distance);
         if (other.distance > maxDistance) maxDistance = other.distance;
         if (other.distance < minDistance) minDistance = other.distance;
     }
     for (let key in others) {
         let other = others[key];
         other.normalizedDistance = (other.distance - minDistance) / (maxDistance - minDistance);
+        console.log("normalizedDistance", other.normalizedDistance);
     }
 }
 
