@@ -1,5 +1,5 @@
 
-const NGrokAddress = "https://50a150e380a1.ngrok.app";
+const NGrokAddress = "https://dano.ngrok.dev";
 
 let promptsSlider;
 let slider;
