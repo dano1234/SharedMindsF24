@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { createObject, removeObject } from "./embeddingsFB.js";
+import { createObject, removeObject } from "./embeddingsFirbasedForce.js";
 
 
 //use var instead of let in module to make it global
@@ -45,8 +45,9 @@ export function initFirebase(_appName, _folder) {
 
 function subscribeToFirebase() {
     const path = '/' + appName + '/' + folder + '/';
+    //console.log("subscribeToFirebase", path);
     const myRef = ref(db, path);
-    console.log("myRef", myRef);
+
     onChildAdded(myRef, (data) => {
         console.log("added", data.val())
 

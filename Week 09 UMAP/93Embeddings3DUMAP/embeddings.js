@@ -10,6 +10,17 @@ let myPrompts = [];
 
 initWebInterface();
 init3D();
+initLocalStorage();
+
+function initLocalStorage() {
+    if (localStorage.getItem("embeddings")) {
+        let embeddings = JSON.parse(localStorage.getItem("embeddings"));
+        runUMAP(embeddings);
+        startLoadingImages();   //start loading images
+    } else {
+        console.log("No Embeddings in Local Storage");
+    }
+}
 
 
 
@@ -35,6 +46,7 @@ async function askForEmbeddings(p_prompt) {
     const raw = fetch(url, options)
         .then(response => response.json())
         .then(data => {
+            localStorage.setItem("embeddings", JSON.stringify(data.output));
             runUMAP(data.output);
             startLoadingImages();
 

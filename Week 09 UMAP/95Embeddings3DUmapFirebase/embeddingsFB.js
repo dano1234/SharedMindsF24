@@ -2,7 +2,8 @@ import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threej
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
 import { initFirebase, storeInFirebase, destroyDatabase } from './firebaseMOD.js';
 
-let distanceFromCenter = 800;
+let distanceFromCenter = 500;
+let clusterSize = 6;
 
 let camera3D, scene, renderer;
 
@@ -17,29 +18,27 @@ let feature;
 
 initWebInterface();
 init3D();
-initFirebase("3DEmbeddingsFirebase", "imagesAndEmbeddings");
+initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
 
 
-function findClosest(toWhere, clumpSize, all_objects) {
-    console.log("findClosest", toWhere);
-    //toWhere.z = -toWhere.z;
+function findClosest(toWhere, clumpSize) {
+    if (objects.length == 0) return;
     let closeness = {};
-    for (let j = 0; j < all_objects.length; j++) {
-        let thisObject = all_objects[j];
+    for (let j = 0; j < objects.length; j++) {
+        let thisObject = objects[j];
         let thisPos = thisObject.mesh.position;
         //let thatEmbedding = thatObject.embedding;
         let distance = Math.sqrt(Math.pow(thisPos.x - toWhere.x, 2) + Math.pow(thisPos.y - toWhere.y, 2) + Math.pow(thisPos.z - toWhere.z, 2));
         closeness[distance] = thisObject;
         thisObject.showText = false;
     }
-    console.log("closeness", closeness);
+
     let keys = Object.keys(closeness);
     keys.sort();
     for (let i = 0; i < clumpSize; i++) {
         let closeObject = closeness[keys[i]];
         closeObject.showText = true;
     }
-    console.log("closest", closeness[keys[0]]);
 
 }
 
@@ -53,11 +52,11 @@ function runUMAP(data) {
     //let fittings = runUMAP(embeddings);
     var repeatableRandomNumberFunction = new Math.seedrandom('hello.');
     let umap = new UMAP({
-        nNeighbors: 6,
-        minDist: .5,
+        nNeighbors: clusterSize,
+        minDist: .99,
         nComponents: 3,
         random: repeatableRandomNumberFunction,  //special library seeded random so it is the same randome numbers every time
-        spread: 10,
+        spread: .1,
         //distanceFn: 'cosine',
     });
     let fittings = umap.fit(embeddings);
@@ -66,7 +65,7 @@ function runUMAP(data) {
         let obj = embeddingsAndPrompts[i];
         let pos = fittings[i];
         obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        obj.mesh.position.y = pos[1] * distanceFromCenter / 4 - distanceFromCenter / 8;  //dont go too high or low
+        obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
         obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
         obj.mesh.lookAt(0, 0, 0);
     }
@@ -138,6 +137,7 @@ export function removeObject(key, data) {
     objects.splice(thisArrayIndex, 1);
 }
 
+
 function findObjectByKey(key) {
     for (let i = 0; i < objects.length; i++) {
         if (objects[i].dbKey == key) {
@@ -177,6 +177,7 @@ export function updateObject(key, data) {
 }
 
 export function createObject(key, data) {
+
     //get stuff from firebase
     let text = data.prompt;
     let embedding = data.embedding;
@@ -186,7 +187,7 @@ export function createObject(key, data) {
     //create a texturem mapped 3D object
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
-    let size = 128;
+    let size = 1024;
     canvas.height = size;
     canvas.width = size;
 
@@ -200,6 +201,7 @@ export function createObject(key, data) {
     mesh.position.y = pos.y
     mesh.position.z = pos.z
     mesh.lookAt(0, 0, 0);
+    mesh.scale.set(.1, .1, .1);
     scene.add(mesh);
     hitTestableThings.push(mesh);//make a list for the raycaster to check for intersection
     //leave the image null for now
@@ -218,6 +220,7 @@ export function createObject(key, data) {
     if (objects.length > 6) {
         runUMAP(objects)
     }
+    findClosest(getPositionInFrontOfCamera(), clusterSize)
     return thisObject;
 }
 
@@ -233,16 +236,17 @@ function repaintObject(object) {
     let textParts = text.split(" ");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (image) {
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
     } else {
         object.showText = true; //so far only have the text to show
     }
     if (object.showText) {
-        ctx.font = '12px Arial';
+        let fontSize = 72;
+        ctx.font = fontSize + 'px Arial';
         ctx.fillStyle = 'white';
         for (let i = 0; i < textParts.length; i++) {
             const metrics = ctx.measureText(textParts[i]);
-            ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * 12);
+            ctx.fillText(textParts[i], canvas.width / 2 - metrics.width / 2, 10 + i * fontSize);
         }
     }
     texture.needsUpdate = true;
@@ -332,8 +336,6 @@ async function askForPicture(text) {
         "version": "c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
             "prompt": text,
-            "width": 512,
-            "height": 512,
         },
     };
     //console.log("Asking for Picture Info From Replicate via Proxy", data);
@@ -382,11 +384,15 @@ function init3D() {
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 
-    var geometryFront = new THREE.BoxGeometry(10, 10, 10);
-    var materialFront = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    let geometryFront = new THREE.SphereBufferGeometry(3, 32, 16);
+    //var geometryFront = new THREE.BoxGeometry(10, 10, 10);
+    var materialFront = new THREE.MeshBasicMaterial({ color: 0xff00ff });
     in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
     in_front_of_you.position.set(0, 0, -distanceFromCenter);  //base the the z position on camera field of view
     camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
+    setInterval(() => { //blink it
+        in_front_of_you.visible = !in_front_of_you.visible;
+    }, 400);
     scene.add(camera3D);
     moveCameraWithMouse();
 
@@ -395,8 +401,9 @@ function init3D() {
 }
 
 export function getPositionInFrontOfCamera() {
+    //use the object you placed in front of the camera in init3D
     const posInWorld = new THREE.Vector3();
-    in_front_of_you.position.set(0, 0, -distanceFromCenter);  //base the the z position on camera field of view
+    in_front_of_you.position.set(0, 0, -distanceFromCenter / 4);  //base the the z position on camera field of view
     in_front_of_you.getWorldPosition(posInWorld);
     return posInWorld;
 }
@@ -436,7 +443,7 @@ function initWebInterface() {
     feedback.innerHTML = "Ready";
     feedback.style.width = "100%";
     feedback.style.textAlign = "center";
-    feedback.style.top = "50%";
+    feedback.style.top = "95%";
     feedback.style.left = "0%";
 
 
@@ -507,7 +514,7 @@ function initWebInterface() {
     input_image_field.style.backgroundColor = "black";
     input_image_field.style.textAlign = "center";
     input_image_field.style.width = "50%";
-    input_image_field.style.top = "15%";
+    input_image_field.style.top = "90%";
     input_image_field.style.left = "50%";
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.style.pointerEvents = "all";
@@ -552,8 +559,11 @@ async function convertURLToBase64(url) {
     return base64;
 }
 
+
+
 function animate() {
     requestAnimationFrame(animate);
+
     for (let i = 0; i < objects.length; i++) {
         repaintObject(objects[i]);
     }
@@ -572,7 +582,7 @@ var isUserInteracting = false;
 function onMouseDown(event) {
     // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
     // ThreeJSContainer.setCapture();
-
+    feature.style.display = "none"; //lose the featured image
 
     //if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
     onPointerDownPointerX = event.clientX;
@@ -676,9 +686,13 @@ function onMouseUp(event) {
     middle.y = - (.5) * 2 + 1;
     let intersectedObject = getIntersectedObject(middle);
     console.log("intersectedObject", intersectedObject);
+
     if (intersectedObject) {
-        findClosest(intersectedObject.mesh.position, 6, objects)
+        findClosest(intersectedObject.mesh.position, clusterSize);
+    } else {
+        findClosest(getPositionInFrontOfCamera(), clusterSize)
     }
+
 
     // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
     // ThreeJSContainer.releaseCapture();
@@ -688,10 +702,11 @@ function onMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
     camera3D.fov = Math.min(120, Math.max(10, camera3D.fov));
     camera3D.updateProjectionMatrix();
+    findClosest(getPositionInFrontOfCamera(), clusterSize)
 }
 
 function computeCameraOrientation() {
-    lat = Math.max(- 30, Math.min(30, lat));  //restrict movement
+    lat = Math.max(- 50, Math.min(50, lat));  //restrict movement
     let phi = THREE.Math.degToRad(90 - lat);  //restrict movement
     let theta = THREE.Math.degToRad(lon);
     camera3D.target.x = 100 * Math.sin(phi) * Math.cos(theta);
