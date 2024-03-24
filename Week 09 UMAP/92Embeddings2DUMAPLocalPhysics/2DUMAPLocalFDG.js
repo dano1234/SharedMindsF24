@@ -29,6 +29,7 @@ createUniverseField.style.top = "90%";
 createUniverseField.style.transform = "translate(-50%,-50%)";
 createUniverseField.style.width = "200px";
 createUniverseField.id = "createUniverse";
+createUniverseField.value = "Beauty will save the world";
 createUniverseField.placeholder = "Create Universe";
 document.body.append(createUniverseField);
 createUniverseField.addEventListener("keyup", function (event) {
