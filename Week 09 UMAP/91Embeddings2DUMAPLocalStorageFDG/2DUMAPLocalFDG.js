@@ -1,5 +1,4 @@
 import { UMAP } from "https://cdn.skypack.dev/umap-js";
-import { TOX } from "https://cdn.skypack.dev/toxiclibsjs";
 
 let canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
@@ -11,6 +10,15 @@ document.body.append(canvas);
 let ctx = canvas.getContext('2d');
 
 let myCluster;
+let physics;
+
+let {
+    VerletPhysics2D,
+    VerletParticle2D,
+    VerletSpring2D,
+    VerletMinDistanceSpring2D,
+} = toxi.physics2d;
+
 
 
 let createUniverseField = document.createElement('input');
@@ -31,10 +39,9 @@ createUniverseField.addEventListener("keyup", function (event) {
     }
 });
 
-init();
-animate();
 
 function init() {
+    physics = new VerletPhysics2D();
     let embeddingsAndSentences = JSON.parse(localStorage.getItem("embeddings"));
     if (embeddingsAndSentences) {
         runUMAP(embeddingsAndSentences);
@@ -42,8 +49,8 @@ function init() {
     else {
         console.log("no embeddings");
     }
-    let physics = new TOX.VerletPhysics2D();
-    // physics.setDrag(0.01);
+
+    //physics.setDrag(0.01);
     // physics.addBehavior(new TOX.GravityBehavior(new TOX.Vec2D(0, 0.1)));
     // physics.addBehavior(new TOX.AttractionBehavior(new TOX.Vec2D(window.innerWidth / 2, window.innerHeight / 2), window.innerWidth / 2, 0.01));
     // physics.addBehavior(new TOX.BoundaryBehavior(new TOX.Rect(0, 0, window.innerWidth, window.innerHeight), -0.3));
@@ -53,39 +60,43 @@ function init() {
 
 function animate() {
     physics.update();
+    myCluster.show();
     requestAnimationFrame(animate);
 }
 
 class Particle extends VerletParticle2D {
-    constructor(x, y, r, text) {
+    constructor(x, y, text) {
         super(x, y);
-        this.r = r;
         this.text = text;
-        this.embedding = embedding;
     }
     show() {
-        fill(127);
-        stroke(0);
-        circle(this.x, this.y, this.r * 2);
-        text(text, this.x, this.y);
+        ctx.fillStyle = "rgba(127,127,127,127)";
+        ctx.strokeStyle = "rgba(0,0,0,127)";
+        ctx.font = "14px Arial";
+        ctx.fillText(this.text, this.x, this.y);
     }
 }
 
 class Cluster {
     constructor(sentencesAndEmbeddings, UMAPFittings) {
         this.particles = [];
+
+        //start them off in UMAP positions
         for (let i = 0; i < sentencesAndEmbeddings.length; i++) {
             let x = UMAPFittings[i][0] * window.innerWidth;
             let y = UMAPFittings[i][1] * window.innerHeight;
-            this.particles.push(new Particle(x, y, 4));
+            let text = sentencesAndEmbeddings[i].input;
+            this.particles.push(new Particle(x, y, text));
         }
         for (let i = 0; i < this.particles.length - 1; i++) {
             for (let j = 0; j < this.particles.length; j++) {
                 if (i != j) {
-                    let distance = this.particles[i].distanceTo(this.particles[j]);
-                    if (distance < 100) {
-                        physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance, 0.01));
-                    }
+                    var distance = Math.sqrt((Math.pow(this.particles[i].x - this.particles[j].x, 2)) + (Math.pow(this.particles[i].y - this.particles[j].y, 2)))
+
+                    //let distance = this.particles[i].distanceTo(this.particles[j]);
+                    // if (distance < 100) {
+                    physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance, 0.01));
+                    // }
                 }
             }
         }
@@ -97,24 +108,6 @@ class Cluster {
     }
 }
 
-function placeSentence(sentence, fitting) {
-    console.log("placeSentence", sentence, fitting);
-    ctx.font = "20px Arial";
-    ctx.fillStyle = "rgba(100,100,100,127)";
-    let width = ctx.measureText(sentence).width;
-    ctx.fillText(sentence, fitting[0] * window.innerWidth, fitting[1] * window.innerHeight);
-
-    //or use DOM elements
-    // let sentenceDiv = document.createElement('div');
-    // sentenceDiv.style.position = "absolute";
-    // sentenceDiv.style.left = fitting[0] * window.innerWidth + "px";
-    // sentenceDiv.style.top = fitting[1] * window.innerHeight + "px";
-    // sentenceDiv.style.transform = "translate(-100%,-50%)";
-    // sentenceDiv.style.width = "100px";
-    // sentenceDiv.style.backgroundColor = "rgba(255,255,255,.5)";
-    // sentenceDiv.innerHTML = sentence;
-    // document.body.append(sentenceDiv);
-}
 
 async function createUniverse(universalMotto) {
     document.body.style.cursor = "progress";
@@ -240,3 +233,27 @@ function normalize(arrayOfNumbers) {
     }
     return arrayOfNumbers;
 }
+
+init();
+animate();
+
+
+
+// function placeSentence(sentence, fitting) {
+//     console.log("placeSentence", sentence, fitting);
+//     ctx.font = "20px Arial";
+//     ctx.fillStyle = "rgba(100,100,100,127)";
+//     let width = ctx.measureText(sentence).width;
+//     ctx.fillText(sentence, fitting[0] * window.innerWidth, fitting[1] * window.innerHeight);
+
+//     //or use DOM elements
+//     // let sentenceDiv = document.createElement('div');
+//     // sentenceDiv.style.position = "absolute";
+//     // sentenceDiv.style.left = fitting[0] * window.innerWidth + "px";
+//     // sentenceDiv.style.top = fitting[1] * window.innerHeight + "px";
+//     // sentenceDiv.style.transform = "translate(-100%,-50%)";
+//     // sentenceDiv.style.width = "100px";
+//     // sentenceDiv.style.backgroundColor = "rgba(255,255,255,.5)";
+//     // sentenceDiv.innerHTML = sentence;
+//     // document.body.append(sentenceDiv);
+// }
