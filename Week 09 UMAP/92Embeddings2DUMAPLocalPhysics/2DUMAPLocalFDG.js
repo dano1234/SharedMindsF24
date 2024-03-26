@@ -121,9 +121,9 @@ class Cluster {
 
 async function createUniverse(universalMotto) {
     document.body.style.cursor = "progress";
-    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
+    //let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
 
-    //let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
+    let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
 
     // // feedback.html("Waiting for reply from OpenAi...");
 
