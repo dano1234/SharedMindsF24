@@ -16,6 +16,7 @@ let {
     VerletPhysics2D,
     VerletParticle2D,
     VerletSpring2D,
+    GravityBehavior,
     VerletMinDistanceSpring2D,
 } = toxi.physics2d;
 
@@ -43,6 +44,8 @@ createUniverseField.addEventListener("keyup", function (event) {
 
 function init() {
     physics = new VerletPhysics2D();
+    physics.setWorldBounds([0, 0, window.innerWidth, window.innerHeight]);
+    //physics.addBehavior(new GravityBehavior(new Vec2D(0, 0.5)));
     let embeddingsAndSentences = JSON.parse(localStorage.getItem("embeddings"));
     if (embeddingsAndSentences) {
         runUMAP(embeddingsAndSentences);
@@ -66,9 +69,12 @@ function animate() {
 }
 
 class Particle extends VerletParticle2D {
-    constructor(x, y, text) {
+    constructor(x, y, umapx, umapy, text) {
         super(x, y);
+        this.umapx = umapx;
+        this.umapy = umapy;
         this.text = text;
+        physics.addParticle(this);
     }
     show() {
         ctx.fillStyle = "rgba(127,127,127,127)";
@@ -84,25 +90,28 @@ class Cluster {
 
         //start them off in UMAP positions
         for (let i = 0; i < sentencesAndEmbeddings.length; i++) {
-            let x = UMAPFittings[i][0] * window.innerWidth;
-            let y = UMAPFittings[i][1] * window.innerHeight;
+            let umapx = UMAPFittings[i][0]// * window.innerWidth / 5;
+            let umapy = UMAPFittings[i][1]// * window.innerHeight / 5;
             let text = sentencesAndEmbeddings[i].input;
-            this.particles.push(new Particle(x, y, text));
+            this.particles.push(new Particle(Math.random() * 5 - 2 + window.innerWidth / 2, Math.random() * 5 - 2 + window.innerHeight / 2, umapx, umapy, text));
         }
         for (let i = 0; i < this.particles.length - 1; i++) {
             for (let j = 0; j < this.particles.length; j++) {
                 if (i != j) {
-                    var distance = Math.sqrt((Math.pow(this.particles[i].x - this.particles[j].x, 2)) + (Math.pow(this.particles[i].y - this.particles[j].y, 2)))
-
+                    // var distance = Math.sqrt((Math.pow(this.particles[i].x - this.particles[j].x, 2)) + (Math.pow(this.particles[i].y - this.particles[j].y, 2)))
+                    var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+                    //console.log("distance", distance);
                     //let distance = this.particles[i].distanceTo(this.particles[j]);
                     // if (distance < 100) {
-                    physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance, 0.01));
+                    //physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance, 0.0001));
+                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], distance, .1));
                     // }
                 }
             }
         }
     }
     show() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         for (let particle of this.particles) {
             particle.show();
         }
@@ -112,7 +121,9 @@ class Cluster {
 
 async function createUniverse(universalMotto) {
     document.body.style.cursor = "progress";
-    let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
+    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
+
+    //let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
 
     // // feedback.html("Waiting for reply from OpenAi...");
 
@@ -138,7 +149,8 @@ async function createUniverse(universalMotto) {
     console.log("asking sentences", url, "words options", options);
     const response = await fetch(url, options);
     const openAI_json = await response.json();
-    //console.log("openAI_json", openAI_json.choices[0].text);
+
+    console.log("openAI_json", openAI_json.choices[0].text);
     let arrayOfStrings = openAI_json.choices[0].text.split("\n");
     let sentences = "";
     //clean up the sentences, replicate want string with /n delims
