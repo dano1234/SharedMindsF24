@@ -440,7 +440,7 @@ function initWebInterface() {
     feedback.id = "feedback";
     feedback.style.position = "absolute";
     feedback.style.zIndex = "2";
-    feedback.innerHTML = "Ready";
+    feedback.innerHTML = "Please Wait, Loading images and embeddings from Firebase...";
     feedback.style.width = "100%";
     feedback.style.textAlign = "center";
     feedback.style.top = "95%";

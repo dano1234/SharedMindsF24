@@ -16,9 +16,9 @@ createUniverseField.style.position = "absolute";
 createUniverseField.style.left = "80%";
 createUniverseField.style.top = "90%";
 createUniverseField.style.transform = "translate(-50%,-50%)";
-createUniverseField.style.width = "200px";
+createUniverseField.style.width = "350px";
 createUniverseField.id = "createUniverse";
-createUniverseField.placeholder = "Create Universe";
+createUniverseField.placeholder = "Enter a motto and press Enter to create a universe";
 document.body.append(createUniverseField);
 createUniverseField.addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
@@ -44,8 +44,8 @@ function placeSentence(sentence, fitting) {
     console.log("placeSentence", sentence, fitting);
     ctx.font = "20px Arial";
     ctx.fillStyle = "rgba(100,100,100,127)";
-    let width = ctx.measureText(sentence).width;
-    ctx.fillText(sentence, fitting[0] * window.innerWidth, fitting[1] * window.innerHeight);
+    let w = ctx.measureText(sentence).width;
+    ctx.fillText(sentence, fitting[0] * window.innerWidth - w / 2, fitting[1] * window.innerHeight);
 
     //or use DOM elements
     // let sentenceDiv = document.createElement('div');

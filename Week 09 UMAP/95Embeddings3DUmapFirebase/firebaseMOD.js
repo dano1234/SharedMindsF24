@@ -50,7 +50,7 @@ function subscribeToFirebase() {
 
     onChildAdded(myRef, (data) => {
         console.log("added", data.val())
-
+        feedback.innerHTML = "Ready"
         let newObject = createObject(data.key, data.val());
         if (newObject.dbKey == localKey && object.image == null) {
             askForPicture(text, object.key);
