@@ -3,11 +3,16 @@
 import * as THREE from 'three';
 //import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 //for more modern version of orbit control user importmap https://stackoverflow.com/questions/75250424/threejs-orbitcontrol-import-version-from-cdn
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let camera3D, scene, renderer, cube;
+let controller1, controller2;
+let controllerGrip1, controllerGrip2;
+
+
 let controls;
 
 
@@ -35,26 +40,60 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-
-
     controls = new OrbitControls(camera3D, renderer.domElement);
     camera3D.position.z = 5;
     //VR STUFF
     document.body.appendChild(VRButton.createButton(renderer));
     renderer.xr.enabled = true;
-    // animate();
-    renderer.setAnimationLoop(function () {
-        controls.update();
-        renderer.render(scene, camera3D);
-    });
+    setupControllers();
+    animate()
 }
 
 
 
-// function animate() {
-//     controls.update();  //orbit controls
-//     renderer.render(scene, camera3D);
-//     requestAnimationFrame(animate);
-// }
+function animate() {
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    controls.update();  //orbit controls
+    renderer.setAnimationLoop(render);
+    requestAnimationFrame(animate);
+}
+function render() {
+    renderer.render(scene, camera3D);
+}
+
+function setupControllers() {
+    // controllers
+
+    controller1 = renderer.xr.getController(0);
+    scene.add(controller1);
+
+    controller2 = renderer.xr.getController(1);
+    scene.add(controller2);
+
+    const controllerModelFactory = new XRControllerModelFactory();
+    const handModelFactory = new XRHandModelFactory();
+
+    // Hand 1
+    controllerGrip1 = renderer.xr.getControllerGrip(0);
+    controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+    scene.add(controllerGrip1);
+
+    hand1 = renderer.xr.getHand(0);
+    hand1.add(handModelFactory.createHandModel(hand1));
+
+    scene.add(hand1);
+
+    // Hand 2
+    controllerGrip2 = renderer.xr.getControllerGrip(1);
+    controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+    scene.add(controllerGrip2);
+
+    hand2 = renderer.xr.getHand(1);
+    hand2.add(handModelFactory.createHandModel(hand2));
+    scene.add(hand2);
+
+    //
+}
 
 init3D();
