@@ -10,6 +10,9 @@ let distanceFromCenter = 500;
 let clusterSize = 6;
 
 let camera3D, scene, renderer;
+let hand1, hand2;
+let controller1, controller2;
+let controllerGrip1, controllerGrip2;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 var objects = [];
