@@ -42,7 +42,7 @@ function findClosest(toWhere, clumpSize) {
 
     let keys = Object.keys(closeness);
     keys.sort();
-    for (let i = 0; i < clumpSize; i++) {
+    for (let i = 0; i < Math.min(clumpSize, objects.length - 1); i++) {
         let closeObject = closeness[keys[i]];
         closeObject.showText = true;
     }
