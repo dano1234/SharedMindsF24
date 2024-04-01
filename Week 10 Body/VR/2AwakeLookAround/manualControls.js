@@ -1,5 +1,11 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
+//using import map, see the html for this
+//import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.module.min.js';
+import * as THREE from 'three';
+//import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
+//for more modern version of orbit control user importmap https://stackoverflow.com/questions/75250424/threejs-orbitcontrol-import-version-from-cdn
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 let camera3D, scene, renderer, cube;
 let dir = 0.01;
 
@@ -32,7 +38,24 @@ function init3D() {
     moveCameraWithMouse();
 
     camera3D.position.z = -5;
-    animate();
+    //animate();
+    camera3D.position.z = 5;
+    //VR STUFF
+    document.body.appendChild(VRButton.createButton(renderer));
+    renderer.xr.enabled = true;
+    // animate();
+    renderer.setAnimationLoop(function () {
+        cube.scale.x += dir;
+        cube.scale.y += dir;
+        cube.scale.z += dir;
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+
+        if (cube.scale.x > 4 || cube.scale.x < -4) {
+            dir = -dir;
+        }
+        renderer.render(scene, camera3D);
+    });
 }
 
 function animate() {
