@@ -1,6 +1,10 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
 import { initFirebase, storeInFirebase, destroyDatabase } from './firebaseMOD.js';
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+//for more modern version of orbit control user importmap https://stackoverflow.com/questions/75250424/threejs-orbitcontrol-import-version-from-cdn
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let distanceFromCenter = 500;
 let clusterSize = 6;
@@ -397,9 +401,59 @@ function init3D() {
     moveCameraWithMouse();
 
     camera3D.position.z = 0;
-    animate();
+    //VR STUFF
+    document.body.appendChild(VRButton.createButton(renderer));
+    renderer.xr.enabled = true;
+    setupControllers();
+    animate()
 }
 
+
+
+function animate() {
+    for (let i = 0; i < objects.length; i++) {
+        repaintObject(objects[i]);
+    }
+    renderer.setAnimationLoop(render);
+    requestAnimationFrame(animate);
+}
+function render() {
+    renderer.render(scene, camera3D);
+}
+
+function setupControllers() {
+    // controllers
+
+    controller1 = renderer.xr.getController(0);
+    scene.add(controller1);
+
+    controller2 = renderer.xr.getController(1);
+    scene.add(controller2);
+
+    const controllerModelFactory = new XRControllerModelFactory();
+    const handModelFactory = new XRHandModelFactory();
+
+    // Hand 1
+    controllerGrip1 = renderer.xr.getControllerGrip(0);
+    controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+    scene.add(controllerGrip1);
+
+    hand1 = renderer.xr.getHand(0);
+    hand1.add(handModelFactory.createHandModel(hand1));
+
+    scene.add(hand1);
+
+    // Hand 2
+    controllerGrip2 = renderer.xr.getControllerGrip(1);
+    controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+    scene.add(controllerGrip2);
+
+    hand2 = renderer.xr.getHand(1);
+    hand2.add(handModelFactory.createHandModel(hand2));
+    scene.add(hand2);
+
+    //
+}
 export function getPositionInFrontOfCamera() {
     //use the object you placed in front of the camera in init3D
     const posInWorld = new THREE.Vector3();
@@ -561,14 +615,6 @@ async function convertURLToBase64(url) {
 
 
 
-function animate() {
-    requestAnimationFrame(animate);
-
-    for (let i = 0; i < objects.length; i++) {
-        repaintObject(objects[i]);
-    }
-    renderer.render(scene, camera3D);
-}
 
 /////MOUSE STUFF
 

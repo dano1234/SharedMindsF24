@@ -42,7 +42,7 @@ function init3D() {
     scene.add(back);
 
     controls = new OrbitControls(camera3D, renderer.domElement);
-    camera3D.position.z = 5;
+    camera3D.position.z = 25;
     //VR STUFF
     document.body.appendChild(VRButton.createButton(renderer));
     renderer.xr.enabled = true;
