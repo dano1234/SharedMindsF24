@@ -9,6 +9,7 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let camera3D, scene, renderer, cube;
+let hand1, hand2;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 
