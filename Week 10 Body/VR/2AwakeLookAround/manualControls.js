@@ -7,7 +7,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 //for more modern version of orbit control user importmap https://stackoverflow.com/questions/75250424/threejs-orbitcontrol-import-version-from-cdn
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 let camera3D, scene, renderer, cube;
-let dir = 0.01;
+let dir = 1;
+let speed = 1;
 
 
 
@@ -45,15 +46,18 @@ function init3D() {
     renderer.xr.enabled = true;
     // animate();
     renderer.setAnimationLoop(function () {
-        cube.scale.x += dir;
-        cube.scale.y += dir;
-        cube.scale.z += dir;
+        //cube.scale.x += dir;
+        //cube.scale.y += dir;
+        //cube.scale.z += dir;
+        cube.position.z += dir * speed;
         cube.rotation.x += 0.01;
         cube.rotation.y += 0.01;
 
-        if (cube.scale.x > 4 || cube.scale.x < -4) {
-            dir = -dir;
-        }
+        // if (cube.scale.x > 4 || cube.scale.x < -4) {
+        if (cube.position.z < -100) dir = 1;
+        if (cube.position.z > 0) dir = -1;
+
+        console.log(cube.position.z);
         renderer.render(scene, camera3D);
     });
 }
