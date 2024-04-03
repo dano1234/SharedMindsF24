@@ -409,23 +409,22 @@ function init3D() {
     renderer.xr.enabled = true;
     setupControllers();
     animate()
-
 }
 
 
 
 function animate() {
-    renderer.setAnimationLoop(render);
-
-
-    //requestAnimationFrame(animate);
-}
-function render() {
     for (let i = 0; i < objects.length; i++) {
         repaintObject(objects[i]);
     }
+    renderer.setAnimationLoop(render);
+    requestAnimationFrame(animate);
+}
+function render() {
     renderer.render(scene, camera3D);
 }
+
+
 
 function setupControllers() {
     // controllers
