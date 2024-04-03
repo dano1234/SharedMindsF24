@@ -565,7 +565,7 @@ function initWebInterface() {
     input_image_field = document.createElement("input");
     input_image_field.type = "text";
     input_image_field.id = "input_image_prompt";
-    input_image_field.value = "Nice picture of a dog";
+    input_image_field.value = "Nice picture of a cat";
     input_image_field.style.position = "absolute";
     input_image_field.style.zIndex = "200";
     input_image_field.style.fontSize = "30px";
