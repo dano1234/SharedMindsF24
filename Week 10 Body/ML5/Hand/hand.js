@@ -1,6 +1,6 @@
 
 let camera3D, scene, renderer, cube;
-let texts = {};
+let texts = [];
 let hitTestableOjects = [];
 let in_front_of_you;
 let currentObject;
@@ -11,58 +11,12 @@ let p5Canvas;
 let p5Texture;
 let lastFewHands = [];
 let handIsReset = true;
-let show_video = false;
-let make_objects = false;
 
 let hands = [];
 
 function preload() {
     handpose = ml5.handpose();
 }
-
-let input = document.getElementById('text');
-input.addEventListener('keyup', function (event) {
-    if (event.key === "Enter") {
-        let text = input.value;
-        console.log("create text", text);
-        createText(text);
-    }
-});
-
-function createText(text) {
-    let canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    let ctx = canvas.getContext('2d');
-
-    let texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    let material = new THREE.MeshBasicMaterial({ map: texture });
-    let geo = new THREE.PlaneGeometry(10, 10);
-    let mesh = new THREE.Mesh(geo, material);
-    let outFront = find3DCoornatesInFrontOfCamera(200, { "x": window.innerWidth / 2, "y": window.innerHeight / 2 });
-    mesh.position.x = outFront.x;
-    mesh.position.y = outFront.y;
-    mesh.position.z = outFront.z;
-    scene.add(mesh);
-    hitTestableOjects.push(mesh);
-    let thisObj = { "mesh": mesh, "texture": texture, "context": ctx, "text": text }
-    texts[mesh.uuid] = thisObj;
-    refreshText(thisObj, false);
-}
-
-function refreshText(text, touched) {
-    let ctx = text.context;
-    if (touched)
-        ctx.fillStyle = "red";
-    else ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, 512, 512);
-    ctx.font = "30px Arial";
-    ctx.fillStyle = "black";
-    ctx.fillText(text.text, 10, 50);
-    text.texture.needsUpdate = true;
-}
-
 
 
 function setup() {
@@ -78,15 +32,13 @@ function setup() {
 function draw() {
     clear();
     // Draw all the tracked hand points
-    if (show_video) {
-        for (let i = 0; i < hands.length; i++) {
-            let hand = hands[i];
-            for (let j = 0; j < hand.keypoints.length; j++) {
-                let keypoint = hand.keypoints[j];
-                fill(0, 255, 0);
-                noStroke();
-                circle(keypoint.x, keypoint.y, 10);
-            }
+    for (let i = 0; i < hands.length; i++) {
+        let hand = hands[i];
+        for (let j = 0; j < hand.keypoints.length; j++) {
+            let keypoint = hand.keypoints[j];
+            fill(0, 255, 0);
+            noStroke();
+            circle(keypoint.x, keypoint.y, 10);
         }
     }
 
@@ -114,8 +66,8 @@ function gotHands(results) {
 
         if (mouse.z < 0.01) {
             if (handIsReset) {
-                //console.log("create shape", mouse.z)
-                if (make_objects) createNewShape();
+                console.log("create shape", mouse.z)
+                createNewShape();
                 handIsReset = false;
             }
         } else {
@@ -124,27 +76,14 @@ function gotHands(results) {
 
         ///hitTest(mouse.x, mouse.y);
         var raycaster = new THREE.Raycaster(); // create once
-        raycaster.near = 1;
+        raycaster.near = 10;
         raycaster.far = 1000;
-
-        let mx = map(indexX * 100, 8.5, -6, 0, window.innerWidth); //turn 0-640 to -320 to 320 
-        let my = map(indexY * 100, -5, 5, 0, window.innerHeight); //turn 0-640 to -320 to 320 
-        let eventMouse = {};
-        eventMouse.x = (mx / window.innerWidth) * 2 - 1;
-        eventMouse.y = - (my / window.innerHeight) * 2 + 1;
-
-        //console.log("mouse", mx, my, eventMouse.x, eventMouse.y);
-        raycaster.setFromCamera(eventMouse, camera3D);
-        var intersects = raycaster.intersectObjects(hitTestableOjects, true);
+        raycaster.setFromCamera(mouse, camera3D);
+        var intersects = raycaster.intersectObjects(hitTestableOjects, false);
 
         // //  console.log( handProxy.position);
         if (intersects.length > 0) {
-
-            let currentObject = texts[intersects[0].object.uuid];
-            console.log("intersetion", intersects[0].object.uuid, currentObject);
-
-
-            refreshText(currentObject, true);
+            console.log("intersetion", intersects[0]);
         }
 
         //     if (openHand == false) {
@@ -162,7 +101,7 @@ function gotHands(results) {
 function averageLastFewHands(mouse) {
     //average last few to smooth it out
     lastFewHands.push(mouse);
-    if (lastFewHands.length > 7) {
+    if (lastFewHands.length > 5) {
         lastFewHands.shift();  //remove first
     }
     let xTotal = 0;
@@ -178,8 +117,6 @@ function averageLastFewHands(mouse) {
     mouse.z = zTotal / lastFewHands.length;
     handProxy.position.x = mouse.x;
     handProxy.position.y = mouse.y;
-    // handProxy.position.z = 200 + mouse.z * 100 * 800;
-    //console.log("mouse", handProxy.position.z);
     return mouse;
 }
 
@@ -236,7 +173,7 @@ function init3D() {
     handProxy = new THREE.Mesh(geometry, material);
     camera3D.add(handProxy);  //add this relative to the camera
     scene.add(camera3D);  //add the camera to the scene so we can see the dot
-    handProxy.position.z = -30;
+    handProxy.position.z = -50;
 
 
     var planeGeo = new THREE.PlaneGeometry(512, 512);
@@ -244,7 +181,6 @@ function init3D() {
     let mat = new THREE.MeshBasicMaterial({ map: p5Texture, transparent: true, opacity: 1, side: THREE.DoubleSide });
     let p5OverLay = new THREE.Mesh(planeGeo, mat);
     p5OverLay.lookAt(0, 0, 0);
-
     p5OverLay.position.z = -450;
     camera3D.add(p5OverLay);
 
@@ -253,20 +189,6 @@ function init3D() {
     camera3D.position.z = 0;
     animate();
 }
-
-function find3DCoornatesInFrontOfCamera(distance, mouse) {
-    let vector = new THREE.Vector3();
-    vector.set(
-        (mouse.x / window.innerWidth) * 2 - 1,
-        - (mouse.y / window.innerHeight) * 2 + 1,
-        0
-    );
-    //vector.set(0, 0, 0); //would be middle of the screen where input box is
-    vector.unproject(camera3D);
-    vector.multiplyScalar(distance)
-    return vector;
-}
-
 
 function hitTest(x, y) {  //called from onDocumentMouseDown()
     let mouser = { "x": 0, "y": 0 };
@@ -290,8 +212,8 @@ function hitTest(x, y) {  //called from onDocumentMouseDown()
 function animate() {
     requestAnimationFrame(animate);
     p5Texture.needsUpdate = true;
-    for (key in texts) {
-        refreshText(texts[key], false);
+    for (var i = 0; i < texts.length; i++) {
+        texts[i].texture.needsUpdate = true;
     }
     renderer.render(scene, camera3D);
 }
