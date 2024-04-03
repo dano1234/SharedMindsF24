@@ -49,15 +49,15 @@ function init3D() {
         //cube.scale.x += dir;
         //cube.scale.y += dir;
         //cube.scale.z += dir;
-        cube.position.y += dir * speed;
+        cube.position.z += dir * speed;
         cube.rotation.x += 0.01;
         cube.rotation.y += 0.01;
 
         // if (cube.scale.x > 4 || cube.scale.x < -4) {
-        if (cube.position.y < -100) dir = 1;
-        if (cube.position.y > 0) dir = -1;
+        if (cube.position.z < -100) dir = 1;
+        if (cube.position.z > 0) dir = -1;
 
-        console.log(cube.position.z);
+        //console.log(cube.position.z);
         renderer.render(scene, camera3D);
     });
 }
