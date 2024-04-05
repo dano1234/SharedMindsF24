@@ -283,7 +283,7 @@ function getIntersectedObject(XYpos) {
 }
 
 async function askGod() {
-    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
+    let text = "give me a json object with 12 prompts  for stable diffusion image generation organized into 4 themes"
     document.body.style.cursor = "progress";
     // // feedback.html("Waiting for reply from OpenAi...");
     const data = {
@@ -359,7 +359,7 @@ async function askForPicture(text) {
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
     console.log("Proxy Returned", proxy_said);
-    if (proxy_said.output.length == 0) {
+    if (!proxy_said.output || proxy_said.output.length == 0) {
         alert("Something went wrong, try it again");
     } else {
         input_image_field.value = text;
