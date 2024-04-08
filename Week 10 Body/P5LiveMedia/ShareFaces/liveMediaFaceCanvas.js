@@ -14,8 +14,8 @@ function setup() {
     //  document.body.append(myCanvas.elt);
     myCanvas.hide();
     myMask = createGraphics(width, height); //this is for the setting the alpha layer around face
-    myMask.fill(0,0,0,255); //opaque to start
-    myMask.rect(0, 0, width,height);
+    myMask.fill(0, 0, 0, 255); //opaque to start
+    myMask.rect(0, 0, width, height);
 
     //myMask.rect(0, 0, width,height);
     let captureConstraints = allowCameraSelection(myCanvas.width, myCanvas.height);
@@ -59,46 +59,46 @@ function gotData(data, id) {
 
 }
 
-function gotFaceResults(results) {
-    if (results && results.length > 0) {
-        progress = "";
-        //  console.log(results[0]);
-        //DRAW THE ALPHA MASK FROM THE OUTLINE OF MASK
+// function gotFaceResults(results) {
+//     if (results && results.length > 0) {
+//         progress = "";
+//         //  console.log(results[0]);
+//         //DRAW THE ALPHA MASK FROM THE OUTLINE OF MASK
 
-        outline = results[0].annotations.silhouette;
-        myMask.clear();
-        myMask.noStroke();
-        myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-        myMask.beginShape();
-        for (var i = 0; i < outline.length - 1; i++) {
-            myMask.curveVertex(outline[i][0], outline[i][1]);
+//         outline = results[0].annotations.silhouette;
+//         myMask.clear();
+//         myMask.noStroke();
+//         myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+//         myMask.beginShape();
+//         for (var i = 0; i < outline.length - 1; i++) {
+//             myMask.curveVertex(outline[i][0], outline[i][1]);
 
-        }
-        myMask.endShape(CLOSE);
-        //Get the angle between eyes
-        let xDiff = results[0].annotations.leftEyeLower0[0][0] - results[0].annotations.rightEyeLower0[0][0];
-        let yDiff = results[0].annotations.leftEyeLower0[0][1] - results[0].annotations.rightEyeLower0[0][1]
-        headAngle = Math.atan2(yDiff, xDiff);
-        headAngle = THREE.Math.radToDeg(headAngle);
-        //console.log(headAngle);
-        if (headAngle > 12) {
-            angleOnCircle -= 0.05;
-            positionOnCircle(angleOnCircle, myAvatarObj);
-            let dataToSend = { "angleOnCircle": angleOnCircle };
-            // Send it
-            p5lm.send(JSON.stringify(dataToSend));
-        }
-        if (headAngle < -12) {
-            angleOnCircle += 0.05;
-            positionOnCircle(angleOnCircle, myAvatarObj);
-            // Package as JSON to send
+//         }
+//         myMask.endShape(CLOSE);
+//         //Get the angle between eyes
+//         let xDiff = results[0].annotations.leftEyeLower0[0][0] - results[0].annotations.rightEyeLower0[0][0];
+//         let yDiff = results[0].annotations.leftEyeLower0[0][1] - results[0].annotations.rightEyeLower0[0][1]
+//         headAngle = Math.atan2(yDiff, xDiff);
+//         headAngle = THREE.Math.radToDeg(headAngle);
+//         //console.log(headAngle);
+//         if (headAngle > 12) {
+//             angleOnCircle -= 0.05;
+//             positionOnCircle(angleOnCircle, myAvatarObj);
+//             let dataToSend = { "angleOnCircle": angleOnCircle };
+//             // Send it
+//             p5lm.send(JSON.stringify(dataToSend));
+//         }
+//         if (headAngle < -12) {
+//             angleOnCircle += 0.05;
+//             positionOnCircle(angleOnCircle, myAvatarObj);
+//             // Package as JSON to send
 
-            let dataToSend = { "angleOnCircle": angleOnCircle };
-            // Send it
-            p5lm.send(JSON.stringify(dataToSend));
-        }
-    }
-}
+//             let dataToSend = { "angleOnCircle": angleOnCircle };
+//             // Send it
+//             p5lm.send(JSON.stringify(dataToSend));
+//         }
+//     }
+// }
 function gotStream(stream, id) {
 
     myName = id;
@@ -121,8 +121,8 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     } else {
         myTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
     }
-    let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture , transparent: true});
-        //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
+    let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture, transparent: true });
+    //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
     //instead should be able to use custom blending to do this in the GPU
     //https://threejs.org/docs/#api/en/constants/CustomBlendingEquations
     videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors

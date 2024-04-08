@@ -98,7 +98,7 @@ function draw() {
     //use a mask make only the center circle to have an alpha that shows through
     myMask.ellipseMode(CENTER);
     myMask.clear()//clear the mask
-    myMask.fill(255, 255, 255, 255);//set alpha of mask
+    myMask.fill(255, 255, 255, 220);//set alpha of mask
     myMask.noStroke();
     myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
     myVideo.mask(myMask);//use alpha of mask to clip the vido

@@ -5,21 +5,26 @@ let people = [];
 let myRoomName = "mycrazyFaceCanvasRoomName";   //make a different room from classmates
 //
 let faceMesh;
+let me;
 let angleOnCircle;
+let videoAlpha = 255;
 let p5lm;
 let progress = "loading Face ML";
+let counter = 0;
 
 let handpose;
 let localHands = [];
 
 function preload() {
     // Load the handpose model.
+    console.log('loading handpose model');
     handpose = ml5.handpose();
 }
 
 
 let myName; //= prompt("name?");
 function setup() {
+
     myCanvas = createCanvas(512, 512);
     //  document.body.append(myCanvas.elt);
     myCanvas.hide();
@@ -52,7 +57,7 @@ function setup() {
     // });
 
     // facemesh.on("predict", gotFaceResults);
-    handpose.detectStart(video, gotLocalHands);
+    handpose.detectStart(myVideo, gotLocalHands);
     init3D();
 }
 
@@ -60,16 +65,42 @@ function setup() {
 // Callback function for when handpose outputs data
 function gotLocalHands(results) {
     // save the output to the localHands variable
+    counter++;
     localHands = results;
+    if (localHands.length > 0) {
+        if (me) {
+            me.handPos = localHands[0].keypoints3D;
+            arrangeHandDots(me);
+        }
+        if (counter % 10 == 0) {
+            let dataToSend = { "angleOnCircle": me.angleOnCircle, "handPos": localHands[0].keypoints3D };
+            p5lm.send(JSON.stringify(dataToSend));
+        }
+    }
+
+}
+
+function arrangeHandDots(person) {
+    let handDots = person.handDots;
+    let handPos = person.handPos;
+
+    for (var i = 0; i < handDots.length; i++) {
+
+        handDots[i].position.set(handPos[i].x * 2000, handPos[i].y * 2000, handPos[i].z * 2000);
+        // if (i == 3) console.log(handDots[i].position.x);
+        //console.log(handPos[i].x, handPos[i].y, handPos[i].z);
+    }
 }
 
 function gotData(data, id) {
     // If it is JSON, parse it
 
-    let d = JSON.parse(data);
+    let jsonData = JSON.parse(data);
     for (var i = 0; i < people.length; i++) {
         if (people[i].id == id) {
-            positionOnCircle(d.angleOnCircle, people[i].object);
+            people[i].handPos = jsonData.handPos;
+            arrangeHandDots(people[i]);
+            positionOnCircle(jsonData.angleOnCircle, people[i].object);
             break;
         }
     }
@@ -84,10 +115,10 @@ function gotStream(stream, id) {
     //get a network id from each person who joins
 
     stream.hide();
-    creatNewVideoObject(stream, id);
+    createNewVideoObject(stream, id);
 }
 
-function creatNewVideoObject(videoObject, id) {  //this is for remote and local
+function createNewVideoObject(videoObject, id) {  //this is for remote and local
 
     var videoGeometry = new THREE.PlaneGeometry(512, 512);
     //usually you can just feed the videoObject to the texture.  We added an extra graphics stage to remove background
@@ -108,12 +139,28 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
     scene.add(myAvatarObj);
     //position them to start based on how many people but we will let them move around
     let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
+    // let handParent = new THREE.Object3D();
+    let handParent = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+
+    myAvatarObj.add(handParent);
+    //handParent.position.set(0, 0, 3);
+    handParent.rotation.set(0, 0, Math.PI);
+    let handDots = [];
+    for (var i = 0; i < 21; i++) {
+        let thisDot = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        thisDot.scale.set(2, 2, 2);
+        handParent.add(thisDot);
+        handDots.push(thisDot);
+    }
 
     angleOnCircle = people.length * radiansPerPerson + Math.PI;
     positionOnCircle(angleOnCircle, myAvatarObj);
+    let thisObject = { "handPos": [], "handDots": handDots, "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
 
-    people.push({ "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage });
+    if (id == "me") me = thisObject;
+    people.push(thisObject);
 }
+
 
 function gotDisconnect(id) {
     for (var i = 0; i < people.length; i++) {
@@ -143,17 +190,24 @@ function draw() {
             people[i].texture.needsUpdate = true;
         } else if (people[i].videoObject.elt.readyState == people[i].videoObject.elt.HAVE_ENOUGH_DATA) {
             //remove background that became black and not transparent  in transmission
+            myMask.ellipseMode(CENTER);
+            myMask.clear()//clear the mask
+            myMask.fill(255, 255, 255, videoAlpha);//set alpha of mask
+            myMask.noStroke();
+            myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
+            people[i].videoObject.mask(myMask);//use alpha of mask to clip the vido
+
             people[i].extraGraphicsStage.image(people[i].videoObject, 0, 0);
-            people[i].extraGraphicsStage.loadPixels();
-            for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
-                let r = people[i].extraGraphicsStage.pixels[j];
-                let g = people[i].extraGraphicsStage.pixels[j + 1];
-                let b = people[i].extraGraphicsStage.pixels[j + 2];
-                if (r + g + b < 10) {
-                    people[i].extraGraphicsStage.pixels[j + 3] = 0;
-                }
-            }
-            people[i].extraGraphicsStage.updatePixels();
+            // people[i].extraGraphicsStage.loadPixels();
+            // for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
+            //     let r = people[i].extraGraphicsStage.pixels[j];
+            //     let g = people[i].extraGraphicsStage.pixels[j + 1];
+            //     let b = people[i].extraGraphicsStage.pixels[j + 2];
+            //     if (r + g + b < 10) {
+            //         people[i].extraGraphicsStage.pixels[j + 3] = 0;
+            //     }
+            // }
+            // people[i].extraGraphicsStage.updatePixels();
             people[i].texture.needsUpdate = true;
         }
 
@@ -165,7 +219,16 @@ function draw() {
     //now daw me on  the canvas I am sending out to the group
     //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
     //myMask was drawn when ML5 face mesh returned the sillouette
+    //now daw me on  the canvas I am sending out to the group
+    //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
+    //use a mask make only the center circle to have an alpha that shows through
+    myMask.ellipseMode(CENTER);
+    myMask.clear()//clear the mask
+    myMask.fill(255, 255, 255, videoAlpha);//set alpha of mask
+    myMask.noStroke();
+    myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
     myVideo.mask(myMask);//use alpha of mask to clip the vido
+
 
     clear();//for making background transparent on the main picture
 
@@ -184,7 +247,7 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    creatNewVideoObject(myCanvas, "me");
+    createNewVideoObject(myCanvas, "me");
 
     let bgGeometery = new THREE.SphereGeometry(900, 100, 40);
     //let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)

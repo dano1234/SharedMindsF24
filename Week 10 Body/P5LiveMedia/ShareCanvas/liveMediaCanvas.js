@@ -30,16 +30,16 @@ function setup() {
 
     textInput = createInput("");
     let button = createButton("Add Text");
-    button.mousePressed( myTextInputEvent);
+    button.mousePressed(myTextInputEvent);
     init3D();
 }
 
 function myTextInputEvent() {
 
-        console.log(textInput.value());
-        //when they hit return in text box add a new word
-        //use an "object literal" to stor multiple variables for each word in JSON format, place them randomly
-        if (textInput.value() != "")
+    console.log(textInput.value());
+    //when they hit return in text box add a new word
+    //use an "object literal" to stor multiple variables for each word in JSON format, place them randomly
+    if (textInput.value() != "")
         words.push({ "word": textInput.value(), "x": random(0, width), "y": random(0, height), "xSpeed": 1, "ySpeed": 1 });
 
 }
@@ -79,6 +79,15 @@ function draw() {
     }
 
     //draw the video
+    //now daw me on  the canvas I am sending out to the group
+    //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
+    //use a mask make only the center circle to have an alpha that shows through
+    myMask.ellipseMode(CENTER);
+    myMask.clear()//clear the mask
+    myMask.fill(255, 255, 255, 220);//set alpha of mask
+    myMask.noStroke();
+    myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
+    myVideo.mask(myMask);//use alpha of mask to clip the vido
     clear();
     image(myVideo, (myCanvas.width - myVideo.width) / 2, (myCanvas.height - myVideo.height) / 2);
     //bouncing ball logic to show off canvas with bouncing text.
