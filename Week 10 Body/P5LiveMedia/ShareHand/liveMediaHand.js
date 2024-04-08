@@ -11,6 +11,7 @@ let videoAlpha = 255;
 let p5lm;
 let progress = "loading Face ML";
 let counter = 0;
+let goodPoints = [3, 4, 7, 8, 11, 12, 14, 15, 19, 20];
 
 let handpose;
 let localHands = [];
@@ -69,13 +70,15 @@ function gotLocalHands(results) {
     localHands = results;
     if (localHands.length > 0) {
         if (me) {
+
             me.handPos = localHands[0].keypoints3D;
             arrangeHandDots(me);
         }
-        if (counter % 10 == 0) {
-            let dataToSend = { "angleOnCircle": me.angleOnCircle, "handPos": localHands[0].keypoints3D };
-            p5lm.send(JSON.stringify(dataToSend));
-        }
+        // if (counter % 10 == 0) {
+        //console.log(localHands[0].keypoints3D);
+        let dataToSend = { "angleOnCircle": me.angleOnCircle, "handPos": localHands[0].keypoints3D };
+        p5lm.send(JSON.stringify(dataToSend));
+        //}
     }
 
 }
@@ -84,12 +87,17 @@ function arrangeHandDots(person) {
     let handDots = person.handDots;
     let handPos = person.handPos;
 
-    for (var i = 0; i < handDots.length; i++) {
-
-        handDots[i].position.set(handPos[i].x * 2000, handPos[i].y * 2000, handPos[i].z * 2000);
+    // if (me.handPos.length == 0) {
+    //     me.handParent.visible = false;
+    // } else {
+    //me.handParent.visible = true;
+    for (var i = 0; i < goodPoints.length; i++) {
+        let goodPoint = goodPoints[i];
+        handDots[i].position.set(handPos[goodPoint].x * 1000, handPos[goodPoint].y * 1000, handPos[goodPoint].z * 1000);
         // if (i == 3) console.log(handDots[i].position.x);
         //console.log(handPos[i].x, handPos[i].y, handPos[i].z);
     }
+    //  }
 }
 
 function gotData(data, id) {
@@ -100,7 +108,7 @@ function gotData(data, id) {
         if (people[i].id == id) {
             people[i].handPos = jsonData.handPos;
             arrangeHandDots(people[i]);
-            positionOnCircle(jsonData.angleOnCircle, people[i].object);
+            //  positionOnCircle(jsonData.angleOnCircle, people[i].object);
             break;
         }
     }
@@ -140,22 +148,20 @@ function createNewVideoObject(videoObject, id) {  //this is for remote and local
     //position them to start based on how many people but we will let them move around
     let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
     // let handParent = new THREE.Object3D();
-    let handParent = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
-
+    let handParent = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0x00000000 }));
     myAvatarObj.add(handParent);
-    //handParent.position.set(0, 0, 3);
-    handParent.rotation.set(0, 0, Math.PI);
+    handParent.position.set(0, -100, 300);
+    handParent.rotation.set(Math.PI, Math.PI, 0);
     let handDots = [];
-    for (var i = 0; i < 21; i++) {
-        let thisDot = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-        thisDot.scale.set(2, 2, 2);
+    for (var i = 0; i < goodPoints.length; i++) {
+        let thisDot = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xff0000 }));//thisDot.scale.set(2, 2, 2);
         handParent.add(thisDot);
         handDots.push(thisDot);
     }
 
     angleOnCircle = people.length * radiansPerPerson + Math.PI;
     positionOnCircle(angleOnCircle, myAvatarObj);
-    let thisObject = { "handPos": [], "handDots": handDots, "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
+    let thisObject = { "handPos": [], "handDots": handDots, "handParent": handParent, "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
 
     if (id == "me") me = thisObject;
     people.push(thisObject);
@@ -236,7 +242,7 @@ function draw() {
     textSize(32);
     fill(255)
     text(myName, width / 2 - textWidth(myName) / 2, height - 80);
-    text(progress, 100, 100);
+    // text(progress, 100, 100);
 }
 
 function init3D() {
