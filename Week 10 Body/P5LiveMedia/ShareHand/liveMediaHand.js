@@ -12,6 +12,7 @@ let p5lm;
 let progress = "loading Face ML";
 let counter = 0;
 let goodPoints = [3, 4, 7, 8, 11, 12, 14, 15, 19, 20];
+let in_front_of_you;
 
 let handpose;
 let localHands = [];
@@ -42,7 +43,7 @@ function setup() {
     // myVideo.size(myCanvas.width, myCanvas.height);
     myVideo.elt.muted = true;
     myVideo.hide()
-
+    init3D();
     p5lm = new p5LiveMedia(this, "CANVAS", myCanvas, myRoomName)
     p5lm.on('stream', gotStream);
     p5lm.on('disconnect', gotDisconnect);
@@ -59,24 +60,40 @@ function setup() {
 
     // facemesh.on("predict", gotFaceResults);
     handpose.detectStart(myVideo, gotLocalHands);
-    init3D();
+
 }
 
 
 // Callback function for when handpose outputs data
 function gotLocalHands(results) {
+
     // save the output to the localHands variable
     counter++;
     localHands = results;
     if (localHands.length > 0) {
-        if (me) {
 
+        if (me) {
+            let lonChange = 0;
+            if (localHands[0].wrist.x > 3 * width / 4) {
+                lonChange = -1;
+            }
+            if (localHands[0].wrist.x < width / 4) {
+                lonChange = 1;
+            }
+            if (lonChange != 0) {
+                lon += lonChange;
+                computeCameraOrientation();
+                me.pos = getPositionInFrontOfCamera(200);
+                me.object.position.set(me.pos.x, me.pos.y, me.pos.z);
+                me.object.lookAt(0, 0, 0);
+
+            }
             me.handPos = localHands[0].keypoints3D;
             arrangeHandDots(me);
         }
         // if (counter % 10 == 0) {
         //console.log(localHands[0].keypoints3D);
-        let dataToSend = { "angleOnCircle": me.angleOnCircle, "handPos": localHands[0].keypoints3D };
+        let dataToSend = { "angleOnCircle": me.pos, "handPos": localHands[0].keypoints3D };
         p5lm.send(JSON.stringify(dataToSend));
         //}
     }
@@ -132,26 +149,36 @@ function createNewVideoObject(videoObject, id) {  //this is for remote and local
     //usually you can just feed the videoObject to the texture.  We added an extra graphics stage to remove background
     let extraGraphicsStage = createGraphics(width, height)
     let myTexture;
+    parentObject = new THREE.Object3D();
+    scene.add(parentObject);
     if (id == "me") {
         myTexture = new THREE.Texture(videoObject.elt);  //NOTICE THE .elt  this give the element
+        // myTexture = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     } else {
         myTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
+        videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
     }
     let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture, transparent: true });
+
+
     //NEED HELP FIGURING THIS OUT. There has to be a way to remove background without the pixel by pixel loop currently in draw
     //instead should be able to use custom blending to do this in the GPU
     //https://threejs.org/docs/#api/en/constants/CustomBlendingEquations
-    videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
-    myAvatarObj = new THREE.Mesh(videoGeometry, videoMaterial);
 
-    scene.add(myAvatarObj);
+    myAvatarObj = new THREE.Mesh(videoGeometry, videoMaterial);
+    if (id == "me") myAvatarObj.visible = false;  //don't show my own video
+    lon = Math.random() * Math.PI * 2;
+    let pos = getPositionInFrontOfCamera(100);
+    parentObject.position.set(pos.x, pos.y, pos.z);
+    //if (id == "me") myAvatarObj.scale.set(.001, .001, .001);  //flip the video for me   
+    parentObject.add(myAvatarObj);
     //position them to start based on how many people but we will let them move around
     let radiansPerPerson = Math.PI / (people.length + 1);  //spread people out over 180 degrees?
-    // let handParent = new THREE.Object3D();
-    let handParent = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0x00000000 }));
-    myAvatarObj.add(handParent);
-    handParent.position.set(0, -100, 300);
-    handParent.rotation.set(Math.PI, Math.PI, 0);
+    let handParent = new THREE.Object3D();
+    // let handParent = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0x00000000 }));
+    parentObject.add(handParent);
+    handParent.position.set(0, -100, -100);
+    handParent.rotation.set(0, 0, -Math.PI);
     let handDots = [];
     for (var i = 0; i < goodPoints.length; i++) {
         let thisDot = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xff0000 }));//thisDot.scale.set(2, 2, 2);
@@ -159,9 +186,9 @@ function createNewVideoObject(videoObject, id) {  //this is for remote and local
         handDots.push(thisDot);
     }
 
-    angleOnCircle = people.length * radiansPerPerson + Math.PI;
-    positionOnCircle(angleOnCircle, myAvatarObj);
-    let thisObject = { "handPos": [], "handDots": handDots, "handParent": handParent, "object": myAvatarObj, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
+    //angleOnCircle = people.length * radiansPerPerson + Math.PI;
+    //positionOnCircle(angleOnCircle, myAvatarObj);
+    let thisObject = { "pos": pos, "handPos": [], "handDots": handDots, "object": parentObject, "texture": myTexture, "id": id, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage };
 
     if (id == "me") me = thisObject;
     people.push(thisObject);
@@ -253,7 +280,7 @@ function init3D() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    createNewVideoObject(myCanvas, "me");
+
 
     let bgGeometery = new THREE.SphereGeometry(900, 100, 40);
     //let bgGeometery = new THREE.CylinderGeometry(725, 725, 1000, 10, 10, true)
@@ -265,10 +292,29 @@ function init3D() {
     let back = new THREE.Mesh(bgGeometery, backMaterial);
     scene.add(back);
 
-    moveCameraWithMouse();
+    //just a place holder the follows the camera and marks location to drop incoming  pictures
+    //tiny little dot (could be invisible) 
+    let geometryFront = new THREE.SphereBufferGeometry(3, 32, 16);
+    //var geometryFront = new THREE.BoxGeometry(10, 10, 10);
+    var materialFront = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+    in_front_of_you = new THREE.Mesh(geometryFront, materialFront);
+    // in_front_of_you.position.set(0, 0, -distanceFromCenter);  //base the the z position on camera field of view
+    camera3D.add(in_front_of_you); // then add in front of the camera (not scene) so it follow it
 
+    createNewVideoObject(myCanvas, "me");
+    moveCameraWithMouse();
+    camera3D.position.y = 0;
+    camera3D.position.x = 0;
     camera3D.position.z = 0;
     animate();
+}
+
+function getPositionInFrontOfCamera(distance) {
+    //use the object you placed in front of the camera in init3D
+    const posInWorld = new THREE.Vector3();
+    in_front_of_you.position.set(0, 0, -distance);  //base the the z position on camera field of view
+    in_front_of_you.getWorldPosition(posInWorld);
+    return posInWorld;
 }
 
 function animate() {
@@ -294,6 +340,7 @@ function moveCameraWithMouse() {
     document.addEventListener('wheel', onDocumentMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
     camera3D.target = new THREE.Vector3(0, 0, 0);
+    computeCameraOrientation()
 }
 
 function onDocumentKeyDown(event) {
