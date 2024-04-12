@@ -8,7 +8,7 @@ canvas.style.left = "0px";
 canvas.style.top = "0px";
 document.body.append(canvas);
 let ctx = canvas.getContext('2d');
-
+let width, height;
 let myCluster;
 let physics;
 
@@ -41,7 +41,6 @@ createUniverseField.addEventListener("keyup", function (event) {
     }
 });
 
-
 function init() {
     physics = new VerletPhysics2D();
     physics.setWorldBounds([0, 0, window.innerWidth, window.innerHeight]);
@@ -53,7 +52,8 @@ function init() {
     else {
         console.log("no embeddings");
     }
-
+    width = window.innerWidth;
+    height = window.innerHeight;
     //physics.setDrag(0.01);
     // physics.addBehavior(new TOX.GravityBehavior(new TOX.Vec2D(0, 0.1)));
     // physics.addBehavior(new TOX.AttractionBehavior(new TOX.Vec2D(window.innerWidth / 2, window.innerHeight / 2), window.innerWidth / 2, 0.01));
@@ -80,7 +80,8 @@ class Particle extends VerletParticle2D {
         ctx.fillStyle = "rgba(127,127,127,127)";
         ctx.strokeStyle = "rgba(0,0,0,127)";
         ctx.font = "14px Arial";
-        ctx.fillText(this.text, this.x, this.y);
+        let w = ctx.measureText(this.text).width;
+        ctx.fillText(this.text, this.x - w / 2, this.y);
     }
 }
 
@@ -90,21 +91,22 @@ class Cluster {
 
         //start them off in UMAP positions
         for (let i = 0; i < sentencesAndEmbeddings.length; i++) {
-            let umapx = UMAPFittings[i][0]// * window.innerWidth / 5;
-            let umapy = UMAPFittings[i][1]// * window.innerHeight / 5;
+
+            let umapx = UMAPFittings[i][0]; //* window.innerWidth / 5;
+            let umapy = UMAPFittings[i][1]; //* window.innerHeight / 5;
             let text = sentencesAndEmbeddings[i].input;
-            this.particles.push(new Particle(Math.random() * 5 - 2 + window.innerWidth / 2, Math.random() * 5 - 2 + window.innerHeight / 2, umapx, umapy, text));
+            this.particles.push(new Particle(umapx * window.innerWidth / 2, umapy * window.innerHeight / 2, umapx, umapy, text));
         }
         for (let i = 0; i < this.particles.length - 1; i++) {
             for (let j = 0; j < this.particles.length; j++) {
                 if (i != j) {
                     // var distance = Math.sqrt((Math.pow(this.particles[i].x - this.particles[j].x, 2)) + (Math.pow(this.particles[i].y - this.particles[j].y, 2)))
-                    var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+                    var distance = 100 * Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
                     //console.log("distance", distance);
                     //let distance = this.particles[i].distanceTo(this.particles[j]);
                     // if (distance < 100) {
                     //physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance, 0.0001));
-                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], distance, .1));
+                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], distance, 50));
                     // }
                 }
             }
@@ -205,11 +207,12 @@ function runUMAP(embeddingsAndSentences) {
     }
     //let fittings = runUMAP(embeddings);
     var myrng = new Math.seedrandom('hello.');
+
     let umap = new UMAP({
-        nNeighbors: 6,
-        minDist: .5,
+        nNeighbors: 3,
+        minDist: .9,
         nComponents: 2,
-        random: myrng,  //special library seeded random so it is the same randome numbers every time
+        random: myrng,  //special library seeded random so it is the same random numbers every time
         spread: .99,
         //distanceFn: 'cosine',
     });
