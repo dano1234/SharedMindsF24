@@ -192,7 +192,8 @@ async function createUniverse(universalMotto) {
     document.body.style.cursor = "progress";
     //let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
 
-    let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
+    //let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
+    let text = "give me a json object with 36 prompts for stable diffusion image generation related to " + universalMotto + " organized into 6 themes"
 
     // // feedback.html("Waiting for reply from OpenAi...");
 
@@ -222,6 +223,7 @@ async function createUniverse(universalMotto) {
     console.log("openAI_json", openAI_json.choices[0].text);
     let arrayOfStrings = openAI_json.choices[0].text.split("\n");
     let sentences = "";
+    let images = [];
     //clean up the sentences, replicate want string with /n delims
     for (let i = 0; i < arrayOfStrings.length; i++) {
         let thisSentence = arrayOfStrings[i].substring(1);
@@ -231,7 +233,50 @@ async function createUniverse(universalMotto) {
         console.log("prompt created", thisSentence);
         //GET AND EMBEDDING FOR EACH SENTENCE
         sentences += thisSentence + "\n";
+        let thisPrompt = { prompt: thisSentence, imageURL: "" };
+        images.push(thisPrompt);
     }
+
+    //////////GET IMAGES
+    let b64Canvas = document.createElement('canvas');
+    for (var i = 0; i < images.length; i++) {
+        let thisImage = images[i];
+
+        let imageData = {
+            version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+            input: {
+                prompt: thisImage.prompt,
+            },
+        };
+        console.log("Asking for Images From Replicate via Proxy", data);
+        options = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(imageData),
+        };
+        let replicateProxy = "https://replicate-api-proxy.glitch.me"
+
+        let replicateURL = replicateProxy + "/create_n_get/";
+        console.log("url", replicateURL, "options", options);
+        let raw = await fetch(replicateURL, options)
+        const imagesJSON = await raw.json();
+        console.log("imagesJSON", imagesJSON.output[0]);
+        thisImage.imageURL = imagesJSON.output[0];
+        let img = new Image();
+        img.src = thisImage.imageURL;
+        img.crossOrigin = "Anonymous";
+        img.onload = function () {
+            b64Canvas.width = img.width;
+            b64Canvas.height = img.height;
+            let b64ctx = b64Canvas.getContext('2d');
+            b64ctx.drawImage(img, 0, 0, img.width, img.height);
+            let b64 = b64Canvas.toDataURL("image/jpeg");
+            thisImage.b64Image = b64;
+        }
+    }
+    console.log("images", images);
 
     //////////GET EMBEDDINGS
     //document.getElementById("feedback").innerHTML = "Getting Embeddings...";
@@ -250,7 +295,7 @@ async function createUniverse(universalMotto) {
         },
         body: JSON.stringify(embeddingData),
     };
-    const replicateProxy = "https://replicate-api-proxy.glitch.me"
+    replicateProxy = "https://replicate-api-proxy.glitch.me"
 
     const replicateURL = replicateProxy + "/create_n_get/";
     console.log("url", replicateURL, "options", options);
@@ -258,7 +303,7 @@ async function createUniverse(universalMotto) {
     const embeddingsJSON = await raw.json();
     console.log("embeddingsJSON", embeddingsJSON.output);
     document.body.style.cursor = "auto";
-    localStorage.setItem("embeddings", JSON.stringify(embeddingsJSON.output));
+    localStorage.setItem("embeddingsAndImages", JSON.stringify(embeddingsJSON.output));
     runUMAP(embeddingsJSON.output)
 }
 
@@ -322,21 +367,21 @@ animate();
 
 
 
-function placeSentence(sentence, fitting) {
-    console.log("placeSentence", sentence, fitting);
-    ctx.font = "20px Arial";
-    ctx.fillStyle = "rgba(100,100,100,127)";
-    let width = ctx.measureText(sentence).width;
-    ctx.fillText(sentence, fitting[0] * window.innerWidth, fitting[1] * window.innerHeight);
+// function placeSentence(sentence, fitting) {
+//     console.log("placeSentence", sentence, fitting);
+//     ctx.font = "20px Arial";
+//     ctx.fillStyle = "rgba(100,100,100,127)";
+//     let width = ctx.measureText(sentence).width;
+//     ctx.fillText(sentence, fitting[0] * window.innerWidth, fitting[1] * window.innerHeight);
 
-    //or use DOM elements
-    // let sentenceDiv = document.createElement('div');
-    // sentenceDiv.style.position = "absolute";
-    // sentenceDiv.style.left = fitting[0] * window.innerWidth + "px";
-    // sentenceDiv.style.top = fitting[1] * window.innerHeight + "px";
-    // sentenceDiv.style.transform = "translate(-100%,-50%)";
-    // sentenceDiv.style.width = "100px";
-    // sentenceDiv.style.backgroundColor = "rgba(255,255,255,.5)";
-    // sentenceDiv.innerHTML = sentence;
-    // document.body.append(sentenceDiv);
-}
+//     //or use DOM elements
+//     // let sentenceDiv = document.createElement('div');
+//     // sentenceDiv.style.position = "absolute";
+//     // sentenceDiv.style.left = fitting[0] * window.innerWidth + "px";
+//     // sentenceDiv.style.top = fitting[1] * window.innerHeight + "px";
+//     // sentenceDiv.style.transform = "translate(-100%,-50%)";
+//     // sentenceDiv.style.width = "100px";
+//     // sentenceDiv.style.backgroundColor = "rgba(255,255,255,.5)";
+//     // sentenceDiv.innerHTML = sentence;
+//     // document.body.append(sentenceDiv);
+// }
