@@ -73,7 +73,7 @@ function init() {
     physics.setWorldBounds(new Rect(100, 100, window.innerWidth - 200, window.innerHeight - 200));
     physics.addBehavior(new GravityBehavior(new Vec2D(0, 0.5)));
 
-    let embeddingsAndSentences = JSON.parse(localStorage.getItem("embeddings"));
+    let embeddingsAndSentences; //= JSON.parse(localStorage.getItem("embeddingsAndImages"));
     if (embeddingsAndSentences) {
         runUMAP(embeddingsAndSentences);
     }
@@ -91,8 +91,8 @@ function init() {
 }
 
 function animate() {
-    if (myCluster);
-    myCluster.show();
+    if (myCluster)
+        myCluster.show();
     requestAnimationFrame(animate);
 }
 
@@ -170,7 +170,7 @@ class Cluster {
                     //let distance = this.particles[i].distanceTo(this.particles[j]);
                     // if (distance < 100) {
                     //physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance * window.innerWidth, 0.1));
-                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 200, distance));
+                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 175, distance));
                     // }
                 }
             }
@@ -190,6 +190,8 @@ class Cluster {
 
 async function createUniverse(universalMotto) {
     document.body.style.cursor = "progress";
+    let replicateProxy = "https://replicate-api-proxy.glitch.me"
+    const openAIProxy = "https://openai-api-proxy.glitch.me";
     //let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
 
     //let text = "give me a json object with 36 short descriptions of a people with the motto " + universalMotto + " organized into  6 different types of people";
@@ -213,7 +215,7 @@ async function createUniverse(universalMotto) {
         },
         body: JSON.stringify(data),
     };
-    const openAIProxy = "https://openai-api-proxy.glitch.me";
+
 
     const url = openAIProxy + "/AskOpenAI/";  //"/askOpenAIChat/"; // 
     console.log("asking sentences", url, "words options", options);
@@ -240,6 +242,7 @@ async function createUniverse(universalMotto) {
     //////////GET IMAGES
     let b64Canvas = document.createElement('canvas');
     for (var i = 0; i < images.length; i++) {
+        //for (var i = 0; i < images.length; i++) {
         let thisImage = images[i];
 
         let imageData = {
@@ -248,7 +251,7 @@ async function createUniverse(universalMotto) {
                 prompt: thisImage.prompt,
             },
         };
-        console.log("Asking for Images From Replicate via Proxy", data);
+        console.log("Asking for Image From Replicate via Proxy");
         options = {
             method: "POST",
             headers: {
@@ -256,7 +259,7 @@ async function createUniverse(universalMotto) {
             },
             body: JSON.stringify(imageData),
         };
-        let replicateProxy = "https://replicate-api-proxy.glitch.me"
+
 
         let replicateURL = replicateProxy + "/create_n_get/";
         console.log("url", replicateURL, "options", options);
@@ -267,13 +270,14 @@ async function createUniverse(universalMotto) {
         let img = new Image();
         img.src = thisImage.imageURL;
         img.crossOrigin = "Anonymous";
+        let imageLoc = i;
         img.onload = function () {
             b64Canvas.width = img.width;
             b64Canvas.height = img.height;
             let b64ctx = b64Canvas.getContext('2d');
             b64ctx.drawImage(img, 0, 0, img.width, img.height);
             let b64 = b64Canvas.toDataURL("image/jpeg");
-            thisImage.b64Image = b64;
+            images[imageLoc].b64Image = b64;
         }
     }
     console.log("images", images);
@@ -295,15 +299,28 @@ async function createUniverse(universalMotto) {
         },
         body: JSON.stringify(embeddingData),
     };
-    replicateProxy = "https://replicate-api-proxy.glitch.me"
+    //replicateProxy = "https://replicate-api-proxy.glitch.me"
 
     const replicateURL = replicateProxy + "/create_n_get/";
     console.log("url", replicateURL, "options", options);
     const raw = await fetch(replicateURL, options)
     const embeddingsJSON = await raw.json();
-    console.log("embeddingsJSON", embeddingsJSON.output);
+    for (let i = 0; i < embeddingsJSON.output.length; i++) {
+
+        // if (embeddingsJSON.output[i].input == images[i].prompt) {
+        images[i].embedding = embeddingsJSON.output[i].embedding;
+        //  } else {
+        console.log("mismatch", images[i].embedding, embeddingsJSON.output[i].input, images[i].prompt);
+        // }
+    }
+    //console.log("embeddingsJSON", embeddingsJSON.output);
+
     document.body.style.cursor = "auto";
-    localStorage.setItem("embeddingsAndImages", JSON.stringify(embeddingsJSON.output));
+
+    localStorage.setItem("embeddingsAndImages", JSON.stringify(images));
+    //console.log("embeddingsAndImages", embeddingsJSON.output);
+    //localStorage.setItem("images", JSON.stringify(images));
+
     runUMAP(embeddingsJSON.output)
 }
 
