@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { createObject, removeObject } from "./embeddingsFirbasedForce.js";
+import { createObject, removeObject } from "./embeddingsFirebasedPhysics.js";
 
 
 //use var instead of let in module to make it global

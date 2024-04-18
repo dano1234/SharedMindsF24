@@ -16,10 +16,114 @@ var input_image_field;
 let feedback;
 let feature;
 
+let myCluster;
+let physics;
+
+let {
+    VerletPhysics2D,
+    VerletParticle2D,
+    VerletSpring2D,
+    VerletMinDistanceSpring2D,
+} = toxi.physics2d;
+let { GravityBehavior } = toxi.physics2d.behaviors;
+
+let { Vec2D, Rect } = toxi.geom;
+
 initWebInterface();
 init3D();
 initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
 
+
+class Particle extends VerletParticle2D {
+    constructor(x, y, umapx, umapy, text) {
+        super(x, y);
+        this.umapx = umapx;
+        this.umapy = umapy;
+        this.currentX = this.umapx * window.innerWidth;
+        this.currentY = this.umapy * window.innerHeight;
+
+        this.text = text;
+        // this.selected = false;
+        this.inCluster = true;
+    }
+
+    show() {
+        ctx.fillStyle = "rgba(127,0,127,127)";
+        ctx.strokeStyle = "rgba(0,0,0,127)";
+
+        this.currentX = this.umapx * window.innerWidth;
+        this.currentY = this.umapy * window.innerHeight;
+        if (this.inCluster) {
+            this.currentX = this.x;
+            this.currentY = this.y;
+        }
+        // if (this.selected) {
+        //     ctx.beginPath();
+        //     ctx.arc(this.currentX, this.currentY, 10, 0, Math.PI * 2);
+        //     ctx.fill();
+        //     ctx.stroke();
+        //     //  ctx.font = "24px Arial";
+        //     // let w = ctx.measureText(this.text).width;
+        //     //ctx.fillText(this.text, this.currentX - w / 2, this.currentY);
+        // } else {
+        ctx.beginPath();
+        ctx.arc(this.currentX, this.currentY, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // }
+    }
+    showText() {
+        showText.style.display = "block";
+        showText.style.left = this.currentX + "px";
+        showText.style.top = this.currentY + "px";
+        showText.innerHTML = this.text;
+        console.log("showText", showText);
+    }
+    hideText() {
+        showText.style.display = "none";
+    }
+}
+
+
+class Cluster {
+    constructor(sentencesAndEmbeddings, UMAPFittings) {
+        this.particles = [];
+
+        //start them off in UMAP positions
+        for (let i = 0; i < sentencesAndEmbeddings.length; i++) {
+
+            let umapx = UMAPFittings[i][0];
+            let umapy = UMAPFittings[i][1];
+            let text = sentencesAndEmbeddings[i].input;
+            let newParticle = new Particle(umapx * window.innerWidth, umapy * window.innerHeight, umapx, umapy, text);
+            physics.addParticle(newParticle);
+            this.particles.push(newParticle);
+        }
+        for (let i = 0; i < this.particles.length - 1; i++) {
+            for (let j = 0; j < this.particles.length; j++) {
+                if (i != j) {
+                    // var distance = Math.sqrt((Math.pow(this.particles[i].x - this.particles[j].x, 2)) + (Math.pow(this.particles[i].y - this.particles[j].y, 2)))
+                    var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+                    //console.log("distance", distance);
+                    //let distance = this.particles[i].distanceTo(this.particles[j]);
+                    // if (distance < 100) {
+                    //physics.addSpring(new VerletSpring2D(this.particles[i], this.particles[j], distance * window.innerWidth, 0.1));
+                    physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 175, distance));
+                    // }
+                }
+            }
+        }
+        console.log("physics", physics);
+    }
+    show() {
+        physics.update();
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        for (let particle of this.particles) {
+
+            particle.show();
+        }
+    }
+}
 
 function findClosest(toWhere, clumpSize) {
     if (objects.length == 0) return;
@@ -35,10 +139,13 @@ function findClosest(toWhere, clumpSize) {
 
     let keys = Object.keys(closeness);
     keys.sort();
+    let closest = [];
     for (let i = 0; i < clumpSize; i++) {
         let closeObject = closeness[keys[i]];
         closeObject.showText = true;
+        closest.push(closeObject);
     }
+    myCluster = new Cluster(closest);
 
 }
 
@@ -64,6 +171,7 @@ function runUMAP(data) {
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
         let obj = embeddingsAndPrompts[i];
         let pos = fittings[i];
+        object.UMAPFitting = pos;
         obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
         obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
         obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
@@ -175,6 +283,8 @@ export function updateObject(key, data) {
         incomingImage.src = image.base64Image;
     }
 }
+
+
 
 export function createObject(key, data) {
 
@@ -500,6 +610,22 @@ function initWebInterface() {
     });
     ThanosButton.style.pointerEvents = "all";
     webInterfaceContainer.append(ThanosButton);
+
+    //make a button in the upper right corner called "THANOS" that will remove many new objects
+    let PhysicsButton = document.createElement("button");
+    PhysicsButton.innerHTML = "Physics";
+    PhysicsButton.style.position = "absolute";
+    PhysicsButton.style.top = "20%";
+    PhysicsButton.style.left = "50%";
+    PhysicsButton.style.zIndex = "200";
+    PhysicsButton.style.fontSize = "20px";
+    PhysicsButton.style.color = "white";
+    PhysicsButton.style.backgroundColor = "black";
+    PhysicsButton.addEventListener("click", function () {
+        applyPhysics();
+    });
+    PhysicsButton.style.pointerEvents = "all";
+    webInterfaceContainer.append(PhysicsButton);
 
     //make a text input field
     input_image_field = document.createElement("input");
