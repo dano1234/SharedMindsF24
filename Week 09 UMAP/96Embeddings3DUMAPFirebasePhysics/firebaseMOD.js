@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { createObject, removeObject } from "./embeddingsFirebasedPhysics.js";
+import { createLocally, removeLocally } from "./main.js";
 
 
 //use var instead of let in module to make it global
@@ -27,6 +27,8 @@ export function initFirebase(_appName, _folder) {
     // if (name) {
     //     nameField.value = name;
     // }
+
+    //update to sharedminds 24
     const firebaseConfig = {
         apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
         authDomain: "shared-minds.firebaseapp.com",
@@ -50,18 +52,14 @@ function subscribeToFirebase() {
 
     onChildAdded(myRef, (data) => {
         console.log("added", data.val())
-
-        let newObject = createObject(data.key, data.val());
-        if (newObject.dbKey == localKey && object.image == null) {
-            askForPicture(text, object.key);
-        }
+        let newObject = createLocally(data.key, data.val());
     });
     onChildChanged(myRef, (data) => {
         console.log("changed", data.key, data);
         updateObject(data.key, data.val());
     });
     onChildRemoved(myRef, (data) => {
-        removeObject(data.key, data.val());
+        removeLocally(data.key, data.val());
         console.log("removed", data.key, data.val());
     });
 }
