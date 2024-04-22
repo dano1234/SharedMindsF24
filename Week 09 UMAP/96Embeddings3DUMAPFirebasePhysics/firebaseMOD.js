@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-analytics.js";
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
-import { createLocally, removeLocally } from "./main.js";
+import { createLocally, updateLocally, removeLocally } from "./main.js";
 
 
 //use var instead of let in module to make it global
@@ -51,15 +51,15 @@ function subscribeToFirebase() {
     const myRef = ref(db, path);
 
     onChildAdded(myRef, (data) => {
-        console.log("added", data.val())
+        //console.log("added", data.val())
         let newObject = createLocally(data.key, data.val());
     });
     onChildChanged(myRef, (data) => {
-        console.log("changed", data.key, data);
-        updateObject(data.key, data.val());
+        //console.log("changed", data.key, data);
+        updateLocally(data.key, data.val());
     });
     onChildRemoved(myRef, (data) => {
-        removeLocally(data.key, data.val());
+        // removeLocally(data.key, data.val());
         console.log("removed", data.key, data.val());
     });
 }

@@ -1,17 +1,14 @@
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
 import { initFirebase, destroyDatabase, localKey } from './firebaseMOD.js';
-import { Expressions } from './expressionClass.js';
-import { Cluster } from './physics.js';
-import { init3D, getPositionInFrontOfCamera } from './3DStuff.js';
-import { scene, distanceFromCenter } from './3DStuff.js';
+import { init3D, getPositionInFrontOfCamera, scene, distanceFromCenter } from './3DStuff.js';
+import { Expressions, initPhysics, addToPhysics } from './expressionClass.js';
 
+let clusterSize = 5;
 
-let clusterSize = 6;
-
-let objects = [];
-let byFirebase = {};
-let byUUID = {};
-let hitTestableThings = [];  //things that will be tested for intersection
+let objects = [];  //all the objects by number
+let byFirebase = {};  //all the objects by firebase key
+export let byUUID = {}; //all the objects by ThreeeJS UUID
+export let hitTestableThings = [];  //3D meshes that will be tested for intersection, alt scene.children for all
 
 var input_image_field;
 let feedback;
@@ -19,11 +16,13 @@ let feature;
 
 initWebInterface();
 init3D();
+initPhysics();
 initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
 
 
-function findClosest(toWhere, clumpSize) {
+export function findClosest(toWhere) {
     if (objects.length == 0) return;
+    //make a json object with the distance as the name and the object as the value
     let closeness = {};
     for (let j = 0; j < objects.length; j++) {
         let thisObject = objects[j];
@@ -33,22 +32,21 @@ function findClosest(toWhere, clumpSize) {
         closeness[distance] = thisObject;
         thisObject.showText = false;
     }
-
+    //sort by the keys (distances)
     let keys = Object.keys(closeness);
     keys.sort();
     let closest = [];
-    for (let i = 0; i < clumpSize; i++) {
+    for (let i = 0; i < Math.min(keys.length, clusterSize + 1); i++) {
         let closeObject = closeness[keys[i]];
-        console.log("closeObject", closeObject);
         closeObject.showText = true;
         closest.push(closeObject);
     }
-    // myCluster = new Cluster(closest);
-
+    //myCluster = new Cluster(closest);
 }
 
 function runUMAP(data) {
     let embeddingsAndPrompts = data;
+    // console.log("embeddingsAndPrompts", embeddingsAndPrompts);
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
@@ -80,6 +78,8 @@ function runUMAP(data) {
 
 export function createLocally(key, data) {
     let newObject = new Expressions(key, data);
+    byFirebase[key] = newObject;
+    byUUID[newObject.mesh.uuid] = newObject;
     if (newObject.key == localKey && object.image == null) {
         askForPicture(data.prompt, object.key);
     }
@@ -90,31 +90,15 @@ export function createLocally(key, data) {
     if (objects.length > 6) {
         runUMAP(objects)
     }
+    //add to physics
+    addToPhysics(newObject, objects);
     findClosest(getPositionInFrontOfCamera(), clusterSize)
 }
 
-function normalize(arrayOfNumbers) {
-    //find max and min in the array
-    let max = [0, 0, 0];
-    let min = [0, 0, 0];
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (arrayOfNumbers[i][j] > max[j]) {
-                max[j] = arrayOfNumbers[i][j];
-            }
-            if (arrayOfNumbers[i][j] < min[j]) {
-                min[j] = arrayOfNumbers[i][j];
-            }
-        }
-    }
-    console.log("max", max, "min", min);
-    //normalize
-    for (let i = 0; i < arrayOfNumbers.length; i++) {
-        for (let j = 0; j < 3; j++) {
-            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
-        }
-    }
-    return arrayOfNumbers;
+
+export function updateLocally(data) {
+    let thisExpression = byFirebase[key];
+    thisExpression.updateFromFirebase(data);
 }
 
 export function removeLocally(key, data) {
@@ -262,5 +246,27 @@ function initWebInterface() {
 
 
 
-
+function normalize(arrayOfNumbers) {
+    //find max and min in the array
+    let max = [0, 0, 0];
+    let min = [0, 0, 0];
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            if (arrayOfNumbers[i][j] > max[j]) {
+                max[j] = arrayOfNumbers[i][j];
+            }
+            if (arrayOfNumbers[i][j] < min[j]) {
+                min[j] = arrayOfNumbers[i][j];
+            }
+        }
+    }
+    //console.log("max", max, "min", min);
+    //normalize
+    for (let i = 0; i < arrayOfNumbers.length; i++) {
+        for (let j = 0; j < 3; j++) {
+            arrayOfNumbers[i][j] = (arrayOfNumbers[i][j] - min[j]) / (max[j] - min[j]);
+        }
+    }
+    return arrayOfNumbers;
+}
 

@@ -1,10 +1,29 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 
+let physics;
+// let {
+//     VerletPhysics3D,
+//     VerletParticle3D,
+//     VerletSpring3D,
+//     VerletMinDistanceSpring3D,
+// } = toxi.physics3d;
+console.log("toxi", toxi);
+let VerletMinDistanceSpring3D = toxi.physics3d.VerletMinDistanceSpring3D
+let VerletSpring3D = toxi.physics3d.VerletSpring3D
+let VerletParticle3D = toxi.physics3d.VerletParticle3D
+let VerletPhysics3D = toxi.physics3d.VerletPhysics3D
 
-export class Expressions {
+export function initPhysics() {
+    physics = new VerletPhysics3D();
+    //physics.setWorldBounds(new Rect(100, 100, window.innerWidth - 200, window.innerHeight - 200));
+    // physics.addBehavior(new GravityBehavior(new Vec2D(0, 0.5)));
+    return physics;
+}
+
+export class Expressions extends VerletParticle3D {
 
     constructor(key, data) {
-
+        super(data.location.x, data.location.y, data.location.z);
         this.key = key;
         this.prompt = data.prompt;
         this.embedding = data.embedding;
@@ -23,9 +42,10 @@ export class Expressions {
         if (this.imageData.base64Image) {
             let incomingImage = new Image();
             incomingImage.crossOrigin = "anonymous";
+            let expression = this;
             incomingImage.onload = function () {
-                console.log("loaded image", thisObject.text);
-                this.image = incomingImage;
+                //console.log("loaded image", expression.prompt);
+                expression.image = incomingImage;
             };
             incomingImage.src = this.imageData.base64Image;
         }
@@ -43,16 +63,11 @@ export class Expressions {
         this.mesh.scale.set(.1, .1, .1);
     }
     repaint() {
-        let texture = object.texture;
-        let text = object.text;
-        let image = object.image;
-        let ctx = object.context;
-        let canvas = object.canvas;
 
-        let textParts = this.text.split(" ");
+        let textParts = this.prompt.split(" ");
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (this.image) {
-            this.ctx.drawImage(image, 0, 0);
+            this.ctx.drawImage(this.image, 0, 0);
         } else {
             this.showText = true; //so far only have the text to show
         }
@@ -65,9 +80,10 @@ export class Expressions {
                 this.ctx.fillText(textParts[i], this.canvas.width / 2 - metrics.width / 2, 10 + i * fontSize);
             }
         }
+
         this.texture.needsUpdate = true;
     }
-    updateFromFirebase(data, key) {
+    updateFromFirebase(data) {
         this.text = text;
         this.embedding = embedding;
         this.location = data.location;
@@ -117,9 +133,58 @@ export function updateObject(key, data) {
     }
 }
 
+export function addToPhysics(newObject, objects) {
 
+    physics.addParticle(newObject);
+    for (let i = 0; i < objects.length - 1; i++) {
+        for (let j = 0; j < objects.length; j++) {
+            let springExists = physics.getSpring(objects[i], objects[j]);
+            if (!springExists && i != j) {
+                let xdist = objects[i].umapx - objects[j].umapx;
+                let ydist = objects[i].umapy - objects[j].umapy;
+                let zdist = objects[i].umapz - objects[j].umapz;
+                let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
+                //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+                physics.addSpring(new VerletMinDistanceSpring3D(objects[i], objects[j], 175, distance));
+            }
+        }
+    }
 
+}
 
+// export class Cluster {
+//     constructor(objects) {
+//         this.particles = [];
+
+//         //start them off in UMAP positions
+//         for (let i = 0; i < objects.length; i++) {
+
+//             let umapx = objects.UMAPFitting[0];
+//             let umapy = objects.UMAPFitting[1];
+//             let umapz = objects.UMAPFitting[2];
+//             let text = objects[i].prompt;
+//             let image = objects[i].image;
+//             let newParticle = new Particle(umapx * window.innerWidth, umapy * window.innerHeight, umapx, umapy, text, image);
+//             physics.addParticle(newParticle);
+//             this.particles.push(newParticle);
+//         }
+//         for (let i = 0; i < this.particles.length - 1; i++) {
+//             for (let j = 0; j < this.particles.length; j++) {
+//                 if (i != j) {
+//                     let xdist = this.particles[i].umapx - this.particles[j].umapx;
+//                     let ydist = this.particles[i].umapy - this.particles[j].umapy;
+//                     let zdist = this.particles[i].umapz - this.particles[j].umapz;
+//                     let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
+//                     //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+//                     physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 175, distance));
+//                     // }
+//                 }
+//             }
+//         }
+//         //console.log("physics", physics);
+//     }
+
+// }
 // export function createObject(key, data) {
 
 //     //get stuff from firebase

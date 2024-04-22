@@ -1,19 +1,22 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
+import { hitTestableThings, byUUID, findClosest } from './main.js';
 let camera3D, renderer;
 export let scene;
 let in_front_of_you;
 
-export let distanceFromCenter = 500;
 
+export let distanceFromCenter = 500;
 
 
 function animate() {
     requestAnimationFrame(animate);
-
-    // for (let i = 0; i < objects.length; i++) {
-    //     repaintObject(objects[i]);
-    // }
+    for (let uuid in byUUID) {
+        let object = byUUID[uuid];
+        object.repaint();
+        //console.log("repainting", object.prompt);
+    }
     renderer.render(scene, camera3D);
+
 }
 
 
@@ -136,14 +139,14 @@ function onDoubleClick(event) {
         featureImage.style.transform = "translate(-50%, -50%)";
         feature.append(featureImage);
         let bigCanvas = document.createElement('canvas');
-        let size = 512;
+        let size = 1024;
         bigCanvas.height = size;
         bigCanvas.width = size;
         let ctx = bigCanvas.getContext('2d');
         ctx.drawImage(intersectedObject.image, 0, 0, bigCanvas.width, bigCanvas.height);
         featureImage.append(bigCanvas);
         let featurePrompt = document.createElement("div");
-        featurePrompt.innerHTML = intersectedObject.text;
+        featurePrompt.innerHTML = intersectedObject.prompt;
         featurePrompt.style.position = "absolute";
         featurePrompt.style.textAlign = "center";
         featurePrompt.style.left = "50%";
@@ -197,12 +200,12 @@ function onMouseUp(event) {
     middle.x = (.5) * 2 - 1;
     middle.y = - (.5) * 2 + 1;
     let intersectedObject = getIntersectedObject(middle);
-    console.log("intersectedObject", intersectedObject);
+    //console.log("intersectedObject", intersectedObject);
 
     if (intersectedObject) {
-        findClosest(intersectedObject.mesh.position, clusterSize);
+        findClosest(intersectedObject.mesh.position);
     } else {
-        findClosest(getPositionInFrontOfCamera(), clusterSize)
+        findClosest(getPositionInFrontOfCamera())
     }
 
 
