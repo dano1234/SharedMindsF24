@@ -1,7 +1,7 @@
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
 import { initFirebase, destroyDatabase, localKey } from './firebaseMOD.js';
 import { init3D, getPositionInFrontOfCamera, scene, distanceFromCenter } from './3DStuff.js';
-import { Expressions, initPhysics, addToPhysics } from './expressionClass.js';
+import { Expressions, initPhysics, addToPhysics, myCluster } from './expressionClass.js';
 
 let clusterSize = 5;
 
@@ -15,9 +15,12 @@ let feedback;
 let feature;
 
 initWebInterface();
-init3D();
 initPhysics();
+init3D();
+
+
 initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
+
 
 
 export function findClosest(toWhere) {
@@ -41,7 +44,7 @@ export function findClosest(toWhere) {
         closeObject.showText = true;
         closest.push(closeObject);
     }
-    //myCluster = new Cluster(closest);
+    myCluster.addParticles(closest);
 }
 
 function runUMAP(data) {
@@ -92,7 +95,7 @@ export function createLocally(key, data) {
     }
     //add to physics
     addToPhysics(newObject, objects);
-    findClosest(getPositionInFrontOfCamera(), clusterSize)
+    findClosest(getPositionInFrontOfCamera())
 }
 
 

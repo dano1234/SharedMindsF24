@@ -1,6 +1,7 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
-
+import { getPositionInFrontOfCamera } from './3DStuff.js';
 let physics;
+export let myCluster;
 // let {
 //     VerletPhysics3D,
 //     VerletParticle3D,
@@ -8,19 +9,33 @@ let physics;
 //     VerletMinDistanceSpring3D,
 // } = toxi.physics3d;
 console.log("toxi", toxi);
-let VerletMinDistanceSpring3D = toxi.physics3d.VerletMinDistanceSpring3D
-let VerletSpring3D = toxi.physics3d.VerletSpring3D
-let VerletParticle3D = toxi.physics3d.VerletParticle3D
-let VerletPhysics3D = toxi.physics3d.VerletPhysics3D
+let VerletMinDistanceSpring2D = toxi.physics2d.VerletMinDistanceSpring2D
+//let VerletSpring2D = toxi.physics2d.VerletSpring2D
+let VerletParticle2D = toxi.physics2d.VerletParticle2D
+let VerletPhysics2D = toxi.physics2d.VerletPhysics2D
+//let Vec2D = toxi.geom.Vec2D;
+let Rect = toxi.geom.Rect;
 
 export function initPhysics() {
-    physics = new VerletPhysics3D();
+    physics = new VerletPhysics2D();
+    physics.setWorldBounds(new Rect(0, 0, 100, 100));
     //physics.setWorldBounds(new Rect(100, 100, window.innerWidth - 200, window.innerHeight - 200));
+    myCluster = new Cluster();
     // physics.addBehavior(new GravityBehavior(new Vec2D(0, 0.5)));
     return physics;
 }
 
-export class Expressions extends VerletParticle3D {
+export function updatePhysics() {
+
+    physics.update();
+    // ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    //for (let particle of this.particles) {
+
+    // particle.show();
+    // }
+}
+
+export class Expressions extends VerletParticle2D {
 
     constructor(key, data) {
         super(data.location.x, data.location.y, data.location.z);
@@ -36,6 +51,7 @@ export class Expressions extends VerletParticle3D {
         this.canvas.height = this.size;
         this.canvas.width = this.size;
         this.showText = false;
+        this.obeyPhysics = true;
 
         this.create3DObject()
 
@@ -62,6 +78,9 @@ export class Expressions extends VerletParticle3D {
         this.mesh.lookAt(0, 0, 0);
         this.mesh.scale.set(.1, .1, .1);
     }
+
+
+
     repaint() {
 
         let textParts = this.prompt.split(" ");
@@ -82,6 +101,20 @@ export class Expressions extends VerletParticle3D {
         }
 
         this.texture.needsUpdate = true;
+        if (this.obeyPhysics) {
+            let infront = getPositionInFrontOfCamera();
+            this.mesh.position.x = infront.x + this.x
+            this.mesh.position.y = infront.y + this.y
+            this.mesh.position.z = infront.z;
+            //console.log("repaint", this.x, this.y);
+            this.mesh.lookAt(0, 0, 0);
+        } else {
+            this.mesh.position.x = this.location.x
+            this.mesh.position.y = this.location.y
+            this.mesh.position.z = this.location.z
+        }
+        this.mesh.lookAt(0, 0, 0);
+
     }
     updateFromFirebase(data) {
         this.text = text;
@@ -104,35 +137,44 @@ export class Expressions extends VerletParticle3D {
 }
 
 
-export function updateObject(key, data) {
-    let text = data.prompt;
-    let embedding = data.embedding;
-    let pos = data.location;
-    let image = data.image;
-    console.log("updateObject", pos);
-    let thisArrayIndex = findObjectByKey(key);
-    if (thisArrayIndex == -1) {
-        console.log("could not find object", key);
-        return;
-    }
-    thisObject = objects[thisArrayIndex];
-    thisObject.text = text;
-    thisObject.embedding = embedding;
-    thisObject.mesh.position.x = pos.x;
-    thisObject.mesh.position.y = pos.y;
-    thisObject.mesh.position.z = pos.z;
-    thisObject.mesh.lookAt(0, 0, 0);
-    if (image) {
-        //Loading of the home test image - img1
-        var incomingImage = new Image();
-        incomingImage.crossOrigin = "anonymous";
-        incomingImage.onload = function () {
-            thisObject.image = incomingImage;
-        };
-        incomingImage.src = image.base64Image;
-    }
-}
+// export function updateObject(key, data) {
+//     let text = data.prompt;
+//     let embedding = data.embedding;
+//     let pos = data.location;
+//     let image = data.image;
+//     console.log("updateObject", pos);
+//     let thisArrayIndex = findObjectByKey(key);
+//     if (thisArrayIndex == -1) {
+//         console.log("could not find object", key);
+//         return;
+//     }
+//     thisObject = objects[thisArrayIndex];
+//     thisObject.text = text;
+//     thisObject.embedding = embedding;
+//     thisObject.mesh.position.x = pos.x;
+//     thisObject.mesh.position.y = pos.y;
+//     thisObject.mesh.position.z = pos.z;
+//     thisObject.mesh.lookAt(0, 0, 0);
+//     if (image) {
+//         //Loading of the home test image - img1
+//         var incomingImage = new Image();
+//         incomingImage.crossOrigin = "anonymous";
+//         incomingImage.onload = function () {
+//             thisObject.image = incomingImage;
+//         };
+//         incomingImage.src = image.base64Image;
+//     }
+// }
 
+export function freeFromPhysics() {
+    for (let i = 0; i < myCluster.particles.length; i++) {
+        myCluster.particles[i].obeyPhysics = false;
+    }
+    physics.clear();
+    myCluster.particles = [];
+    myCluster.springs = [];
+
+}
 export function addToPhysics(newObject, objects) {
 
     physics.addParticle(newObject);
@@ -145,46 +187,64 @@ export function addToPhysics(newObject, objects) {
                 let zdist = objects[i].umapz - objects[j].umapz;
                 let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
                 //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
-                physics.addSpring(new VerletMinDistanceSpring3D(objects[i], objects[j], 175, distance));
+                physics.addSpring(new VerletMinDistanceSpring2D(objects[i], objects[j], 175, distance));
             }
         }
     }
 
 }
 
-// export class Cluster {
-//     constructor(objects) {
-//         this.particles = [];
+export class Cluster {
 
-//         //start them off in UMAP positions
-//         for (let i = 0; i < objects.length; i++) {
+    constructor() {
+        this.particles = [];
+        this.springs = [];
+        //console.log("physics", physics);
+    }
 
-//             let umapx = objects.UMAPFitting[0];
-//             let umapy = objects.UMAPFitting[1];
-//             let umapz = objects.UMAPFitting[2];
-//             let text = objects[i].prompt;
-//             let image = objects[i].image;
-//             let newParticle = new Particle(umapx * window.innerWidth, umapy * window.innerHeight, umapx, umapy, text, image);
-//             physics.addParticle(newParticle);
-//             this.particles.push(newParticle);
-//         }
-//         for (let i = 0; i < this.particles.length - 1; i++) {
-//             for (let j = 0; j < this.particles.length; j++) {
-//                 if (i != j) {
-//                     let xdist = this.particles[i].umapx - this.particles[j].umapx;
-//                     let ydist = this.particles[i].umapy - this.particles[j].umapy;
-//                     let zdist = this.particles[i].umapz - this.particles[j].umapz;
-//                     let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
-//                     //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
-//                     physics.addSpring(new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 175, distance));
-//                     // }
-//                 }
-//             }
-//         }
-//         //console.log("physics", physics);
-//     }
+    addParticles(objects) {
+        physics.clear();
+        for (let i = 0; i < this.particles.length; i++) {
+            this.particles[i].obeyPhysics = false;
+        }
+        // for (let i = 0; i < this.particles.length - 1; i++) {
+        //     removeParticle(VerletParticle2D p)
 
-// }
+        //     removeSpring(VerletSpring2D s)
+        // }
+        //start them off in UMAP positions
+        for (let i = 0; i < objects.length; i++) {
+            let newParticle = objects[i];
+            newParticle.obeyPhysics = true;
+            // let umapx = objects.UMAPFitting[0];
+            // let umapy = objects.UMAPFitting[1];
+            // let umapz = objects.UMAPFitting[2];
+            // let text = objects[i].prompt;
+            // let image = objects[i].image;
+            //let newParticle = new Particle(umapx * window.innerWidth, umapy * window.innerHeight, umapx, umapy, text, image);
+            physics.addParticle(newParticle);
+            this.particles.push(newParticle);
+        }
+        for (let i = 0; i < this.particles.length - 1; i++) {
+            for (let j = 0; j < this.particles.length; j++) {
+                if (i != j) {
+                    let xdist = this.particles[i].umapx - this.particles[j].umapx;
+                    let ydist = this.particles[i].umapy - this.particles[j].umapy;
+                    let zdist = this.particles[i].umapz - this.particles[j].umapz;
+                    let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
+                    //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
+                    let thisSpring = new VerletMinDistanceSpring2D(this.particles[i], this.particles[j], 500, distance)
+                    this.springs.push(thisSpring);
+                    physics.addSpring(thisSpring);
+                    // }
+                }
+            }
+        }
+    }
+
+}
+
+
 // export function createObject(key, data) {
 
 //     //get stuff from firebase

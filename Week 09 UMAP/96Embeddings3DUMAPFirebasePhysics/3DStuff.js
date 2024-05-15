@@ -1,5 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { hitTestableThings, byUUID, findClosest } from './main.js';
+import { updatePhysics, freeFromPhysics } from './expressionClass.js';
 let camera3D, renderer;
 export let scene;
 let in_front_of_you;
@@ -16,6 +17,8 @@ function animate() {
         //console.log("repainting", object.prompt);
     }
     renderer.render(scene, camera3D);
+    updatePhysics();
+
 
 }
 
@@ -98,7 +101,7 @@ function onMouseDown(event) {
     // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
     // ThreeJSContainer.setCapture();
     feature.style.display = "none"; //lose the featured image
-
+    freeFromPhysics();
     //if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
     onPointerDownPointerX = event.clientX;
     onPointerDownPointerY = event.clientY;
@@ -217,7 +220,7 @@ function onMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
     camera3D.fov = Math.min(120, Math.max(10, camera3D.fov));
     camera3D.updateProjectionMatrix();
-    findClosest(getPositionInFrontOfCamera(), clusterSize)
+    findClosest(getPositionInFrontOfCamera())
 }
 
 function computeCameraOrientation() {
