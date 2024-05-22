@@ -2,7 +2,7 @@ import { UMAP } from 'https://cdn.skypack.dev/umap-js';
 import { initFirebase, destroyDatabase, localKey } from './firebaseMOD.js';
 import { init3D, getPositionInFrontOfCamera, scene, distanceFromCenter } from './3DStuff.js';
 import { Expressions, initPhysics, addToPhysics, myCluster } from './expressionClass.js';
-import { manufactureFakePrompts } from './makeCreations.js';
+import { getDataFromProjectsAPI } from './makeCreations.js';
 
 let clusterSize = 5;
 
@@ -20,7 +20,7 @@ initPhysics();
 init3D();
 
 
-initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
+initFirebase("ITPShow2024EmbeddingSpace", "imagesAndEmbeddings");
 
 
 
@@ -184,7 +184,7 @@ function initWebInterface() {
     GodButton.style.backgroundColor = "black";
     GodButton.style.pointerEvents = "all";
     GodButton.addEventListener("click", function () {
-        manufactureFakePrompts();
+        getDataFromProjectsAPI();
         //console.log("result", result);
     });
     webInterfaceContainer.append(GodButton);
@@ -206,45 +206,6 @@ function initWebInterface() {
     ThanosButton.style.pointerEvents = "all";
     webInterfaceContainer.append(ThanosButton);
 
-    //make a button in the upper right corner called "THANOS" that will remove many new objects
-    let PhysicsButton = document.createElement("button");
-    PhysicsButton.innerHTML = "Physics";
-    PhysicsButton.style.position = "absolute";
-    PhysicsButton.style.top = "20%";
-    PhysicsButton.style.left = "50%";
-    PhysicsButton.style.zIndex = "200";
-    PhysicsButton.style.fontSize = "20px";
-    PhysicsButton.style.color = "white";
-    PhysicsButton.style.backgroundColor = "black";
-    PhysicsButton.addEventListener("click", function () {
-        applyPhysics();
-    });
-    PhysicsButton.style.pointerEvents = "all";
-    webInterfaceContainer.append(PhysicsButton);
-
-    //make a text input field
-    input_image_field = document.createElement("input");
-    input_image_field.type = "text";
-    input_image_field.id = "input_image_prompt";
-    input_image_field.value = "Nice picture of a dog";
-    input_image_field.style.position = "absolute";
-    input_image_field.style.zIndex = "200";
-    input_image_field.style.fontSize = "30px";
-    input_image_field.style.height = "30px";
-    input_image_field.style.color = "white";
-    input_image_field.style.backgroundColor = "black";
-    input_image_field.style.textAlign = "center";
-    input_image_field.style.width = "50%";
-    input_image_field.style.top = "90%";
-    input_image_field.style.left = "50%";
-    input_image_field.style.transform = "translate(-50%, -50%)";
-    input_image_field.style.pointerEvents = "all";
-    input_image_field.addEventListener("keyup", function (event) {
-        if (event.key === "Enter") {
-            // askForAll(input_image_field.value);
-        }
-    });
-    webInterfaceContainer.append(input_image_field);
 }
 
 
