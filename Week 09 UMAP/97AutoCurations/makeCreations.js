@@ -2,6 +2,7 @@ import { storeInFirebase } from "./firebaseMOD.js";
 import { getPositionInFrontOfCamera } from "./3DStuff.js";
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
+
 export async function getDataFromProjectsAPI() {
     let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
     document.body.style.cursor = "progress";
