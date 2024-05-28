@@ -9,6 +9,7 @@ var appName;
 var folder
 var db;
 export var localKey;
+//test
 
 export function initFirebase(_appName, _folder) {
     appName = _appName;
