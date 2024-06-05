@@ -45,7 +45,7 @@ export function findClosest(toWhere) {
         closeObject.showText = true;
         closest.push(closeObject);
     }
-    myCluster.addParticles(closest);
+    return closest;
 }
 
 function runUMAP(data) {

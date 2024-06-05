@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
-import { hitTestableThings, byUUID, findClosest } from './main.js';
-import { updatePhysics, freeFromPhysics } from './expressionClass.js';
+import { hitTestableThings, byUUID, findClosest, objects, usePhysics } from './main.js';
+import { updatePhysics, freeFromPhysics, myCluster } from './expressionClass.js';
 let camera3D, renderer;
 export let scene;
 let in_front_of_you;
@@ -108,6 +108,8 @@ function onMouseDown(event) {
     onPointerDownLon = lon;
     onPointerDownLat = lat;
     isUserInteracting = true;
+
+
     //}
 }
 
@@ -206,7 +208,13 @@ function onMouseUp(event) {
     //console.log("intersectedObject", intersectedObject);
 
     if (intersectedObject) {
-        findClosest(intersectedObject.mesh.position);
+        let closest = findClosest(intersectedObject.mesh.position);
+        if (usePhysics) {
+            myCluster.addParticles(closest);
+            for (let i = 0; i < closest.length; i++) {
+                closest[i].obeyPhysics = true;
+            }
+        }
     } else {
         findClosest(getPositionInFrontOfCamera())
     }
@@ -224,7 +232,7 @@ function onMouseWheel(event) {
 }
 
 function computeCameraOrientation() {
-    lat = Math.max(- 50, Math.min(50, lat));  //restrict movement
+    lat = Math.max(- 70, Math.min(70, lat));  //restrict movement
     let phi = THREE.Math.degToRad(90 - lat);  //restrict movement
     let theta = THREE.Math.degToRad(lon);
     camera3D.target.x = 100 * Math.sin(phi) * Math.cos(theta);

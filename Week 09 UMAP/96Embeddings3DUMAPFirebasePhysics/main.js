@@ -6,7 +6,7 @@ import { manufactureFakePrompts } from './makeCreations.js';
 
 let clusterSize = 5;
 
-let objects = [];  //all the objects by number
+export let objects = [];  //all the objects by number
 let byFirebase = {};  //all the objects by firebase key
 export let byUUID = {}; //all the objects by ThreeeJS UUID
 export let hitTestableThings = [];  //3D meshes that will be tested for intersection, alt scene.children for all
@@ -14,6 +14,7 @@ export let hitTestableThings = [];  //3D meshes that will be tested for intersec
 var input_image_field;
 let feedback;
 let feature;
+export let usePhysics = false;
 
 initWebInterface();
 initPhysics();
@@ -45,36 +46,42 @@ export function findClosest(toWhere) {
         closeObject.showText = true;
         closest.push(closeObject);
     }
-    myCluster.addParticles(closest);
+    return closest;
 }
 
-function runUMAP(data) {
-    let embeddingsAndPrompts = data;
+function runUMAP() {
+
     // console.log("embeddingsAndPrompts", embeddingsAndPrompts);
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
-    for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-        embeddings.push(embeddingsAndPrompts[i].embedding);
+    for (let i = 0; i < objects.length; i++) {
+        embeddings.push(objects[i].embedding);
     }
     //let fittings = runUMAP(embeddings);
     var repeatableRandomNumberFunction = new Math.seedrandom('hello.');
+
     let umap = new UMAP({
-        nNeighbors: clusterSize,
-        minDist: .99,
+        nNeighbors: 4,//clusterSize,
+        minDist: 0.5,
         nComponents: 3,
         random: repeatableRandomNumberFunction,  //special library seeded random so it is the same randome numbers every time
-        spread: .1,
+        spread: 0.99,
         //distanceFn: 'cosine',
     });
+
     let fittings = umap.fit(embeddings);
     fittings = normalize(fittings);  //normalize to 0-1
-    for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-        let obj = embeddingsAndPrompts[i];
+    for (let i = 0; i < objects.length; i++) {
+        let obj = objects[i];
         let pos = fittings[i];
         obj.UMAPFitting = pos;
-        obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
-        obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
+        obj.location.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
+        obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
+        obj.location.z = pos[2] * distanceFromCenter;
+
+        //obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
+        //obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
+        //obj.mesh.position.z = pos[2] * distanceFromCenter;
         obj.mesh.lookAt(0, 0, 0);
     }
     //console.log("fitting", fitting);
@@ -84,19 +91,19 @@ export function createLocally(key, data) {
     let newObject = new Expressions(key, data);
     byFirebase[key] = newObject;
     byUUID[newObject.mesh.uuid] = newObject;
-    if (newObject.key == localKey && object.image == null) {
-        askForPicture(data.prompt, object.key);
+    if (newObject.key == localKey && newObject.image == null) {
+        askForPicture(data.prompt, newObject.key);
     }
     scene.add(newObject.mesh);
     hitTestableThings.push(newObject.mesh);//make a list for the raycaster to check for intersection
     //leave the image null formesh, "uuid": mesh.uuid, "texture": texture, "text": text, "show_text": false, "context": ctx, "image": null, "canvas": canvas }; now
     objects.push(newObject);
     if (objects.length > 6) {
-        runUMAP(objects)
+        runUMAP();
     }
     //add to physics
-    addToPhysics(newObject, objects);
-    findClosest(getPositionInFrontOfCamera())
+
+    //findClosest(getPositionInFrontOfCamera())
 }
 
 
@@ -217,7 +224,7 @@ function initWebInterface() {
     PhysicsButton.style.color = "white";
     PhysicsButton.style.backgroundColor = "black";
     PhysicsButton.addEventListener("click", function () {
-        applyPhysics();
+        usePhysics = !usePhysics;
     });
     PhysicsButton.style.pointerEvents = "all";
     webInterfaceContainer.append(PhysicsButton);

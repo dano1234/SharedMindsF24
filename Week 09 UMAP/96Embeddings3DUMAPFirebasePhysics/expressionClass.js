@@ -1,5 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { getPositionInFrontOfCamera } from './3DStuff.js';
+
 let physics;
 export let myCluster;
 // let {
@@ -38,7 +39,7 @@ export function updatePhysics() {
 export class Expressions extends VerletParticle2D {
 
     constructor(key, data) {
-        super(data.location.x, data.location.y, data.location.z);
+        super(data.location.x, data.location.y);
         this.key = key;
         this.prompt = data.prompt;
         this.embedding = data.embedding;
@@ -51,7 +52,7 @@ export class Expressions extends VerletParticle2D {
         this.canvas.height = this.size;
         this.canvas.width = this.size;
         this.showText = false;
-        this.obeyPhysics = true;
+        // this.obeyPhysics = true;
 
         this.create3DObject()
 
@@ -103,11 +104,10 @@ export class Expressions extends VerletParticle2D {
         this.texture.needsUpdate = true;
         if (this.obeyPhysics) {
             let infront = getPositionInFrontOfCamera();
-            this.mesh.position.x = infront.x + this.x
-            this.mesh.position.y = infront.y + this.y
-            this.mesh.position.z = infront.z;
+            this.mesh.position.x = infront.x + this.x - 100;
+            this.mesh.position.y = infront.y + this.y - 100;
+            this.mesh.position.z = infront.z + 100;
             //console.log("repaint", this.x, this.y);
-            this.mesh.lookAt(0, 0, 0);
         } else {
             this.mesh.position.x = this.location.x
             this.mesh.position.y = this.location.y
@@ -187,7 +187,7 @@ export function addToPhysics(newObject, objects) {
                 let zdist = objects[i].umapz - objects[j].umapz;
                 let distance = Math.sqrt(xdist * xdist + ydist * ydist + zdist * zdist);
                 //var distance = Math.sqrt((Math.pow(this.particles[i].umapx - this.particles[j].umapx, 2)) + (Math.pow(this.particles[i].umapy - this.particles[j].umapy, 2)))
-                physics.addSpring(new VerletMinDistanceSpring2D(objects[i], objects[j], 175, distance));
+                physics.addSpring(new VerletMinDistanceSpring2D(objects[i], objects[j], 512, distance));
             }
         }
     }
@@ -215,7 +215,7 @@ export class Cluster {
         //start them off in UMAP positions
         for (let i = 0; i < objects.length; i++) {
             let newParticle = objects[i];
-            newParticle.obeyPhysics = true;
+            //  newParticle.obeyPhysics = true;
             // let umapx = objects.UMAPFitting[0];
             // let umapy = objects.UMAPFitting[1];
             // let umapz = objects.UMAPFitting[2];

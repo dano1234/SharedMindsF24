@@ -20,25 +20,25 @@ export async function getDataFromProjectsAPI() {
 
     const response = await fetch(url, options);
     console.log("words_response", response);
-    const openAI_json = await response.json();
-    console.log("openAI_json", openAI_json);
-    for (let i = 0; i < openAI_json.length; i++) {
+    const projects_json = await response.json();
+    console.log("openAI_json", projects_json);
+    for (let i = 0; i < projects_json.length; i++) {
 
-        let description = openAI_json[i].description;
-        let elevatorPitch = openAI_json[i].elevatorPitch;
-        let keywords = openAI_json[i].keywords;
-        let title = openAI_json[i].project_name;
-        let tech = openAI_json[i].techical_system;
-        let user_scenario = openAI_json[i].user_scenario;
-        let image_url = "https://itp.nyu.edu" + openAI_json[i].image;
+        let description = projects_json[i].description;
+        let elevatorPitch = projects_json[i].elevatorPitch;
+        let keywords = projects_json[i].keywords;
+        let title = projects_json[i].project_name;
+        let tech = projects_json[i].techical_system;
+        let user_scenario = projects_json[i].user_scenario;
+        let image_url = "https://itp.nyu.edu" + projects_json[i].image;
 
         let prompt = description + " " + elevatorPitch + " " + keywords + " " + title + " " + tech + " " + user_scenario;
         console.log("prompt created", prompt, image_url);
         await getImageEmbeddingB64IntoFirebase(prompt, image_url);
-    }
+    }   
     // if (openAI_json.choices.length == 0) {
     //     //feedback.html("Something went wrong, try it again");
-    //     return 0;
+    //     return 0; 
     // } else {
     //     let prompts = [];
     //     for (let i = 0; i < openAI_json.choices.length; i++) {

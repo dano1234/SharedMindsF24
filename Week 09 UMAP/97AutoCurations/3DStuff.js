@@ -206,7 +206,11 @@ function onMouseUp(event) {
     //console.log("intersectedObject", intersectedObject);
 
     if (intersectedObject) {
-        findClosest(intersectedObject.mesh.position);
+        let closest = findClosest(intersectedObject.mesh.position);
+        myCluster.addParticles(closest);
+        for (let i = 0; i < closest.length; i++) {
+            closest[i].obeyPhysics = true;
+        }    
     } else {
         findClosest(getPositionInFrontOfCamera())
     }
