@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
-import { initFirebase, storeInFirebase, destroyDatabase, saveVectors } from './firebaseMOD.js';
+import { initFirebase, storeInFirebase, destroyDatabase } from './firebaseMOD.js';
 
 let distanceFromCenter = 500;
 let clusterSize = 6;
@@ -497,7 +497,7 @@ function initWebInterface() {
     ThanosButton.style.backgroundColor = "black";
     ThanosButton.addEventListener("click", function () {
         //destroyDatabase();
-        saveVectors(objects);
+
     });
     ThanosButton.style.pointerEvents = "all";
     webInterfaceContainer.append(ThanosButton);
