@@ -1,6 +1,6 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 import { UMAP } from 'https://cdn.skypack.dev/umap-js';
-import { initFirebase, storeInFirebase, destroyDatabase } from './firebaseMOD.js';
+import { initFirebase, storeInFirebase, destroyDatabase, saveVectors } from './firebaseMOD.js';
 
 let distanceFromCenter = 500;
 let clusterSize = 6;
@@ -35,7 +35,7 @@ function findClosest(toWhere, clumpSize) {
 
     let keys = Object.keys(closeness);
     keys.sort();
-    for (let i = 0; i < clumpSize; i++) {
+    for (let i = 0; i < Math.min(keys.length, clusterSize + 1); i++) {
         let closeObject = closeness[keys[i]];
         closeObject.showText = true;
     }
@@ -205,7 +205,7 @@ export function createObject(key, data) {
     scene.add(mesh);
     hitTestableThings.push(mesh);//make a list for the raycaster to check for intersection
     //leave the image null for now
-    let thisObject = { "dbKey": key, "embedding": embedding, "mesh": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "show_text": false, "context": ctx, "image": null, "canvas": canvas };
+    let thisObject = { "dbKey": key, "embedding": embedding, "mesh": mesh, "uuid": mesh.uuid, "texture": texture, "text": text, "showText": false, "context": ctx, "image": null, "canvas": canvas };
 
     objects.push(thisObject);
     if (image) {
@@ -496,7 +496,8 @@ function initWebInterface() {
     ThanosButton.style.color = "white";
     ThanosButton.style.backgroundColor = "black";
     ThanosButton.addEventListener("click", function () {
-        destroyDatabase();
+        //destroyDatabase();
+        saveVectors(objects);
     });
     ThanosButton.style.pointerEvents = "all";
     webInterfaceContainer.append(ThanosButton);
@@ -526,6 +527,8 @@ function initWebInterface() {
     webInterfaceContainer.append(input_image_field);
 
 }
+
+
 
 async function performCreation(prompts) {
     console.log("prompts", prompts);

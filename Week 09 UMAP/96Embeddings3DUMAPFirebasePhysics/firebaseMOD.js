@@ -29,15 +29,14 @@ export function initFirebase(_appName, _folder) {
     //     nameField.value = name;
     // }
 
-    //update to sharedminds 24
     const firebaseConfig = {
-        apiKey: "AIzaSyAvM1vaJ3vcnfycLFeb8RDrTN7O2ToEWzk",
-        authDomain: "shared-minds.firebaseapp.com",
-        projectId: "shared-minds",
-        storageBucket: "shared-minds.appspot.com",
-        messagingSenderId: "258871453280",
-        appId: "1:258871453280:web:4c103da9b230e982544505",
-        measurementId: "G-LN0GNWFZQQ"
+        apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
+        authDomain: "sharedmindss24.firebaseapp.com",
+        databaseURL: "https://sharedmindss24-default-rtdb.firebaseio.com",
+        projectId: "sharedmindss24",
+        storageBucket: "sharedmindss24.appspot.com",
+        messagingSenderId: "1039430447930",
+        appId: "1:1039430447930:web:edf98d7d993c21017ad603"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -48,15 +47,15 @@ export function initFirebase(_appName, _folder) {
 
 function subscribeToFirebase() {
     const path = '/' + appName + '/' + folder + '/';
-    //console.log("subscribeToFirebase", path);
+    // console.log("subscribeToFirebase", path);
     const myRef = ref(db, path);
 
     onChildAdded(myRef, (data) => {
-        //console.log("added", data.val())
+        console.log("added", data.val())
         let newObject = createLocally(data.key, data.val());
     });
     onChildChanged(myRef, (data) => {
-        //console.log("changed", data.key, data);
+        console.log("changed", data.key, data);
         updateLocally(data.key, data.val());
     });
     onChildRemoved(myRef, (data) => {
