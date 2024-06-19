@@ -79,9 +79,6 @@ function runUMAP() {
         obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
         obj.location.z = pos[2] * distanceFromCenter;
 
-        //obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        //obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
-        //obj.mesh.position.z = pos[2] * distanceFromCenter;
         obj.mesh.lookAt(0, 0, 0);
     }
     //console.log("fitting", fitting);

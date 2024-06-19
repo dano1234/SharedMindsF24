@@ -101,7 +101,9 @@ function onMouseDown(event) {
     // let ThreeJSContainer = document.getElementById("ThreeJSContainer");
     // ThreeJSContainer.setCapture();
     feature.style.display = "none"; //lose the featured image
-    freeFromPhysics();
+    for (let i = 0; i < objects.length; i++) {
+        objects[i].obeyPhysics = false;
+    }
     //if (intersectedObjectUUID == -1) { //if no object was intersected, start navigation
     onPointerDownPointerX = event.clientX;
     onPointerDownPointerY = event.clientY;
@@ -177,7 +179,9 @@ export function moveCameraWithMouse() {
     ThreeJSContainer.addEventListener('keydown', onKeyDown, false);
     ThreeJSContainer.addEventListener('mousedown', onMouseDown, false);
     ThreeJSContainer.addEventListener('mousemove', onMouseMove, false);
-    ThreeJSContainer.addEventListener('mouseup', onMouseUp, false);
+    //ThreeJSContainer.addEventListener('mouseup', onMouseUp, false);
+
+
     window.addEventListener('mouseup', onMouseUp, false);
     window.addEventListener('wheel', onMouseWheel, false);
     window.addEventListener('resize', onWindowResize, false);
@@ -205,18 +209,29 @@ function onMouseUp(event) {
     middle.x = (.5) * 2 - 1;
     middle.y = - (.5) * 2 + 1;
     let intersectedObject = getIntersectedObject(middle);
-    //console.log("intersectedObject", intersectedObject);
+
 
     if (intersectedObject) {
-        let closest = findClosest(intersectedObject.mesh.position);
+        console.log("intersectedObject", intersectedObject.location.x);
+        let closest = findClosest(intersectedObject.mesh.position, intersectedObject);
+        intersectedObject.featuredLocation = getPositionInFrontOfCamera(400);
+        //intersectedObject.featuredLocation.x = intersectedObject.location.x;
+        // intersectedObject.featuredLocation.y = intersectedObject.location.y;
+        // intersectedObject.featuredLocation.z = intersectedObject.location.z - 100;
+        intersectedObject.obeyPhysics = true;
+        intersectedObject.showText = true;
         if (usePhysics) {
-            myCluster.addParticles(closest);
+            // myCluster.addParticles(closest);
             for (let i = 0; i < closest.length; i++) {
+                closest[i].featuredLocation.x = intersectedObject.featuredLocation.x + Math.cos(i * (2 * Math.PI / closest.length)) * 100;
+                closest[i].featuredLocation.y = intersectedObject.featuredLocation.y + Math.sin(i * (2 * Math.PI / closest.length)) * 100;
+                closest[i].featuredLocation.z = intersectedObject.featuredLocation.z;
                 closest[i].obeyPhysics = true;
+                //  closest[i].mesh.lookAt(0, 0, 0);
             }
         }
     } else {
-        findClosest(getPositionInFrontOfCamera())
+        findClosest(getPositionInFrontOfCamera(), null)
     }
 
 
@@ -228,7 +243,7 @@ function onMouseWheel(event) {
     camera3D.fov += event.deltaY * 0.05;
     camera3D.fov = Math.min(120, Math.max(10, camera3D.fov));
     camera3D.updateProjectionMatrix();
-    findClosest(getPositionInFrontOfCamera())
+    // findClosest(getPositionInFrontOfCamera())
 }
 
 function computeCameraOrientation() {

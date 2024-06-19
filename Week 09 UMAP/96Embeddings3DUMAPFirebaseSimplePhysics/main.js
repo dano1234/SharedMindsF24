@@ -4,7 +4,7 @@ import { init3D, getPositionInFrontOfCamera, scene, distanceFromCenter } from '.
 import { Expressions, initPhysics, addToPhysics, myCluster } from './expressionClass.js';
 import { manufactureFakePrompts } from './makeCreations.js';
 
-let clusterSize = 5;
+let clusterSize = 3;
 
 export let objects = [];  //all the objects by number
 let byFirebase = {};  //all the objects by firebase key
@@ -14,7 +14,7 @@ export let hitTestableThings = [];  //3D meshes that will be tested for intersec
 var input_image_field;
 let feedback;
 let feature;
-export let usePhysics = false;
+export let usePhysics = true;
 
 initWebInterface();
 initPhysics();
@@ -25,12 +25,13 @@ initFirebase("3DEmbeddingsUMAPFirebase", "imagesAndEmbeddings");
 
 
 
-export function findClosest(toWhere) {
+export function findClosest(toWhere, selectedObject) {
     if (objects.length == 0) return;
     //make a json object with the distance as the name and the object as the value
     let closeness = {};
     for (let j = 0; j < objects.length; j++) {
         let thisObject = objects[j];
+        if (thisObject == selectedObject) continue;
         let thisPos = thisObject.mesh.position;
         //let thatEmbedding = thatObject.embedding;
         let distance = Math.sqrt(Math.pow(thisPos.x - toWhere.x, 2) + Math.pow(thisPos.y - toWhere.y, 2) + Math.pow(thisPos.z - toWhere.z, 2));
@@ -85,7 +86,7 @@ function runUMAP() {
         minDist: .99,
         nComponents: 3,
         random: repeatableRandomNumberFunction,  //special library seeded random so it is the same randome numbers every time
-        spread: .1,
+        spread: .01,
     });
 
     let fittings = umap.fit(embeddings);
@@ -94,16 +95,9 @@ function runUMAP() {
         let obj = objects[i];
         let pos = fittings[i];
         obj.UMAPFitting = pos;
-        // obj.location.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        // obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
-        // obj.location.z = pos[2] * distanceFromCenter;
-        obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
-        obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
-
-        //obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        //obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
-        //obj.mesh.position.z = pos[2] * distanceFromCenter;
+        obj.location.x = pos[0] * distanceFromCenter * 2 - distanceFromCenter; //- distanceFromCenter / 2;
+        obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
+        obj.location.z = pos[2] * distanceFromCenter;
         obj.mesh.lookAt(0, 0, 0);
     }
     //console.log("fitting", fitting);

@@ -44,6 +44,8 @@ export class Expressions {
         this.prompt = data.prompt;
         this.embedding = data.embedding;
         //this.location = data.location;
+        this.location = getPositionInFrontOfCamera();
+        this.featuredLocation = getPositionInFrontOfCamera();
         this.imageData = data.image;  //should probably rename in the database
 
         this.canvas = document.createElement('canvas');
@@ -103,11 +105,14 @@ export class Expressions {
 
         this.texture.needsUpdate = true;
         if (this.obeyPhysics) {
-            let infront = getPositionInFrontOfCamera();
-            this.mesh.position.x = infront.x + this.x - 100;
-            this.mesh.position.y = infront.y + this.y - 100;
-            this.mesh.position.z = infront.z + 100;
+            // let infront = getPositionInFrontOfCamera();
+            // this.mesh.position.x = infront.x + this.x - 100;
+            // this.mesh.position.y = infront.y + this.y - 100;
+            // this.mesh.position.z = infront.z + 100;
             //console.log("repaint", this.x, this.y);
+            this.mesh.position.x = this.featuredLocation.x
+            this.mesh.position.y = this.featuredLocation.y
+            this.mesh.position.z = this.featuredLocation.z
         } else {
             this.mesh.position.x = this.location.x
             this.mesh.position.y = this.location.y
