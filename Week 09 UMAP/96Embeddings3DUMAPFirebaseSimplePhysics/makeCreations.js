@@ -42,10 +42,14 @@ export async function manufactureFakePrompts() {
         //feedback.html("Something went wrong, try it again");
         return 0;
     } else {
-        let prompts = [];
-        for (let i = 0; i < openAI_json.choices.length; i++) {
-            prompts.push(openAI_json.choices[i].text);
-        }
+        console.log("openAI_json", openAI_json);
+        let prompts = openAI_json.choices[0].text.split("\n");
+        // let prompts = [];
+        // for (let i = 0; i < openAI_json.choices.length; i++) {
+        //     prompts.push(openAI_json.choices[i].text);
+        // }
+        // promptsArray = prompts.split("\n");
+        console.log("prompts", prompts);
         //let promptsArray = prompts.split("\n");
         for (let i = 0; i < prompts.length; i++) {
 
@@ -66,16 +70,55 @@ export async function manufactureFakePrompts() {
 
 }
 
+async function askForImageEmbedding(imgBase64) {
+    document.body.style.cursor = "progress";
+    // canvas.loadPixels();
+    // let imgBase64 = canvas.elt.toDataURL("image/png");
+    imgBase64 = imgBase64.split(",")[1];
+
+    // feedback.html("Waiting for reply from Replicate Embedding...");
+    let data = {
+        fieldToConvertToHostedFile: "input",  //they have two fields named input...
+        fileFormat: "png",
+        version: "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+        input: {
+            input: imgBase64,
+            modality: "vision",
+        },
+
+    };
+
+
+    const url = replicateProxy + "/askReplicateFileToUrl/";
+    let options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+        body: JSON.stringify(data),
+    };
+    const response = await fetch(url, options);
+    const response_json = await response.json();
+    console.log("response", response_json);
+
+    return response_json.output;
+    document.body.style.cursor = "auto";
+}
+
 async function getImageEmbeddingB64IntoFirebase(thisPrompt) {
     let all = {}
     let embedding = await askForEmbedding(thisPrompt);
     all.embedding = embedding;
     all.prompt = thisPrompt;
     let imageURL = await askForPicture(thisPrompt);
+    console.log("imageURL", imageURL);
     let b64 = await convertURLToBase64(imageURL);
-
-    all.image = { base64Image: b64, url: imageURL };
+    let imageEmbedding = await askForImageEmbedding(b64)
+    // all.image.imageEmbedding = imageEmbedding;
+    all.image = { base64Image: b64, url: imageURL, imageEmbedding: imageEmbedding };
     all.location = getPositionInFrontOfCamera();
+    console.log("all", all);
     storeInFirebase(all);
 }
 

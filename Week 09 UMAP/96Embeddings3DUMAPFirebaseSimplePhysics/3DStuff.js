@@ -59,7 +59,7 @@ export function init3D() {
     });
 
     var sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
+    //scene.add(sphere);
 
     //just a place holder the follows the camera and marks location to drop incoming  pictures
     //tiny little dot (could be invisible) 

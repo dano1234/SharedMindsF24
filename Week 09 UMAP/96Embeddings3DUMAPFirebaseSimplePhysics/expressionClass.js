@@ -43,10 +43,12 @@ export class Expressions {
         this.key = key;
         this.prompt = data.prompt;
         this.embedding = data.embedding;
+
         //this.location = data.location;
         this.location = getPositionInFrontOfCamera();
         this.featuredLocation = getPositionInFrontOfCamera();
         this.imageData = data.image;  //should probably rename in the database
+        this.imageEmbedding = this.imageData.imageEmbedding;
 
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');

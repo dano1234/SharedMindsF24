@@ -15,6 +15,7 @@ var input_image_field;
 let feedback;
 let feature;
 export let usePhysics = true;
+let useWordEmbeddings = true;
 
 initWebInterface();
 initPhysics();
@@ -75,8 +76,14 @@ function runUMAP() {
     // console.log("embeddingsAndPrompts", embeddingsAndPrompts);
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
-    for (let i = 0; i < objects.length; i++) {
-        embeddings.push(objects[i].embedding);
+    if (useWordEmbeddings) {
+        for (let i = 0; i < objects.length; i++) {
+            embeddings.push(objects[i].embedding);
+        }
+    } else {
+        for (let i = 0; i < objects.length; i++) {
+            embeddings.push(objects[i].imageEmbedding);
+        }
     }
     //let fittings = runUMAP(embeddings);
     var repeatableRandomNumberFunction = new Math.seedrandom('hello.');
@@ -95,7 +102,7 @@ function runUMAP() {
         let obj = objects[i];
         let pos = fittings[i];
         obj.UMAPFitting = pos;
-        obj.location.x = pos[0] * distanceFromCenter * 2 - distanceFromCenter; //- distanceFromCenter / 2;
+        obj.location.x = pos[0] * 3000;// distanceFromCenter * 2 - distanceFromCenter; //- distanceFromCenter / 2;
         obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
         obj.location.z = pos[2] * distanceFromCenter;
         obj.mesh.lookAt(0, 0, 0);
@@ -222,7 +229,9 @@ function initWebInterface() {
     PhysicsButton.style.color = "white";
     PhysicsButton.style.backgroundColor = "black";
     PhysicsButton.addEventListener("click", function () {
-        usePhysics = !usePhysics;
+        useWordEmbeddings = !useWordEmbeddings;
+        runUMAP();
+        //usePhysics = !usePhysics;
     });
     PhysicsButton.style.pointerEvents = "all";
     webInterfaceContainer.append(PhysicsButton);
