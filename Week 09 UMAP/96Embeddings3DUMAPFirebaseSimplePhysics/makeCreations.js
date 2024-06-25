@@ -1,4 +1,6 @@
 
+import { storeInFirebase } from "./firebaseMOD.js";
+import { getPositionInFrontOfCamera } from "./3DStuff.js";
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
 
 export async function manufactureFakePrompts() {
@@ -53,9 +55,9 @@ export async function manufactureFakePrompts() {
             }
             prompt = prompt.slice(2).trim();
             //place is some random place for now
-            lon = Math.random() * 360 - 180;
-            lat = Math.random() * 60 - 30;
-            computeCameraOrientation();
+            //lon = Math.random() * 360 - 180;
+            //lat = Math.random() * 60 - 30;
+            //computeCameraOrientation();
             console.log("prompt created", prompt);
             await getImageEmbeddingB64IntoFirebase(prompt);
         }
@@ -102,7 +104,7 @@ async function askForEmbedding(p_prompt) {
 
 
 async function askForPicture(text) {
-    input_image_field.value = "Waiting for reply for:" + text;
+    // input_image_field.value = "Waiting for reply for:" + text;
     // prompt = inputField.value;
     //inputField.value = "Waiting for reply for:" + prompt;
     let data = {
@@ -128,7 +130,7 @@ async function askForPicture(text) {
     if (proxy_said.output.length == 0) {
         alert("Something went wrong, try it again");
     } else {
-        input_image_field.value = text;
+        //input_image_field.value = text;
         return proxy_said.output[0];
     }
 }
