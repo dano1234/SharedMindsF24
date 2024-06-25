@@ -73,6 +73,7 @@ async function getImageEmbeddingB64IntoFirebase(thisPrompt) {
     all.prompt = thisPrompt;
     let imageURL = await askForPicture(thisPrompt);
     let b64 = await convertURLToBase64(imageURL);
+
     all.image = { base64Image: b64, url: imageURL };
     all.location = getPositionInFrontOfCamera();
     storeInFirebase(all);
