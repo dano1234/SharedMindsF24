@@ -219,8 +219,27 @@ function initWebInterface() {
     webInterfaceContainer.append(ThanosButton);
 
     //make a button in the upper right corner called "THANOS" that will remove many new objects
+
+    let storeInVectorDB = document.createElement("button");
+    storeInVectorDB.innerHTML = "Store in Vector DB";
+    storeInVectorDB.style.position = "absolute";
+    storeInVectorDB.style.top = "20%";
+    storeInVectorDB.style.left = "10%";
+    storeInVectorDB.style.zIndex = "200";
+    storeInVectorDB.style.fontSize = "20px";
+    storeInVectorDB.style.color = "white";
+    storeInVectorDB.style.backgroundColor = "black";
+    storeInVectorDB.addEventListener("click", function () {
+        storeInVectorDB();
+    });
+    storeInVectorDB.style.pointerEvents = "all";
+    webInterfaceContainer.append(storeInVectorDB);
     let PhysicsButton = document.createElement("button");
-    PhysicsButton.innerHTML = "Physics";
+    if (useWordEmbeddings) {
+        PhysicsButton.innerHTML = "Using Word Embeddings";
+    } else {
+        PhysicsButton.innerHTML = "Using Image Embeddings";
+    }
     PhysicsButton.style.position = "absolute";
     PhysicsButton.style.top = "20%";
     PhysicsButton.style.left = "50%";
@@ -230,6 +249,11 @@ function initWebInterface() {
     PhysicsButton.style.backgroundColor = "black";
     PhysicsButton.addEventListener("click", function () {
         useWordEmbeddings = !useWordEmbeddings;
+        if (useWordEmbeddings) {
+            PhysicsButton.innerHTML = "Using Word Embeddings";
+        } else {
+            PhysicsButton.innerHTML = "Using Image Embeddings";
+        }
         runUMAP();
         //usePhysics = !usePhysics;
     });
