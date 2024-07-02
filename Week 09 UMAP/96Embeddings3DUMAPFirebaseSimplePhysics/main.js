@@ -102,9 +102,15 @@ function runUMAP() {
         let obj = objects[i];
         let pos = fittings[i];
         obj.UMAPFitting = pos;
-        obj.location.x = pos[0] * 3000;// distanceFromCenter * 2 - distanceFromCenter; //- distanceFromCenter / 2;
-        obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
-        obj.location.z = pos[2] * distanceFromCenter;
+        let hAngle = pos[0] * Math.PI * 2;
+        let vAngle = pos[1] * Math.PI;
+        let distance = pos[2] * distanceFromCenter;
+        obj.location.x = distance * Math.sin(vAngle) * Math.cos(hAngle);
+        obj.location.y = distance * Math.sin(vAngle) * Math.sin(hAngle);
+        obj.location.z = distance;
+        //obj.location.x = pos[0] * 3000;// distanceFromCenter * 2 - distanceFromCenter; //- distanceFromCenter / 2;
+        //  obj.location.y = pos[1] * distanceFromCenter - distanceFromCenter / 2;  //dont go too high or low
+        //obj.location.z = pos[2] * distanceFromCenter;
         obj.mesh.lookAt(0, 0, 0);
     }
     //console.log("fitting", fitting);
