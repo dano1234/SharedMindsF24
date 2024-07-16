@@ -1,7 +1,10 @@
 let Firestore = require('@google-cloud/firestore');
 let FieldValue = require('@google-cloud/firestore').FieldValue;
+let VectorQuery = require('@google-cloud/firestore').VectorQuery;
+let VectorQuerySnapshot = require('@google-cloud/firestore').VectorQuerySnapshot;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+
 
 //const { createProxyMiddleware } = require('http-proxy-middleware');
 //require('./indexProxy.js')(exports);
@@ -12,33 +15,41 @@ admin.initializeApp({
 
 exports.storeVector = functions.https.onRequest(async (request, response) => {
     // functions.logger.info("Hello logs!", { structuredData: true });
-    const { prompt } = request.query;
-    if (!prompt) {
-        response.status(400).send("Bad Request: 'prompt' query parameter is missing.");
-        return;
-    }
-    let back = await storit(prompt);;
-
-    response.status(200).send({ "repsonse": prompt });
-    //});
-    //console.log("okay since you asked");
-    //const fromOpenAI = askOpenAI(request.query.prompt);
-    //console.log(fromOpenAI);
-    //response.send(fromOpenAI);
+    response.set("Access-Control-Allow-Origin", "*");
+    const json = JSON.parse(request.body);
+    //console.log("welcome", json);
+    let back = await storit(json);
+    response.status(200).send({ "repsonse": "hey" });
 });
 
+exports.findNearest = functions.https.onRequest(async (request, response) => {
+    // functions.logger.info("Hello logs!", { structuredData: true });
+    response.set("Access-Control-Allow-Origin", "*");
+    const json = JSON.parse(request.body);
+    console.log("findNearest", json);
 
-async function storit(prompt) {
     const db = new Firestore();
     const coll = db.collection('coffee-beans');
 
-    const data = {
-        name: prompt,
-        description: "Information about the Kahawa coffee beans.",
-        embedding_field: FieldValue.vector([1.0, 2.0, 3.0])
-    }
+    // Requires single-field vector index
+    const vectorQuery = coll.findNearest('embedding', FieldValue.vector(json.embedding), {
+        limit: 5,
+        distanceMeasure: 'EUCLIDEAN'
+    });
 
-    let result = await coll.add(data);
-    console.log("okay since you asked", data);
+    let VectorQuerySnapshot = await vectorQuery.get();
+    console.log("VectorQuerySnapshot", VectorQuerySnapshot);
+    response.status(200).send({ "repsonse": VectorQuerySnapshot });
+
+});
+
+
+
+
+async function storit(incoming) {
+    const db = new Firestore();
+    const coll = db.collection('coffee-beans');
+    let result = await coll.add(incoming);
+    //console.log("okay since you asked", incoming);
     return result;
 }

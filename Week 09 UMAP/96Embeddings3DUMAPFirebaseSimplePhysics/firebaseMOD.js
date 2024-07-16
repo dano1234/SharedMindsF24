@@ -47,9 +47,9 @@ export function initFirebase(_appName, _folder) {
 
 function subscribeToFirebase() {
     const path = '/' + appName + '/' + folder + '/';
-    // console.log("subscribeToFirebase", path);
-    const myRef = ref(db, path);
 
+    const myRef = ref(db, path);
+    console.log("subscribeToFirebase", myRef);
     onChildAdded(myRef, (data) => {
         console.log("added", data.val())
         let newObject = createLocally(data.key, data.val());

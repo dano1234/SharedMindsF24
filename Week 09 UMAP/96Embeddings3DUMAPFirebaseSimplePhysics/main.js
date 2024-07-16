@@ -14,6 +14,8 @@ export let hitTestableThings = [];  //3D meshes that will be tested for intersec
 var input_image_field;
 let feedback;
 let feature;
+//let functionURL = "https://us-central1-sharedmindss24.cloudfunctions.net";
+let functionURL = "http://127.0.0.1:5001/sharedmindss24/us-central1/";
 export let usePhysics = true;
 let useWordEmbeddings = true;
 
@@ -236,10 +238,30 @@ function initWebInterface() {
     storeInVectorDB.style.color = "white";
     storeInVectorDB.style.backgroundColor = "black";
     storeInVectorDB.addEventListener("click", function () {
-        storeInVectorDB();
+        storeInVectorDBFunction();
     });
     storeInVectorDB.style.pointerEvents = "all";
     webInterfaceContainer.append(storeInVectorDB);
+
+    let findNearest = document.createElement("button");
+    findNearest.innerHTML = "Find Nearest";
+    findNearest.style.position = "absolute";
+    findNearest.style.top = "40%";
+    findNearest.style.left = "30%";
+    findNearest.style.zIndex = "200";
+    findNearest.style.fontSize = "20px";
+    findNearest.style.color = "white";
+    findNearest.style.backgroundColor = "black";
+    findNearest.addEventListener("click", function () {
+        findNearestFunction();
+    });
+    findNearest.style.pointerEvents = "all";
+    webInterfaceContainer.append(findNearest);
+
+
+
+
+
     let PhysicsButton = document.createElement("button");
     if (useWordEmbeddings) {
         PhysicsButton.innerHTML = "Using Word Embeddings";
@@ -292,6 +314,39 @@ function initWebInterface() {
 }
 
 
+async function storeInVectorDBFunction(object) {
+    for (let i = 0; i < objects.length; i++) {
+        let object = objects[i];
+        let data = { keyInRealtimeDB: object.keyInRealtimeDB, embedding: object.embedding };
+        console.log("storeInVectorDB", data, functionURL + "/storeVector");
+        let response = await fetch(functionURL + "storeVector", {
+            method: "POST",
+            // headers: {
+            //     "Content-Type": "application/json",
+            // },
+            body: JSON.stringify(data),
+        })
+        let json = await response.json();
+        console.log("storeInVectorDB", json);
+
+    }
+
+}
+
+async function findNearestFunction() {
+    let data = { embedding: objects[0].embedding };
+    console.log("findNearest", data, functionURL + "/findNearest");
+    let response = await fetch(functionURL + "findNearest", {
+        method: "POST",
+        // headers: {
+        //     "Content-Type": "application/json",
+        // },
+        body: JSON.stringify(data),
+    })
+    let json = await response.json();
+    console.log("findNearest", json);
+
+}
 
 
 function normalize(arrayOfNumbers) {
