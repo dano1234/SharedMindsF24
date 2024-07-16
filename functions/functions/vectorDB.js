@@ -19,7 +19,7 @@ exports.storeVector = functions.https.onRequest(async (request, response) => {
     }
     let back = await storit(prompt);;
 
-    response.status(200).send({ "repsonse": back });
+    response.status(200).send({ "repsonse": prompt });
     //});
     //console.log("okay since you asked");
     //const fromOpenAI = askOpenAI(request.query.prompt);
@@ -31,10 +31,14 @@ exports.storeVector = functions.https.onRequest(async (request, response) => {
 async function storit(prompt) {
     const db = new Firestore();
     const coll = db.collection('coffee-beans');
-    await coll.add({
+
+    const data = {
         name: prompt,
         description: "Information about the Kahawa coffee beans.",
         embedding_field: FieldValue.vector([1.0, 2.0, 3.0])
-    });
-    return "done";
+    }
+
+    let result = await coll.add(data);
+    console.log("okay since you asked", data);
+    return result;
 }
