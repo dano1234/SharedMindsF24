@@ -317,7 +317,7 @@ function initWebInterface() {
 async function storeInVectorDBFunction(object) {
     for (let i = 0; i < objects.length; i++) {
         let object = objects[i];
-        let data = { keyInRealtimeDB: object.keyInRealtimeDB, embedding: object.embedding };
+        let data = { keyInRealtimeDB: object.key, embedding: object.embedding, prompt: object.prompt };
         console.log("storeInVectorDB", data, functionURL + "/storeVector");
         let response = await fetch(functionURL + "storeVector", {
             method: "POST",
@@ -334,8 +334,9 @@ async function storeInVectorDBFunction(object) {
 }
 
 async function findNearestFunction() {
+    console.log("objects", objects);
     let data = { embedding: objects[0].embedding };
-    console.log("findNearest", data, functionURL + "/findNearest");
+    // console.log("findNearest", data, functionURL + "/findNearest");
     let response = await fetch(functionURL + "findNearest", {
         method: "POST",
         // headers: {

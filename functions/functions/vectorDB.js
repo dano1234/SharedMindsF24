@@ -26,19 +26,28 @@ exports.findNearest = functions.https.onRequest(async (request, response) => {
     // functions.logger.info("Hello logs!", { structuredData: true });
     response.set("Access-Control-Allow-Origin", "*");
     const json = JSON.parse(request.body);
-    console.log("findNearest", json);
+    //console.log("findNearest", json);
 
     const db = new Firestore();
     const coll = db.collection('coffee-beans');
-
+    console.log("length", json.embedding.length);
     // Requires single-field vector index
     const vectorQuery = coll.findNearest('embedding', FieldValue.vector(json.embedding), {
-        limit: 5,
-        distanceMeasure: 'EUCLIDEAN'
+        limit: 2,
+        distanceMeasure: 'COSINE'
     });
 
     let VectorQuerySnapshot = await vectorQuery.get();
-    console.log("VectorQuerySnapshot", VectorQuerySnapshot);
+    if (VectorQuerySnapshot.empty) {
+        console.log('NO DOCUMENTS FOUND.');
+    } else {
+        let docs = VectorQuerySnapshot.docs;
+        for (let doc of docs) {
+            console.log(`Document found at path: ${doc.ref.path}`);
+        }
+    }
+
+    // console.log("VectorQuerySnapshot", VectorQuerySnapshot);
     response.status(200).send({ "repsonse": VectorQuerySnapshot });
 
 });
