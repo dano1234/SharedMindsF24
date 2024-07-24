@@ -18,6 +18,10 @@ let myMask;
 let alterEgo;
 let center;
 let tilt;
+let box;
+let alterEgoBox;
+let headAngle;
+let tries = 0;
 
 const GPUServer = "https://dano.ngrok.dev/";
 
@@ -95,7 +99,14 @@ function draw() {
     background(255);
     if (alterEgo) {
         image(video, 0, 0, width, height);
-        image(alterEgo, center.x - alterEgo.width / 2, center.y - alterEgo.height / 2);
+        push();
+        //have to make alterego a graphics instead of an image.
+        //imageMode(CENTER);
+        //translate(alterEgo.width / 2, alterEgo.height / 2);
+        ///rotate(headAngle);
+        // 
+        image(alterEgo, box.xMin, box.yMin, box.width, box.height, alterEgoBox.xMin, alterEgoBox.yMin, alterEgoBox.width, alterEgoBox.height);
+        pop();
     } else if (img) {
         img.mask(myMask);
         // push(); // Save the current drawing state
@@ -114,15 +125,19 @@ function draw() {
         let faceWidth = p.box.width;
         let faceHeight = p.box.height;
 
+        let xDiff = p.leftEye.centerX - p.rightEye.centerX;
+        let yDiff = p.leftEye.centerY - p.rightEye.centerY;
+        headAngle = Math.atan2(yDiff, xDiff);
 
         // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
         center = { x: p.box.xMin + faceWidth / 2, y: p.box.yMin + faceHeight / 2 };
+        box = p.box;
         let left = p.box.xMin - faceWidth / 2;
         let right = p.box.xMax + faceWidth / 2;
         let top = p.box.yMin - faceHeight / 2;
         let bottom = p.box.yMax + faceHeight / 2;
         justFace = createGraphics(faceWidth * 2, faceHeight * 2);
-        justFace.image(video, 0, 0, faceWidth * 2, faceHeight * 2, left, top, faceWidth * 2, faceHeight * 2);
+        justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
         faceRect = [left, top, right, bottom];
         //image(justFace, 0, 0);
         if (faces.length > 0) {
@@ -208,18 +223,31 @@ async function ask() {
         //console.log("image loaded", newImage);
         //image(img, 0, 0);
         alterEgo = newImage;
+        tries = 0;
         faceMesh.detect(newImage, gotAFace);
+
     });
 }
 
 function gotAFace(results) {
+    if (tries > 10) {
+        console.log("Too many tries");
+        return;
+    }
+    tries++;
     if (results.length == 0) {
         console.log("No Face Found");
         faceMesh.detect(alterEgo, gotAFace);  // recursive risk?
         return;
+    } else if (results[0].faceOval.width < 120 || results[0].faceOval.height < 120) {
+        console.log("too small face found");
+        faceMesh.detect(alterEgo, gotAFace);  // recursive risk?
+        return
     }
+
     console.log("gotAFace", results);
     firstFace = results[0];
+    alterEgoBox = firstFace.box;
     otherMask = createGraphics(alterEgo.width, alterEgo.height);
     otherMask.noStroke();
     otherMask.clear();
@@ -233,7 +261,6 @@ function gotAFace(results) {
     }
     otherMask.endShape(CLOSE);
     alterEgo.mask(otherMask);
-
 }
 // Callback function for when bodyPose outputs data
 function gotFaces(results) {
