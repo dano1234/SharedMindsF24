@@ -32,12 +32,17 @@ exports.findNearest = functions.https.onRequest(async (request, response) => {
     const coll = db.collection('coffee-beans');
     console.log("length", json.embedding.length);
     // Requires single-field vector index
-    const vectorQuery = coll.findNearest('embedding', FieldValue.vector(json.embedding), {
-        limit: 2,
-        distanceMeasure: 'COSINE'
+    let inVec = FieldValue.vector(json.embedding);
+    //de  console.log("inVec", inVec);
+    const vectorQuery = coll.findNearest('embedding_field', inVec, {
+        limit: 5,
+        distanceMeasure: 'EUCLIDEAN'
     });
 
     let VectorQuerySnapshot = await vectorQuery.get();
+    let res = [];
+    VectorQuerySnapshot.forEach((doc) => res.push(doc.data()));
+    console.log("VectorQuerySnapshot Result", res);
     if (VectorQuerySnapshot.empty) {
         console.log('NO DOCUMENTS FOUND.');
     } else {
@@ -58,7 +63,13 @@ exports.findNearest = functions.https.onRequest(async (request, response) => {
 async function storit(incoming) {
     const db = new Firestore();
     const coll = db.collection('coffee-beans');
-    let result = await coll.add(incoming);
+    //let result = await coll.add(incoming);
+    let result = await coll.add({
+        realtimeKey: incoming.keyInRealtimeDB,
+        prompt: incoming.prompt,
+        embedding_field: FieldValue.vector(incoming.embedding)
+    });
+
     //console.log("okay since you asked", incoming);
     return result;
 }
