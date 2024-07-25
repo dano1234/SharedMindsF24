@@ -20,8 +20,10 @@ let center;
 let tilt;
 let box;
 let alterEgoBox;
+let alterEgoGraphics;
 let headAngle;
 let tries = 0;
+let askingMode = false;
 
 const GPUServer = "https://dano.ngrok.dev/";
 
@@ -99,14 +101,22 @@ function draw() {
     background(255);
     if (alterEgo) {
         image(video, 0, 0, width, height);
-        push();
+        // alterEgoGraphics.push();
         //have to make alterego a graphics instead of an image.
         //imageMode(CENTER);
         //translate(alterEgo.width / 2, alterEgo.height / 2);
         ///rotate(headAngle);
-        // 
-        image(alterEgo, box.xMin, box.yMin, box.width, box.height, alterEgoBox.xMin, alterEgoBox.yMin, alterEgoBox.width, alterEgoBox.height);
-        pop();
+        //
+        // console.log("headAngle", headAngle);
+        alterEgo.mask(otherMask);
+        alterEgoGraphics = createGraphics(alterEgo.width, alterEgo.height);
+        alterEgoGraphics.imageMode(CENTER);
+        alterEgoGraphics.translate(alterEgo.width / 2, alterEgo.height / 2);
+        alterEgoGraphics.rotate(headAngle);
+        alterEgoGraphics.image(alterEgo, 0, 0);
+        //alterEgoGraphics.pop();
+        image(alterEgoGraphics, box.xMin, box.yMin, box.width, box.height, alterEgoBox.xMin, alterEgoBox.yMin, alterEgoBox.width, alterEgoBox.height);
+
     } else if (img) {
         img.mask(myMask);
         // push(); // Save the current drawing state
@@ -122,6 +132,8 @@ function draw() {
 
     if (faces.length > 0 && mode == "live") {
         let p = faces[0];
+        let z = p.keypoints[0].z;
+        console.log("z", z);
         let faceWidth = p.box.width;
         let faceHeight = p.box.height;
 
@@ -186,6 +198,7 @@ async function vecToImg(direction, factor) {
     });
 }
 async function ask() {
+    askingMode = true;
     canvas.loadPixels();
 
     let imgBase64;
@@ -217,7 +230,18 @@ async function ask() {
     const result = await response.json();
     //console.log("result", result.latents);
     myLatents = result.latents;
-
+    // Replace the loadImage call with vanilla JavaScript
+    // const newImage = new Image();
+    // newImage.onload = function () {
+    //     // Image is now loaded and can be used
+    //     console.log("image loaded", newImage);
+    //     // Perform operations with newImage here
+    //     alterEgo = newImage;
+    //     tries = 0;
+    //     // Assuming faceMesh.detect is a function that needs an HTMLImageElement
+    //     faceMesh.detect(newImage, gotAFace);
+    // };
+    // newImage.src = result.b64Image;
     loadImage(result.b64Image, function (newImage) {
         //"data:image/png;base64," +
         //console.log("image loaded", newImage);
@@ -226,10 +250,18 @@ async function ask() {
         tries = 0;
         faceMesh.detect(newImage, gotAFace);
 
+        // alterEgoGraphics.clear();
+        // alterEgoGraphics.noStroke();
+        // alterEgoGraphics.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+        askingMode = false;
+        setTimeout(function () {
+            ask();
+        }, 1000);
     });
 }
 
 function gotAFace(results) {
+
     if (tries > 10) {
         console.log("Too many tries");
         return;
@@ -244,8 +276,6 @@ function gotAFace(results) {
         faceMesh.detect(alterEgo, gotAFace);  // recursive risk?
         return
     }
-
-    console.log("gotAFace", results);
     firstFace = results[0];
     alterEgoBox = firstFace.box;
     otherMask = createGraphics(alterEgo.width, alterEgo.height);
@@ -260,7 +290,7 @@ function gotAFace(results) {
 
     }
     otherMask.endShape(CLOSE);
-    alterEgo.mask(otherMask);
+
 }
 // Callback function for when bodyPose outputs data
 function gotFaces(results) {
