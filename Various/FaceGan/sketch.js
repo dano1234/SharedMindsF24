@@ -24,6 +24,7 @@ let alterEgoGraphics;
 let headAngle;
 let tries = 0;
 let askingMode = false;
+let previousZ = 0;
 
 const GPUServer = "https://dano.ngrok.dev/";
 
@@ -133,7 +134,19 @@ function draw() {
     if (faces.length > 0 && mode == "live") {
         let p = faces[0];
         let z = p.keypoints[0].z;
-        console.log("z", z);
+        //console.log("z", z);
+        let zDiff = z - previousZ;
+        if (askingMode == false) {
+            if (zDiff > 2) {
+                //vecToImg("age", 2);
+                console.log("younger");
+            } else if (zDiff < -2) {
+                //vecToImg("age", -1);
+                console.log("older");
+            }
+        }
+        previousZ = z;
+
         let faceWidth = p.box.width;
         let faceHeight = p.box.height;
 
@@ -170,6 +183,7 @@ function draw() {
 }
 
 async function vecToImg(direction, factor) {
+    askingMode = true;
     let postData = {
         latents: myLatents,
         direction: direction,
@@ -191,10 +205,10 @@ async function vecToImg(direction, factor) {
     console.log("result", result);
 
     loadImage(result.b64Image, function (newImage) {
-        //"data:image/png;base64," +
-        console.log("image loaded", newImage);
-        //image(img, 0, 0);
-        img = newImage;
+        alterEgo = newImage;
+        tries = 0;
+        faceMesh.detect(newImage, gotAFace);
+        askingMode = false;
     });
 }
 async function ask() {
@@ -228,6 +242,11 @@ async function ask() {
     //video.pause();
     //mode = "freeze";
     const result = await response.json();
+    if (result.error) {
+        console.log("error", result.error);
+        ask();
+        return;
+    }
     //console.log("result", result.latents);
     myLatents = result.latents;
     // Replace the loadImage call with vanilla JavaScript
@@ -243,20 +262,13 @@ async function ask() {
     // };
     // newImage.src = result.b64Image;
     loadImage(result.b64Image, function (newImage) {
-        //"data:image/png;base64," +
-        //console.log("image loaded", newImage);
-        //image(img, 0, 0);
         alterEgo = newImage;
         tries = 0;
         faceMesh.detect(newImage, gotAFace);
-
-        // alterEgoGraphics.clear();
-        // alterEgoGraphics.noStroke();
-        // alterEgoGraphics.fill(0, 0, 0, 255);//some nice alphaa in fourth number
         askingMode = false;
-        setTimeout(function () {
-            ask();
-        }, 1000);
+        // setTimeout(function () {
+        //     ask();
+        // }, 1000);
     });
 }
 
