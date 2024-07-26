@@ -116,8 +116,10 @@ function draw() {
         alterEgoGraphics.imageMode(CENTER);
         alterEgoGraphics.translate(alterEgo.width / 2, alterEgo.height / 2);
         alterEgoGraphics.rotate(headAngle);
+        alterEgoGraphics.tint(255, 230);
         alterEgoGraphics.image(alterEgo, 0, 0);
         //alterEgoGraphics.pop();
+
         image(alterEgoGraphics, box.xMin, box.yMin, box.width, box.height, alterEgoBox.xMin, alterEgoBox.yMin, alterEgoBox.width, alterEgoBox.height);
 
     } else if (img) {
