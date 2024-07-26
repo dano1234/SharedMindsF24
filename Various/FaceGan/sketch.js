@@ -56,29 +56,29 @@ function setup() {
         vecToImg("smile", what.target.value);
     });
 
-    poseSlider = createSlider(-5, 5, 0);
-    poseSlider.position(0, (dimension * 3) / 4 + 60); // x and y
-    poseSlider.size(400, 20); // width and height
-    poseSlider.changed(function (what) {
-        vecToImg("pose", what.target.value);
-    });
+    // poseSlider = createSlider(-5, 5, 0);
+    // poseSlider.position(0, (dimension * 3) / 4 + 60); // x and y
+    // poseSlider.size(400, 20); // width and height
+    // poseSlider.changed(function (what) {
+    //     vecToImg("pose", what.target.value);
+    // });
 
     button = createButton("Find Me");
     button.mousePressed(ask);
     button.position(530, 40);
-    button = createButton("Live Video");
-    button.mousePressed(function () {
-        video.play();
-        mode = "live";
-        img = video;
-    });
+    // button = createButton("Live Video");
+    // button.mousePressed(function () {
+    //     video.play();
+    //     mode = "live";
+    //     img = video;
+    // });
 
-    button.position(530, 70);
-    let vecToImgButton = createButton("VecToImg");
-    vecToImgButton.position(530, 100);
-    vecToImgButton.mousePressed(function () {
-        vecToImg("none", 0);
-    });
+    // button.position(530, 70);
+    // let vecToImgButton = createButton("VecToImg");
+    // vecToImgButton.position(530, 100);
+    // vecToImgButton.mousePressed(function () {
+    //     vecToImg("none", 0);
+    // });
 
     video = createCapture(VIDEO); //simpler if you don't need to pick between cameras
 
@@ -90,6 +90,7 @@ function setup() {
     //bodyPose.detectStart(video, gotPoses);
     let center = { x: width / 2, y: height / 2 };
     let tilt = 0;
+    // setTimeout(function () { ask(); }, 3000);
 }
 function changeAge(what) {
 
@@ -97,6 +98,8 @@ function changeAge(what) {
     vecToImg("age", what.target.value);
 
 }
+
+
 function draw() {
     background(255);
     if (alterEgo) {
@@ -133,7 +136,7 @@ function draw() {
     if (faces.length > 0 && mode == "live") {
         let p = faces[0];
         let z = p.keypoints[0].z;
-        console.log("z", z);
+        //console.log("z", z);
         let faceWidth = p.box.width;
         let faceHeight = p.box.height;
 
@@ -191,10 +194,9 @@ async function vecToImg(direction, factor) {
     console.log("result", result);
 
     loadImage(result.b64Image, function (newImage) {
-        //"data:image/png;base64," +
-        console.log("image loaded", newImage);
-        //image(img, 0, 0);
-        img = newImage;
+        alterEgo = newImage;
+        tries = 0;
+        faceMesh.detect(newImage, gotAFace);
     });
 }
 async function ask() {
@@ -254,9 +256,9 @@ async function ask() {
         // alterEgoGraphics.noStroke();
         // alterEgoGraphics.fill(0, 0, 0, 255);//some nice alphaa in fourth number
         askingMode = false;
-        setTimeout(function () {
-            ask();
-        }, 1000);
+        // setTimeout(function () {
+        //     ask();
+        // }, 1000);
     });
 }
 

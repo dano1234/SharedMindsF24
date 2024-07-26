@@ -22,6 +22,8 @@ exports.storeVector = functions.https.onRequest(async (request, response) => {
     response.status(200).send({ "repsonse": "hey" });
 });
 
+
+
 exports.findNearest = functions.https.onRequest(async (request, response) => {
     // functions.logger.info("Hello logs!", { structuredData: true });
     response.set("Access-Control-Allow-Origin", "*");
