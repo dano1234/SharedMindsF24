@@ -1,10 +1,13 @@
 let dimension = 640;
+let people = [];
 let button;
+let themButton;
 let inputBox;
 let video; // webcam
 let canvas;
 let img;
 let myLatents;
+let theirLatents;
 //let bodyPose;
 let faceMesh;
 let faces = [];
@@ -19,7 +22,7 @@ let alterEgo;
 let center;
 let tilt;
 let box;
-let alterEgoBox;
+//let alterEgoBox;
 let alterEgoGraphics;
 let headAngle;
 let tries = 0;
@@ -36,6 +39,233 @@ let options = { maxFaces: 1, refineLandmarks: false, flipHorizontal: false };
 function preload() {
     // Load the faceMesh model
     faceMesh = ml5.faceMesh(options);
+}
+
+// Callback function for when bodyPose outputs data
+function gotFaces(results) {
+    // Save the output to the poses variable
+    for (let i = 0; i < results.length; i++) {
+        if (!people[i]) {
+            people.push(new Person());
+        }
+        people[i].updatePosition(results[i]);
+        //let face = results[i];
+        //faces.push(face);
+    }
+    //faces = results;
+
+    // console.log(poses);
+}
+
+
+class Person {
+
+    //live mask
+    //alter ego
+    //alter ego mask
+
+    constructor() {
+        this.liveMask = createGraphics(width, height);
+        this.tries = 0;
+    }
+
+    updatePosition(results) {
+        this.liveMask.clear();
+        this.liveMask.noStroke();
+        this.liveMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+        this.liveMask.beginShape();
+        // Note: API changed here to have the points in .keypoints
+        for (var i = 0; i < results.faceOval.keypoints.length; i++) {
+            this.liveMask.curveVertex(results.faceOval.keypoints[i].x, results.faceOval.keypoints[i].y);
+        }
+        this.liveMask.endShape(CLOSE);
+        this.getLiveFaceRect(results)
+    }
+
+    drawMe() {
+        // console.log("headAngle", headAngle);
+        //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
+        if (this.alterEgo && this.alterEgoBox) {
+            //console.log("drawing alter ego");
+            this.alterEgo.mask(this.otherMask);
+            this.alterEgoGraphics = createGraphics(this.alterEgo.width, this.alterEgo.height);
+            this.alterEgoGraphics.imageMode(CENTER);
+            this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
+            this.alterEgoGraphics.rotate(this.headAngle);
+            this.alterEgoGraphics.tint(255, 230);
+            this.alterEgoGraphics.image(this.alterEgo, 0, 0);
+            //alterEgoGraphics.pop();
+            image(this.alterEgoGraphics, this.box.xMin, this.box.yMin, this.box.width, this.box.height, this.alterEgoBox.xMin, this.alterEgoBox.yMin, this.alterEgoBox.width, this.alterEgoBox.height);
+        }
+    }
+
+
+    async locateAlterEgo() {
+        let imgBase64 = this.justFace.canvas.toDataURL("image/jpeg", 1.0);
+        imgBase64 = imgBase64.split(",")[1];
+        let postData = {
+            image: imgBase64,
+            faceRect: faceRect,
+        };
+
+        let url = GPUServer + "locateImage/";
+        const options = {
+            headers: {
+                "Content-Type": `application/json`,
+            },
+            method: "POST",
+            body: JSON.stringify(postData), //p)
+        };
+        console.log("Asking for My Image ");
+        const response = await fetch(url, options);
+        const result = await response.json();
+        console.log("result", result);
+        if (result.error) {
+            console.log("Error", result.error);
+            return;
+        }
+        let currentPerson = this;
+
+        // const newImage = new Image();
+        // newImage.onload = function () {
+        //     // Image is now loaded and can be usedd
+        //     currentPerson.imageLoaded(newImage, result);
+        // };
+        // newImage.src = result.b64Image;
+
+        loadImage(result.b64Image, function (newImage,) {
+            currentPerson.imageLoaded(newImage, result);
+        });
+    }
+    imageLoaded(newImage, result) {
+        //console.log("image loaded", newImage);
+        console.log("this during imageLoaded", this);
+        let currentPerson = this;
+        //this.alterEgoGraphics = createGraphics(newImage.width, newImage.height);
+        //this.alterEgoGraphics.image(newImage, 0, 0);
+        // Perform operations with newImage here
+        this.latents = result.latents;
+        //this.tries = 0;
+        this.alterEgo = newImage;
+        faceMesh.detect(newImage, function (results) {
+            console.log("detected face", currentPerson);
+            currentPerson.getAlterEgoFaceRect(results);
+        });
+    }
+
+
+    getAlterEgoFaceRect(results) {
+        let currentPerson = this;
+
+        if (this.tries > 10) {
+            console.log("Too many tries");
+            return;
+        }
+        currentPerson.tries++;
+        if (results.length == 0) {
+            console.log("No Face Found");
+            faceMesh.detect(currentPerson.alterEgo, function (results) {
+                //console.log("detected face", currentPerson);
+                currentPerson.getAlterEgoFaceRect(results);
+            });  // recursive risk?
+            return;
+        } else if (results[0].faceOval.width < 120 || results[0].faceOval.height < 120) {
+            console.log("too small face found");
+            faceMesh.detect(currentPerson.alterEgo, function (results) {
+                //console.log("detected face", currentPerson);
+                currentPerson.getAlterEgoFaceRect(results);
+            });  // recursive risk?
+            return
+        }
+        //let newImage = this.alterEgo;
+        let firstFace = results[0];
+        this.alterEgoBox = firstFace.box;
+        console.log("firstFace", firstFace);
+        this.otherMask = createGraphics(this.alterEgo.width, this.alterEgo.height);
+        this.otherMask.noStroke();
+        this.otherMask.clear();
+        this.otherMask.noStroke();
+        this.otherMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+        this.otherMask.beginShape();
+        // Note: API changed here to have the points in .keypoints
+        for (var i = 0; i < firstFace.faceOval.keypoints.length; i++) {
+            this.otherMask.curveVertex(firstFace.faceOval.keypoints[i].x, firstFace.faceOval.keypoints[i].y);
+
+        }
+        this.otherMask.endShape(CLOSE);
+
+        // this.alterEgoCanvas = document.createElement('canvas');
+        // this.alterEgoCanvas.width = newImage.width;
+        // this.alterEgoCanvas.height = newImage.height;
+        // this.ctx = this.alterEgoCanvas.getContext('2d');
+        // this.ctx.fillStyle = 'white';
+        // this.ctx.save();
+        // this.ctx.clearRect(0, 0, this.alterEgoCanvas.width, this.alterEgoCanvas.height);
+        // this.ctx.fillStyle = 'black';
+
+
+        // this.ctx.beginPath();
+        // this.ctx.arc(this.alterEgoCanvas.width / 2, this.alterEgoCanvas.height / 2, 70, 0, 2 * Math.PI);
+        // this.ctx.stroke();
+        // Clear the canvas
+        //this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Set fill style
+        //ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // Equivalent to fill(0, 0, 0, 255) in p5.js
+
+        // Begin path
+        // this.ctx.beginPath();
+
+        // // Draw vertices
+        // const keypoints = results[0].faceOval.keypoints;
+        // if (keypoints.length > 0) {
+        //     this.ctx.moveTo(keypoints[0].x, keypoints[0].y);
+        //     for (let i = 1; i < keypoints.length; i++) {
+        //         this.ctx.lineTo(keypoints[i].x, keypoints[i].y);
+        //     }
+        // }
+
+        // // Close path and fill
+        // this.ctx.closePath();
+        // this.ctx.fill();
+        // this.ctx.clip();
+        // this.ctx.drawImage(newImage, 0, 0, this.alterEgoCanvas.width, this.alterEgoCanvas.height);
+        // this.ctx.restore();
+
+        //}
+
+    }
+
+    getLiveFaceRect(liveResults) {
+        let z = liveResults.keypoints[0].z;
+        //console.log("z", z);
+        let faceWidth = liveResults.box.width;
+        let faceHeight = liveResults.box.height;
+
+        let xDiff = liveResults.leftEye.centerX - liveResults.rightEye.centerX;
+        let yDiff = liveResults.leftEye.centerY - liveResults.rightEye.centerY;
+        this.headAngle = Math.atan2(yDiff, xDiff);
+
+        // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
+        this.center = { x: liveResults.box.xMin + faceWidth / 2, y: liveResults.box.yMin + faceHeight / 2 };
+        this.box = liveResults.box;
+        let left = liveResults.box.xMin - faceWidth / 2;
+        let right = liveResults.box.xMax + faceWidth / 2;
+        let top = liveResults.box.yMin - faceHeight / 2;
+        let bottom = liveResults.box.yMax + faceHeight / 2;
+        this.justFace = createGraphics(faceWidth * 2, faceHeight * 2);
+        this.justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
+        this.faceRect = [left, top, right, bottom];
+    }
+}
+
+function draw() {
+
+    background(255);
+    image(video, 0, 0, width, height);
+    for (let i = 0; i < people.length; i++) {
+        people[i].drawMe();
+    }
 }
 
 
@@ -64,7 +294,9 @@ function setup() {
     // });
 
     button = createButton("Find Me");
-    button.mousePressed(ask);
+    button.mousePressed(function () {
+        people[0].locateAlterEgo();
+    });
     button.position(530, 40);
     // button = createButton("Live Video");
     // button.mousePressed(function () {
@@ -72,6 +304,11 @@ function setup() {
     //     mode = "live";
     //     img = video;
     // });
+    themButton = createButton("Find Them");
+    themButton.mousePressed(function () {
+        people[1].locateAlterEgo();
+    });
+    themButton.position(530, 70);
 
     // button.position(530, 70);
     // let vecToImgButton = createButton("VecToImg");
@@ -92,18 +329,20 @@ function setup() {
     let tilt = 0;
     // setTimeout(function () { ask(); }, 3000);
 }
-function changeAge(what) {
 
+
+function changeAge(what) {
     console.log(what.target.value);
     vecToImg("age", what.target.value);
 
 }
 
 
-function draw() {
+function olddraw() {
     background(255);
+    image(video, 0, 0, width, height);
     if (alterEgo) {
-        image(video, 0, 0, width, height);
+
         // alterEgoGraphics.push();
         //have to make alterego a graphics instead of an image.
         //imageMode(CENTER);
@@ -136,26 +375,8 @@ function draw() {
     }
 
     if (faces.length > 0 && mode == "live") {
-        let p = faces[0];
-        let z = p.keypoints[0].z;
-        //console.log("z", z);
-        let faceWidth = p.box.width;
-        let faceHeight = p.box.height;
+        getFace(0)
 
-        let xDiff = p.leftEye.centerX - p.rightEye.centerX;
-        let yDiff = p.leftEye.centerY - p.rightEye.centerY;
-        headAngle = Math.atan2(yDiff, xDiff);
-
-        // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
-        center = { x: p.box.xMin + faceWidth / 2, y: p.box.yMin + faceHeight / 2 };
-        box = p.box;
-        let left = p.box.xMin - faceWidth / 2;
-        let right = p.box.xMax + faceWidth / 2;
-        let top = p.box.yMin - faceHeight / 2;
-        let bottom = p.box.yMax + faceHeight / 2;
-        justFace = createGraphics(faceWidth * 2, faceHeight * 2);
-        justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
-        faceRect = [left, top, right, bottom];
         //image(justFace, 0, 0);
         if (faces.length > 0) {
 
@@ -173,6 +394,9 @@ function draw() {
     //image(myMask, 0, 0)
 
 }
+
+
+
 
 async function vecToImg(direction, factor) {
     let postData = {
@@ -201,12 +425,16 @@ async function vecToImg(direction, factor) {
         faceMesh.detect(newImage, gotAFace);
     });
 }
-async function ask() {
+async function ask(who) {
     askingMode = true;
     canvas.loadPixels();
 
     let imgBase64;
+
     if (justFace) {
+        if (who == "them") {
+            getFace(1);
+        }
         imgBase64 = justFace.canvas.toDataURL("image/jpeg", 1.0);
         console.log("justFace", justFace);
     } else {
@@ -233,7 +461,11 @@ async function ask() {
     //mode = "freeze";
     const result = await response.json();
     //console.log("result", result.latents);
-    myLatents = result.latents;
+    if (who == "them") {
+        theirLatents = result.latents;
+    } else {
+        myLatents = result.latents;
+    }
     // Replace the loadImage call with vanilla JavaScript
     // const newImage = new Image();
     // newImage.onload = function () {
@@ -252,7 +484,9 @@ async function ask() {
         //image(img, 0, 0);
         alterEgo = newImage;
         tries = 0;
-        faceMesh.detect(newImage, gotAFace);
+        faceMesh.detect(newImage, gotAFace
+
+        );
 
         // alterEgoGraphics.clear();
         // alterEgoGraphics.noStroke();
@@ -266,11 +500,11 @@ async function ask() {
 
 function gotAFace(results) {
 
-    if (tries > 10) {
+    if (this.tries > 10) {
         console.log("Too many tries");
         return;
     }
-    tries++;
+    this.tries++;
     if (results.length == 0) {
         console.log("No Face Found");
         faceMesh.detect(alterEgo, gotAFace);  // recursive risk?
@@ -280,8 +514,9 @@ function gotAFace(results) {
         faceMesh.detect(alterEgo, gotAFace);  // recursive risk?
         return
     }
-    firstFace = results[0];
+    let firstFace = results[0];
     alterEgoBox = firstFace.box;
+    console.log("firstFace", firstFace);
     otherMask = createGraphics(alterEgo.width, alterEgo.height);
     otherMask.noStroke();
     otherMask.clear();
@@ -296,10 +531,4 @@ function gotAFace(results) {
     otherMask.endShape(CLOSE);
 
 }
-// Callback function for when bodyPose outputs data
-function gotFaces(results) {
-    // Save the output to the poses variable
-    faces = results;
 
-    // console.log(poses);
-}
