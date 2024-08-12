@@ -16,6 +16,7 @@ let alterEgoGraphics;
 let headAngle;
 let tries = 0;
 let askingMode = false;
+let betweenImage;
 
 const GPUServer = "https://dano.ngrok.dev/";
 
@@ -42,14 +43,30 @@ function gotFaces(results) {
     //console.log("gotFaces", results);
     // Save the output to the poses variable
     //console.log("results", results);
+    let existingPeople = [];
+    for (let i = 0; i < people.length; i++) {
+        existingPeople.push(i);
+    }
     for (let i = 0; i < results.length; i++) {
         if (results[i].keypoints.length < 5) continue;
-        if (!people[i]) {
-            people.push(new Person());
+        if (existingPeople.length == 0) {
+            let newPerson = new Person();
+            newPerson.updatePosition(results[i]);
+            people.push(newPerson);
+        } else {
+            let closest = 100000;
+            let closestIndex = -1;
+            for (let j = 0; j < existingPeople.length; j++) {
+                let thisIndex = existingPeople[j];
+                let dist = Math.abs(people[thisIndex].center.x - results[i].box.xMin) + Math.abs(people[thisIndex].center.y - results[i].box.yMin);
+                if (dist < closest) {
+                    closest = dist;
+                    closestIndex = thisIndex;
+                }
+            }
+            people[closestIndex].updatePosition(results[i]);
+            existingPeople.splice(closestIndex, 1);
         }
-        people[i].updatePosition(results[i]);
-        //let face = results[i];
-        //faces.push(face);
     }
     //faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
 }
@@ -69,12 +86,12 @@ class Person {
         let z = liveResults.keypoints[0].z;
         //console.log("z", z);
         this.box = liveResults.box;
-        this.box.xMin = this.box.xMin / 2;
-        this.box.xMax = this.box.xMax / 2;
-        this.box.yMin = this.box.yMin / 2;
-        this.box.yMax = this.box.yMax / 2;
-        this.box.width = this.box.width / 2;
-        this.box.height = this.box.height / 2;
+        // this.box.xMin = this.box.xMin / 2;
+        // this.box.xMax = this.box.xMax / 2;
+        // this.box.yMin = this.box.yMin / 2;
+        // this.box.yMax = this.box.yMax / 2;
+        // this.box.width = this.box.width / 2;
+        // this.box.height = this.box.height / 2;
         let faceWidth = this.box.width;
         let faceHeight = this.box.height;
 
@@ -129,11 +146,39 @@ class Person {
         //     currentPerson.imageLoaded(newImage, result);
         // };
         // newImage.src = result.b64Image;
-
+        currentPerson.latents = result.latents;
         loadImage(result.b64Image, function (newImage,) {
             currentPerson.imageLoaded(newImage, result);
         });
     }
+
+    async vecToImg(direction, factor) {
+        let postData = {
+            latents: this.latents,
+            direction: direction,
+            factor: factor,
+        };
+        console.log(postData);
+        let url = GPUServer + "latentsToImage/";
+
+        const options = {
+            headers: {
+                "Content-Type": `application/json`,
+            },
+            method: "POST",
+            body: JSON.stringify(postData), //p)
+        };
+        console.log("Asking for Picture from Latents ", options);
+        const response = await fetch(url, options);
+        const result = await response.json();
+        console.log("result", result);
+
+        let currentPerson = this;
+        loadImage(result.b64Image, function (newImage,) {
+            currentPerson.imageLoaded(newImage, result);
+        });
+    }
+
     imageLoaded(newImage, result) {
         //console.log("image loaded", newImage);
         // console.log("this during imageLoaded", this);
@@ -141,7 +186,7 @@ class Person {
         //this.alterEgoGraphics = createGraphics(newImage.width, newImage.height);
         //this.alterEgoGraphics.image(newImage, 0, 0);
         // Perform operations with newImage here
-        this.latents = result.latents;
+
         //this.tries = 0;
         this.alterEgo = newImage;
         faceMesh.detect(newImage, function (results) {
@@ -154,7 +199,7 @@ class Person {
     getAlterEgoFaceRect(results) {
         let currentPerson = this;
 
-        if (this.tries > 10) {
+        if (this.tries > 20) {
             console.log("Too many tries");
             return;
         }
@@ -197,33 +242,7 @@ class Person {
     isGone() {
         return millis() - this.lastUpdate > 5000;
     }
-    // async function vecToImg(direction, factor) {
-    //     let postData = {
-    //         latents: myLatents,
-    //         direction: direction,
-    //         factor: factor,
-    //     };
-    //     console.log(postData);
-    //     let url = GPUServer + "latentsToImage/";
 
-    //     const options = {
-    //         headers: {
-    //             "Content-Type": `application/json`,
-    //         },
-    //         method: "POST",
-    //         body: JSON.stringify(postData), //p)
-    //     };
-    //     console.log("Asking for Picture from Latents ", options);
-    //     const response = await fetch(url, options);
-    //     const result = await response.json();
-    //     console.log("result", result);
-
-    //     loadImage(result.b64Image, function (newImage) {
-    //         alterEgo = newImage;
-    //         tries = 0;
-    //         faceMesh.detect(newImage, gotAFace);
-    //     });
-    // }
 
     drawMe(number) {
         // console.log("headAngle", headAngle);
@@ -272,16 +291,43 @@ function draw() {
     for (let i = 0; i < people.length; i++) {
         people[i].drawMe(i);
     }
-    for (let i = people.length - 1; i > -1; i--) {
-        if (people[i].isGone()) {
-            people.splice(i, 1);
-            console.log("removing person", i);
-        }
+    // for (let i = people.length - 1; i > -1; i--) {
+    //     if (people[i].isGone()) {
+    //         people.splice(i, 1);
+    //         console.log("removing person", i);
+    //     }
+    // }
+    if (betweenImage) {
+        image(betweenImage, 0, width / 2);
     }
 
 }
 
+async function askBetween() {
+    let postData = {
+        v1: people[0].latents,
+        v2: people[1].latents,
+        percent: 0.5,
+    };
+    console.log(postData);
+    let url = GPUServer + "getBetween/";
 
+    const options = {
+        headers: {
+            "Content-Type": `application/json`,
+        },
+        method: "POST",
+        body: JSON.stringify(postData), //p)
+    };
+    console.log("Asking for Picture from Latents ", options);
+    const response = await fetch(url, options);
+    const result = await response.json();
+    console.log("result", result);
+
+    loadImage(result.b64Image, function (newImage,) {
+        betweenImage = newImage;
+    });
+}
 
 function setup() {
 
@@ -292,34 +338,40 @@ function setup() {
     ageSlider.position(0, (dimension * 3) / 4); // x and y
     ageSlider.size(400, 20); // width and height
     ageSlider.changed(function (what) {
-        vecToImg("age", what.target.value);
+        currentPerson.vecToImg("age", what.target.value);
     });
 
     smileSlider = createSlider(-5, 5, 0);
     smileSlider.position(0, (dimension * 3) / 4 + 30); // x and y
     smileSlider.size(400, 20); // width and height
     smileSlider.changed(function (what) {
-        vecToImg("smile", what.target.value);
+        currentPerson.vecToImg("smile", what.target.value);
     });
 
 
 
-    button = createButton("Find Me");
-    button.mousePressed(function () {
-        people[0].locateAlterEgo();
-    });
-    button.position(530, 40);
+    // button = createButton("Find Me");
+    // button.mousePressed(function () {
+    //     people[0].locateAlterEgo();
+    // });
+    // button.position(530, 40);
     // button = createButton("Live Video");
     // button.mousePressed(function () {
     //     video.play();
     //     mode = "live";
     //     img = video;
     // });
-    themButton = createButton("Find Them");
-    themButton.mousePressed(function () {
-        people[1].locateAlterEgo();
+    // themButton = createButton("Find Them");
+    // themButton.mousePressed(function () {
+    //     people[1].locateAlterEgo();
+    // });
+    // themButton.position(530, 70);
+
+    betweenButton = createButton("Between Them");
+    betweenButton.mousePressed(function () {
+        askBetween();
     });
-    themButton.position(530, 70);
+    betweenButton.position(530, 70);
 
     // button.position(530, 70);
     // let vecToImgButton = createButton("VecToImg");
@@ -327,7 +379,7 @@ function setup() {
     // vecToImgButton.mousePressed(function () {
     //     vecToImg("none", 0);
     // });
-
+    pixelDensity(1)
     video = createCapture(VIDEO); //simpler if you don't need to pick between cameras
 
     video.size(dimension, dimension * 3 / 4);
@@ -345,11 +397,11 @@ function setup() {
 }
 
 
-function changeAge(what) {
-    console.log(what.target.value);
-    vecToImg("age", what.target.value);
+// function changeAge(what) {
+//     console.log(what.target.value);
+//     currentPerson.vecToImg("age", what.target.value);
 
-}
+//}
 
 // this.liveMask.clear();
 // this.liveMask.noStroke();
@@ -477,139 +529,139 @@ function changeAge(what) {
 
 //     }
 
-if (faces.length > 0 && mode == "live") {
-    let p = faces[0];
-    let z = p.keypoints[0].z;
-    console.log("z", z);
-    let faceWidth = p.box.width;
-    let faceHeight = p.box.height;
+// if (faces.length > 0 && mode == "live") {
+//     let p = faces[0];
+//     let z = p.keypoints[0].z;
+//     console.log("z", z);
+//     let faceWidth = p.box.width;
+//     let faceHeight = p.box.height;
 
-    let xDiff = p.leftEye.centerX - p.rightEye.centerX;
-    let yDiff = p.leftEye.centerY - p.rightEye.centerY;
-    headAngle = Math.atan2(yDiff, xDiff);
+//     let xDiff = p.leftEye.centerX - p.rightEye.centerX;
+//     let yDiff = p.leftEye.centerY - p.rightEye.centerY;
+//     headAngle = Math.atan2(yDiff, xDiff);
 
-    // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
-    center = { x: p.box.xMin + faceWidth / 2, y: p.box.yMin + faceHeight / 2 };
-    box = p.box;
-    let left = p.box.xMin - faceWidth / 2;
-    let right = p.box.xMax + faceWidth / 2;
-    let top = p.box.yMin - faceHeight / 2;
-    let bottom = p.box.yMax + faceHeight / 2;
-    justFace = createGraphics(faceWidth * 2, faceHeight * 2);
-    justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
-    faceRect = [left, top, right, bottom];
-    //image(justFace, 0, 0);
-    if (faces.length > 0) {
+//     // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
+//     center = { x: p.box.xMin + faceWidth / 2, y: p.box.yMin + faceHeight / 2 };
+//     box = p.box;
+//     let left = p.box.xMin - faceWidth / 2;
+//     let right = p.box.xMax + faceWidth / 2;
+//     let top = p.box.yMin - faceHeight / 2;
+//     let bottom = p.box.yMax + faceHeight / 2;
+//     justFace = createGraphics(faceWidth * 2, faceHeight * 2);
+//     justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
+//     faceRect = [left, top, right, bottom];
+//     //image(justFace, 0, 0);
+//     if (faces.length > 0) {
 
-        //             myMask.clear();
-        //             myMask.noStroke();
-        //             myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-        //             myMask.beginShape();
-        //             // Note: API changed here to have the points in .keypoints
-        //             for (var i = 0; i < faces[0].faceOval.keypoints.length; i++) {
-        //                 myMask.curveVertex(faces[0].faceOval.keypoints[i].x, faces[0].faceOval.keypoints[i].y);
-        //             }
-        //             myMask.endShape(CLOSE);
-        //         }
-        //     }
-        //     //image(myMask, 0, 0)
+//         //             myMask.clear();
+//         //             myMask.noStroke();
+//         //             myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+//         //             myMask.beginShape();
+//         //             // Note: API changed here to have the points in .keypoints
+//         //             for (var i = 0; i < faces[0].faceOval.keypoints.length; i++) {
+//         //                 myMask.curveVertex(faces[0].faceOval.keypoints[i].x, faces[0].faceOval.keypoints[i].y);
+//         //             }
+//         //             myMask.endShape(CLOSE);
+//         //         }
+//         //     }
+//         //     //image(myMask, 0, 0)
 
-        // }
+//         // }
 
-        async function vecToImg(direction, factor) {
-            let postData = {
-                latents: myLatents,
-                direction: direction,
-                factor: factor,
-            };
-            console.log(postData);
-            let url = GPUServer + "latentsToImage/";
+//         async function vecToImg(direction, factor) {
+//             let postData = {
+//                 latents: myLatents,
+//                 direction: direction,
+//                 factor: factor,
+//             };
+//             console.log(postData);
+//             let url = GPUServer + "latentsToImage/";
 
-            //     const options = {
-            //         headers: {
-            //             "Content-Type": `application/json`,
-            //         },
-            //         method: "POST",
-            //         body: JSON.stringify(postData), //p)
-            //     };
-            //     console.log("Asking for Picture from Latents ", options);
-            //     const response = await fetch(url, options);
-            //     const result = await response.json();
-            //     console.log("result", result);
+//             //     const options = {
+//             //         headers: {
+//             //             "Content-Type": `application/json`,
+//             //         },
+//             //         method: "POST",
+//             //         body: JSON.stringify(postData), //p)
+//             //     };
+//             //     console.log("Asking for Picture from Latents ", options);
+//             //     const response = await fetch(url, options);
+//             //     const result = await response.json();
+//             //     console.log("result", result);
 
-            loadImage(result.b64Image, function (newImage) {
-                //"data:image/png;base64," +
-                console.log("image loaded", newImage);
-                //image(img, 0, 0);
-                img = newImage;
-            });
-        }
-        async function ask() {
-            askingMode = true;
-            canvas.loadPixels();
+//             loadImage(result.b64Image, function (newImage) {
+//                 //"data:image/png;base64," +
+//                 console.log("image loaded", newImage);
+//                 //image(img, 0, 0);
+//                 img = newImage;
+//             });
+//         }
+//         async function ask() {
+//             askingMode = true;
+//             canvas.loadPixels();
 
-            //     let imgBase64;
+//             //     let imgBase64;
 
-            //     if (justFace) {
-            //         if (who == "them") {
-            //             getFace(1);
-            //         }
-            //         imgBase64 = justFace.canvas.toDataURL("image/jpeg", 1.0);
-            //         console.log("justFace", justFace);
-            //     } else {
-            //         imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
-            //         console.log("canvas", canvas);
-            //     }
-            //     imgBase64 = imgBase64.split(",")[1];
-            //     let postData = {
-            //         image: imgBase64,
-            //         faceRect: faceRect,
-            //     };
+//             //     if (justFace) {
+//             //         if (who == "them") {
+//             //             getFace(1);
+//             //         }
+//             //         imgBase64 = justFace.canvas.toDataURL("image/jpeg", 1.0);
+//             //         console.log("justFace", justFace);
+//             //     } else {
+//             //         imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
+//             //         console.log("canvas", canvas);
+//             //     }
+//             //     imgBase64 = imgBase64.split(",")[1];
+//             //     let postData = {
+//             //         image: imgBase64,
+//             //         faceRect: faceRect,
+//             //     };
 
-            let url = GPUServer + "locateImage/";
-            const options = {
-                headers: {
-                    "Content-Type": `application/json`,
-                },
-                method: "POST",
-                body: JSON.stringify(postData), //p)
-            };
-            console.log("Asking for My Image ");
-            const response = await fetch(url, options);
-            //video.pause();
-            //mode = "freeze";
-            const result = await response.json();
-            //console.log("result", result.latents);
-            myLatents = result.latents;
-            // Replace the loadImage call with vanilla JavaScript
-            // const newImage = new Image();
-            // newImage.onload = function () {
-            //     // Image is now loaded and can be used
-            //     console.log("image loaded", newImage);
-            //     // Perform operations with newImage here
-            //     alterEgo = newImage;
-            //     tries = 0;
-            //     // Assuming faceMesh.detect is a function that needs an HTMLImageElement
-            //     faceMesh.detect(newImage, gotAFace);
-            // };
-            // newImage.src = result.b64Image;
-            loadImage(result.b64Image, function (newImage) {
-                //"data:image/png;base64," +
-                //console.log("image loaded", newImage);
-                //image(img, 0, 0);
-                alterEgo = newImage;
-                tries = 0;
-                faceMesh.detect(newImage, gotAFace);
+//             let url = GPUServer + "locateImage/";
+//             const options = {
+//                 headers: {
+//                     "Content-Type": `application/json`,
+//                 },
+//                 method: "POST",
+//                 body: JSON.stringify(postData), //p)
+//             };
+//             console.log("Asking for My Image ");
+//             const response = await fetch(url, options);
+//             //video.pause();
+//             //mode = "freeze";
+//             const result = await response.json();
+//             //console.log("result", result.latents);
+//             myLatents = result.latents;
+//             // Replace the loadImage call with vanilla JavaScript
+//             // const newImage = new Image();
+//             // newImage.onload = function () {
+//             //     // Image is now loaded and can be used
+//             //     console.log("image loaded", newImage);
+//             //     // Perform operations with newImage here
+//             //     alterEgo = newImage;
+//             //     tries = 0;
+//             //     // Assuming faceMesh.detect is a function that needs an HTMLImageElement
+//             //     faceMesh.detect(newImage, gotAFace);
+//             // };
+//             // newImage.src = result.b64Image;
+//             loadImage(result.b64Image, function (newImage) {
+//                 //"data:image/png;base64," +
+//                 //console.log("image loaded", newImage);
+//                 //image(img, 0, 0);
+//                 alterEgo = newImage;
+//                 tries = 0;
+//                 faceMesh.detect(newImage, gotAFace);
 
-                // alterEgoGraphics.clear();
-                // alterEgoGraphics.noStroke();
-                // alterEgoGraphics.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-                askingMode = false;
-                setTimeout(function () {
-                    ask();
-                }, 1000);
-            });
-        }
+//                 // alterEgoGraphics.clear();
+//                 // alterEgoGraphics.noStroke();
+//                 // alterEgoGraphics.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+//                 askingMode = false;
+//                 setTimeout(function () {
+//                     ask();
+//                 }, 1000);
+//             });
+//         }
 
 // function gotAFace(results) {
 
