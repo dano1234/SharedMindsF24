@@ -6,18 +6,35 @@ let video; // webcam
 let ageSlider;
 let smileSlider;
 let poseSlider;
+let otherPicture;
+let canvas;
+let imageForFaceMesh;
+let currentPerson;
 
 
 const GPUServer = "https://dano.ngrok.dev/";
+
+function mousePressed() {
+    for (let i = 0; i < people.length; i++) {
+        let p = people[i];
+        if (mouseX > p.box.xMin && mouseX < p.box.xMax && mouseY > p.box.yMin && mouseY < p.box.yMax) {
+            p.locateAlterEgo();
+            currentPerson = p;
+        }
+    }
+}
+
 
 let options = { maxFaces: 2, refineLandmarks: false, flipHorizontal: false };
 function preload() {
     // Load the faceMesh model
     faceMesh = ml5.faceMesh(options);
+    otherPicture = loadImage("obama.png");
 }
 
 // Callback function for when bodyPose outputs data
 function gotFaces(results) {
+    //console.log("gotFaces", results);
     // Save the output to the poses variable
     //console.log("results", results);
     for (let i = 0; i < results.length; i++) {
@@ -29,48 +46,46 @@ function gotFaces(results) {
         //let face = results[i];
         //faces.push(face);
     }
-    //faces = results;
-
-    //console.log(people.length);
+    //faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
 }
 
 
 class Person {
 
     constructor() {
-        this.liveMask = createGraphics(width, height);
+        //this.liveMask = createGraphics(width, height);
         this.tries = 0;
+        this.lastUpdate = millis();
     }
 
     updatePosition(liveResults) {
-        // this.liveMask.clear();
-        // this.liveMask.noStroke();
-        // this.liveMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-        // this.liveMask.beginShape();
-        // // Note: API changed here to have the points in .keypoints
-        // for (var i = 0; i < results.faceOval.keypoints.length; i++) {
-        //     this.liveMask.curveVertex(results.faceOval.keypoints[i].x, results.faceOval.keypoints[i].y);
-        // }
-        // this.liveMask.endShape(CLOSE);
-        //this.getLiveFaceRect(results)
+        this.lastUpdate = millis();
+
         let z = liveResults.keypoints[0].z;
         //console.log("z", z);
-        let faceWidth = liveResults.box.width;
-        let faceHeight = liveResults.box.height;
+        this.box = liveResults.box;
+        this.box.xMin = this.box.xMin / 2;
+        this.box.xMax = this.box.xMax / 2;
+        this.box.yMin = this.box.yMin / 2;
+        this.box.yMax = this.box.yMax / 2;
+        this.box.width = this.box.width / 2;
+        this.box.height = this.box.height / 2;
+        let faceWidth = this.box.width;
+        let faceHeight = this.box.height;
 
-        let xDiff = liveResults.leftEye.centerX - liveResults.rightEye.centerX;
-        let yDiff = liveResults.leftEye.centerY - liveResults.rightEye.centerY;
+        let xDiff = liveResults.leftEye.centerX / 2 - liveResults.rightEye.centerX / 2;
+        let yDiff = liveResults.leftEye.centerY / 2 - liveResults.rightEye.centerY / 2;
         this.headAngle = Math.atan2(yDiff, xDiff);
 
         // let faceWidth = abs(p.left_ear.x - p.right_ear.x);
-        this.center = { x: liveResults.box.xMin + faceWidth / 2, y: liveResults.box.yMin + faceHeight / 2 };
-        this.box = liveResults.box;
-        let left = liveResults.box.xMin - faceWidth / 2;
-        let right = liveResults.box.xMax + faceWidth / 2;
-        let top = liveResults.box.yMin - faceHeight / 2;
-        let bottom = liveResults.box.yMax + faceHeight / 2;
+        this.center = { x: this.box.xMin + faceWidth / 2, y: this.box.yMin + faceHeight / 2 };
+
+        let left = this.box.xMin - faceWidth / 2;
+        let right = this.box.xMax + faceWidth / 2;
+        let top = this.box.yMin - faceHeight / 2;
+        let bottom = this.box.yMax + faceHeight / 2;
         this.justFace = createGraphics(faceWidth * 2, faceHeight * 2);
-        this.justFace.image(video, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
+        this.justFace.image(imageForFaceMesh, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
         this.faceRect = [left, top, right, bottom];
     }
 
@@ -174,22 +189,65 @@ class Person {
         this.alterEgoGraphics = createGraphics(this.alterEgo.width, this.alterEgo.height);
     }
 
-    drawMe() {
+    isGone() {
+        return millis() - this.lastUpdate > 5000;
+    }
+    // async function vecToImg(direction, factor) {
+    //     let postData = {
+    //         latents: myLatents,
+    //         direction: direction,
+    //         factor: factor,
+    //     };
+    //     console.log(postData);
+    //     let url = GPUServer + "latentsToImage/";
+
+    //     const options = {
+    //         headers: {
+    //             "Content-Type": `application/json`,
+    //         },
+    //         method: "POST",
+    //         body: JSON.stringify(postData), //p)
+    //     };
+    //     console.log("Asking for Picture from Latents ", options);
+    //     const response = await fetch(url, options);
+    //     const result = await response.json();
+    //     console.log("result", result);
+
+    //     loadImage(result.b64Image, function (newImage) {
+    //         alterEgo = newImage;
+    //         tries = 0;
+    //         faceMesh.detect(newImage, gotAFace);
+    //     });
+    // }
+
+    drawMe(number) {
         // console.log("headAngle", headAngle);
         //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
-        if (this.alterEgo && this.alterEgoBox) {
-            //console.log("drawing alter ego");
 
-            this.alterEgo.mask(this.alterEgoMask);
-            this.alterEgoGraphics.push();
-            this.alterEgoGraphics.imageMode(CENTER);
-            this.alterEgoGraphics.clear()
-            this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
-            this.alterEgoGraphics.rotate(this.headAngle);
-            this.alterEgoGraphics.tint(255, 230);
-            this.alterEgoGraphics.image(this.alterEgo, 0, 0);;
-            this.alterEgoGraphics.pop();
-            image(this.alterEgoGraphics, this.box.xMin, this.box.yMin, this.box.width, this.box.height, this.alterEgoBox.xMin, this.alterEgoBox.yMin, this.alterEgoBox.width, this.alterEgoBox.height);
+        if (this.box) {
+            if (this.alterEgo) {
+                //console.log("drawing alter ego");
+                this.alterEgoGraphics.push();
+                this.alterEgo.mask(this.alterEgoMask);
+
+                this.alterEgoGraphics.imageMode(CENTER);
+                this.alterEgoGraphics.clear()
+                this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
+                this.alterEgoGraphics.rotate(this.headAngle);
+                this.alterEgoGraphics.tint(255, 230);
+                this.alterEgoGraphics.image(this.alterEgo, 0, 0);;
+
+                image(this.alterEgoGraphics, this.box.xMin, this.box.yMin, this.box.width, this.box.height, this.alterEgoBox.xMin, this.alterEgoBox.yMin, this.alterEgoBox.width, this.alterEgoBox.height);
+                this.alterEgoGraphics.pop();
+            }
+            if (keyIsDown(SHIFT)) {
+                rectMode(CORNER);
+                fill(255, 0, 0)
+                textSize(32);
+                text("P " + number, this.box.xMin, this.box.yMin);
+                noFill();
+                rect(this.box.xMin, this.box.yMin, this.box.width, this.box.height);
+            }
         }
     }
 
@@ -200,17 +258,31 @@ class Person {
 
 function draw() {
 
-    background(255);
-    image(video, 0, 0, width, height);
+    //background(255);
+    // image(video, 0, 0, width, height);
+    // image(otherPicture, 0, 0, 300, 300);
+    imageForFaceMesh.image(video, 0, 0);
+    imageForFaceMesh.image(otherPicture, 0, 0, 300, 300);
+    image(imageForFaceMesh, 0, 0);
     for (let i = 0; i < people.length; i++) {
-        people[i].drawMe();
+        people[i].drawMe(i);
     }
+    for (let i = people.length - 1; i > -1; i--) {
+        if (people[i].isGone()) {
+            people.splice(i, 1);
+            console.log("removing person", i);
+        }
+    }
+
 }
 
 
 
 function setup() {
+
+
     canvas = createCanvas(dimension, (dimension * 3) / 4);
+    imageForFaceMesh = createGraphics(dimension, (dimension * 3) / 4);
     ageSlider = createSlider(-5, 5, 0);
     ageSlider.position(0, (dimension * 3) / 4); // x and y
     ageSlider.size(400, 20); // width and height
@@ -253,14 +325,17 @@ function setup() {
 
     video = createCapture(VIDEO); //simpler if you don't need to pick between cameras
 
-    video.size(dimension, (dimension * 3) / 4);
+    video.size(dimension, dimension * 3 / 4);
     video.hide();
     img = video;
     //myMask = createGraphics(width, height);
-    faceMesh.detectStart(video, gotFaces);
+    faceMesh.detectStart(imageForFaceMesh.canvas, gotFaces);
+
+    // faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
+    //console.log("canvas", canvas);
     //bodyPose.detectStart(video, gotPoses);
-    let center = { x: width / 2, y: height / 2 };
-    let tilt = 0;
+    //let center = { x: width / 2, y: height / 2 };
+    //let tilt = 0;
     // setTimeout(function () { ask(); }, 3000);
 }
 
@@ -271,7 +346,16 @@ function changeAge(what) {
 
 }
 
-
+// this.liveMask.clear();
+// this.liveMask.noStroke();
+// this.liveMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+// this.liveMask.beginShape();
+// // Note: API changed here to have the points in .keypoints
+// for (var i = 0; i < results.faceOval.keypoints.length; i++) {
+//     this.liveMask.curveVertex(results.faceOval.keypoints[i].x, results.faceOval.keypoints[i].y);
+// }
+// this.liveMask.endShape(CLOSE);
+//this.getLiveFaceRect(results)
 
 // poseSlider = createSlider(-5, 5, 0);
 // poseSlider.position(0, (dimension * 3) / 4 + 60); // x and y
