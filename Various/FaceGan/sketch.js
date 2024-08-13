@@ -35,7 +35,7 @@ let options = { maxFaces: 2, refineLandmarks: false, flipHorizontal: false };
 function preload() {
     // Load the faceMesh model
     faceMesh = ml5.faceMesh(options);
-    otherPicture = loadImage("obama.png");
+    otherPicture = loadImage("harris.png");
 }
 
 // Callback function for when bodyPose outputs data
@@ -51,14 +51,15 @@ function gotFaces(results) {
         if (results[i].keypoints.length < 5) continue;
         if (existingPeople.length == 0) {
             let newPerson = new Person();
+            people.unshift(newPerson);
             newPerson.updatePosition(results[i]);
-            people.push(newPerson);
         } else {
             let closest = 100000;
             let closestIndex = -1;
             for (let j = 0; j < existingPeople.length; j++) {
                 let thisIndex = existingPeople[j];
-                let dist = Math.abs(people[thisIndex].center.x - results[i].box.xMin) + Math.abs(people[thisIndex].center.y - results[i].box.yMin);
+                let dist = Math.sqrt((people[thisIndex].center.x - results[i].box.xMin) ** 2 + (people[thisIndex].center.y - results[i].box.yMin) ** 2);
+                // (people[thisIndex].center.x, people[thisIndex].center.y, results[i].box.xMin + (results[i].box.xMax - results[i].box.xMin) / 2, results[i].box.yMin + (results[i].box.yMax - results[i].box.yMin) / 2);
                 if (dist < closest) {
                     closest = dist;
                     closestIndex = thisIndex;
@@ -78,6 +79,7 @@ class Person {
         //this.liveMask = createGraphics(width, height);
         this.tries = 0;
         this.lastUpdate = millis();
+        this.asked = false;
     }
 
     updatePosition(liveResults) {
@@ -109,6 +111,10 @@ class Person {
         this.justFace = createGraphics(faceWidth * 2, faceHeight * 2);
         this.justFace.image(imageForFaceMesh, 0, 0, faceWidth * 2.3, faceHeight * 2.3, left, top, faceWidth * 2, faceHeight * 2);
         this.faceRect = [left, top, right, bottom];
+        if (this.asked == false) {
+            this.locateAlterEgo();
+            this.asked = true;
+        }
     }
 
 
@@ -298,7 +304,7 @@ function draw() {
     //     }
     // }
     if (betweenImage) {
-        image(betweenImage, 0, width / 2);
+        image(betweenImage, 0, width / 2, 160, 120);
     }
 
 }
