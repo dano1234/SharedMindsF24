@@ -134,12 +134,12 @@ function draw() {
     // for (let i = 0; i < people.length; i++) {
     //     people[i].drawMe(i);
     // }
-    // // for (let i = people.length - 1; i > -1; i--) {
-    // //     if (people[i].isGone()) {
-    // //         people.splice(i, 1);
-    // //         console.log("removing person", i);
-    // //     }
-    // // }
+    for (let i = people.length - 1; i > -1; i--) {
+        if (people[i].isGone()) {
+            people.splice(i, 1);
+            console.log("removing person", i);
+        }
+    }
     // for (let i = 0; i < fakePeople.length; i++) {
     //     fakePeople[i].drawMe(i);
     //     // if (people.length > 0)
@@ -188,7 +188,7 @@ async function gotFaces(results) {
     // Save the output to the poses variable
     poses = results;
     //console.log(poses);
-    background(255);
+    // background(255);
     image(video, 0, 0);
 
     //console.log("gotFaces", results);
