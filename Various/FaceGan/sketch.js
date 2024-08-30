@@ -104,7 +104,7 @@ function setup() {
     img = video;
     //myMask = createGraphics(width, height);
     //faceMesh.detectStart(imageForFaceMesh.canvas, gotFaces);
-    bodyPose.detectStart(video, gotFaces);
+    bodyPose.detect(video, gotFaces);
 
     // faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
     //console.log("canvas", canvas);
@@ -302,16 +302,16 @@ async function gotFaces(results) {
         people[i].drawMe(i);
     }
 
-    for (let i = 0; i < fakePeople.length; i++) {
-        fakePeople[i].drawMe(i);
+    // for (let i = 0; i < fakePeople.length; i++) {
+    //     fakePeople[i].drawMe(i);
 
-    }
+    // }
 
     if (betweenImage) {
         image(betweenImage, 0, 0, 160, 120);
     }
     //faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
-
+    bodyPose.detect(video, gotFaces);
 }
 
 
@@ -341,3 +341,5 @@ async function askBetween(person1, person2, amount) {
         betweenImage = newImage;
     });
 }
+
+

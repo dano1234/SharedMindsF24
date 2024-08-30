@@ -1,4 +1,3 @@
-
 class Person {
 
     constructor(image, x, y) {
@@ -90,6 +89,8 @@ class Person {
             //image(segmentation.mask, 0, 0, width, height);
             faceMask.clear();
             faceMask.loadPixels();
+            this.centroid = { x: 0, y: 0 };
+            let total = 0;
             for (let i = 0; i < segmentation.data.length; i++) {
                 if (segmentation.data[i] == 1 || segmentation.data[i] == 0) {
                     faceMask.pixels[i * 4] = 0;
@@ -98,12 +99,18 @@ class Person {
                     faceMask.pixels[i * 4 + 3] = 255;
                     let x = i % faceMask.width;
                     let y = int(i / faceMask.width);
+                    this.centroid.x += x;
+                    this.centroid.y += y;
+                    total++;
                     if (x > faceRect.right) faceRect.right = x;
                     if (y > faceRect.bottom) faceRect.bottom = y;
                     if (x < faceRect.left) faceRect.left = x;
                     if (y < faceRect.top) faceRect.top = y;
                 }
             }
+            this.centroid.x = this.centroid.x / total;
+            this.centroid.y = this.centroid.y / total;
+
             faceMask.updatePixels();
             faceRect.width = faceRect.right - faceRect.left;
             faceRect.height = faceRect.bottom - faceRect.top;
@@ -202,6 +209,8 @@ class Person {
             rect(this.faceRect.left + this.frameRect.left, this.faceRect.top + this.frameRect.top, this.faceRect.width, this.faceRect.height);
             image(this.faceMask, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
             ellipse(this.center.x, this.center.y, 10, 10);
+            stroke(0, 0, 255)
+            ellipse(this.centroid.x, this.centroid.y, 10, 10);
             if (this.alterEgoFaceRect) {
                 stroke(0, 0, 255)
                 rect(this.alterEgoFrameRect.left, this.alterEgoFrameRect.top, this.alterEgoFrameRect.width, this.alterEgoFrameRect.height);
