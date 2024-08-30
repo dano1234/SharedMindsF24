@@ -6,20 +6,6 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "[!V]*/**": true,
-        "V[!a]*/**": true,
-        "Va[!r]*/**": true,
-        "Var[!i]*/**": true,
-        "Vari[!o]*/**": true,
-        "Vario[!u]*/**": true,
-        "Variou[!s]*/**": true,
-        "Various/[!F]*/**": true,
-        "Various/F[!a]*/**": true,
-        "Various/Fa[!c]*/**": true,
-        "Various/Fac[!e]*/**": true,
-        "Various/Face[!G]*/**": true,
-        "Various/FaceG[!a]*/**": true,
-        "Various/FaceGa[!n]*/**": true
+        "**/Thumbs.db": true
     }
 }
