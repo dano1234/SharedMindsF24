@@ -44,18 +44,18 @@ async function askForImageEmbedding() {
   imgBase64 = imgBase64.split(",")[1];
 
   feedback.html("Waiting for reply from Replicate Embedding...");
-    let data = {
-      fieldToConvertToHostedFile: "input",  //they have two fields named input...
-      fileFormat : "png",
-      version: "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
-      input: {
-        input: imgBase64,
-        modality: "vision",
-      },
+  let data = {
+    fieldToConvertBase64ToURL: "input",  //they have two fields named input...
+    fileFormat: "png",
+    version: "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+    input: {
+      input: imgBase64,
+      modality: "vision",
+    },
 
-    };
-  
-  
+  };
+
+
   const url = replicateProxy + "/askReplicateFileToUrl/";
   let options = {
     method: "POST",
