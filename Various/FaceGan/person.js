@@ -133,7 +133,7 @@ class Person {
             }
 
         }
-        console.log("got mask and rect", this.faceRect, this.frameRect);
+        // console.log("got mask and rect", this.faceRect, this.frameRect);
     }
 
     drawMe(number) {
