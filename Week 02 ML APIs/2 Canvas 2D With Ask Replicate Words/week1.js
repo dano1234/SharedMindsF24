@@ -47,13 +47,13 @@ function drawWord(prompt, response, location) {
 
 
 async function askWord(word, location) {
-    let prompt = "a json list of 5 words related to " + word;
+    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
     document.body.style.cursor = "progress";
     const data = {
         //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
         //llama  "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48"
-        "version": "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48",
-
+        //"version": "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48",
+        modelURL: "https://api.replicate.com/v1/models/meta/meta-llama-3-70b-instruct/predictions",
         input: {
             prompt: prompt,
             max_tokens: 100,
@@ -73,7 +73,7 @@ async function askWord(word, location) {
     //turn it into json
     const json_response = await raw_response.json();
     document.body.style.cursor = "auto";
-    let textResponse = json_response.output.join("").split(":")[1].trim();
+    let textResponse = json_response.output.join("").trim();
     drawWord(word, textResponse, location);
 
     console.log("Response", json_response, text, location);
