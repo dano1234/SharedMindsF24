@@ -11,14 +11,16 @@ class Person {
             this.justFace = createGraphics(300, 300);
             this.justFace.image(this.staticImage, 0, 0, 300, 300);
             this.faceRect = { left: x, top: y, right: 300 + x, bottom: 300 + y, width: 300, height: 300 };
+            this.frameRect = { left: x, top: y, right: 300 + x, bottom: 300 + y, width: 300, height: 300 };
             this.center = { x: this.faceRect.right - this.faceRect.width / 2, y: this.faceRect.bottom - this.faceRect.height / 2 };
             this.innerBorder = { left: 0, top: 0, right: 0 + x, bottom: 0 + y, width: 0, height: 0 };
+
             let currentPerson = this;
             // faceMesh.detect(currentPerson.staticImage, function (results) {
             //     //console.log("detected face", currentPerson);
             //     currentPerson.getStaticFaceRect(results);
             // });  // recursive risk?
-
+            this.getFakeFaceRect();
             // this.getMaskAndRect(this.staticImage);
             // bodySegmentation.detect(currentPerson.staticImage, function (results) {
             //     //console.log("detected face", currentPerson);
@@ -30,6 +32,12 @@ class Person {
         this.asked = false;
     }
 
+    async getFakeFaceRect() {
+        let thisPos = await bodyPose.detect(this.staticImage);
+        console.log("thisPos", thisPos);
+        this.getMaskAndRect(thisPos[0], this.staticImage, "bottom");
+        console.log("got fake face rect", this.faceRect, this.frameRect);
+    }
 
 
     async getMaskAndRect(pose, image, layer) {
@@ -70,7 +78,7 @@ class Person {
             g.image(image, 0, 0);
             console.log("create graphics for top");
         }
-
+        //frameRect.top = frameRect.top - 15;
 
         //image(g, 0, 0);
         // for (let j = 0; j < pose.keypoints.length; j++) {
@@ -139,11 +147,18 @@ class Person {
     drawMe(number) {
 
         //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
-        // if (this.staticImage) {
-        //     image(this.staticImage, this.staticX, this.staticY, 300, 300);
+        if (this.staticImage) {
+            image(this.staticImage, this.staticX, this.staticY, 300, 300);
+            if (this.alterEgoGraphics) {
+                //image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+                image(this.alterEgoImage, this.faceRect.left + this.staticX, this.faceRect.top + this.staticY, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+                //image(this.alterEgoMask, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
+                // image(this.alterEgoGraphics, this.staticX, this.staticY);
+                // image(this.alterEgoImage, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
 
-        // }
-        if (this.alterEgoImage && this.faceRect && this.alterEgoMask) {
+            }
+
+        } else if (this.alterEgoImage && this.faceRect && this.alterEgoMask && this.frameRect) {
 
             this.alterEgoGraphics.push();
             this.alterEgoGraphics.imageMode(CENTER);
@@ -152,9 +167,27 @@ class Person {
             this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
             this.alterEgoGraphics.rotate(this.headAngle);
 
-            this.alterEgoGraphics.tint(255, 230);
+            this.alterEgoGraphics.tint(255, 255);
             this.alterEgoGraphics.image(this.alterEgoImage, 0, 0);;
-            image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+
+            let newFaceRect = this.faceRect;
+            let newFrameRect = this.frameRect;
+            let newFaceRec = this.faceRect;
+            let lerpAmount = 0.1;
+
+            if (this.lastFrameRect) {
+                newFrameRect = { left: lerp(this.lastFrameRect.left, this.frameRect.left, lerpAmount), top: lerp(this.lastFrameRect.top, this.frameRect.top, lerpAmount), right: lerp(this.lastFrameRect.right, this.frameRect.right, lerpAmount), bottom: lerp(this.lastFrameRect.bottom, this.frameRect.bottom, lerpAmount), width: lerp(this.lastFrameRect.width, this.frameRect.width, lerpAmount), height: lerp(this.lastFrameRect.height, this.frameRect.height, lerpAmount) };
+            }
+
+            if (this.lastFaceRect) {
+                newFaceRect = { left: lerp(this.lastFaceRect.left, this.faceRect.left, lerpAmount), top: lerp(this.lastFaceRect.top, this.faceRect.top, lerpAmount), right: lerp(this.lastFaceRect.right, this.faceRect.right, lerpAmount), bottom: lerp(this.lastFaceRect.bottom, this.faceRect.bottom, lerpAmount), width: lerp(this.lastFaceRect.width, this.faceRect.width, lerpAmount), height: lerp(this.lastFaceRect.height, this.faceRect.height, lerpAmount) };
+            }
+
+            image(this.alterEgoGraphics, newFrameRect.left + newFaceRect.left, newFrameRect.top + newFaceRect.top, newFaceRect.width, newFaceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+
+            //image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+            this.lastFrameRect = newFrameRect;
+            this.lastFaceRect = newFaceRect;
             this.alterEgoGraphics.pop();
             //image(this.alterEgoMask, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
         }
