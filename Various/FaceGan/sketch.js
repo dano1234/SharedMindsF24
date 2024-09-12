@@ -96,7 +96,7 @@ function setup() {
     // vecToImgButton.mousePressed(function () {
     //     vecToImg("none", 0);
     // });
-    //pixelDensity(1)
+    pixelDensity(1)
     video = createCapture(VIDEO); //simpler if you don't need to pick between cameras
 
     video.size(dimension, dimension * 3 / 4);
