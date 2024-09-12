@@ -5,8 +5,11 @@ let inputBoxDirectionX = 1;
 let inputBoxDirectionY = 1;
 
 let canvas;
+let ctx;
 let inputBox;
 const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
+let responseWords = [];
+let promptWords = [];
 
 init();
 
@@ -31,23 +34,41 @@ function animate() {
 
     inputBox.style.left = inputLocationX + 'px';
     inputBox.style.top = inputLocationY + 'px';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < promptWords.length; i++) {
+        let thisPromptWord = promptWords[i];
+        let word = thisPromptWord.word;
+        let location = thisPromptWord.location;
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'red';
+        let w = ctx.measureText(word).width;
+        ctx.fillText(word, location.x - w / 2, location.y);
+    }
+
+    for (let i = 0; i < responseWords.length; i++) {
+        let thisResponseWord = responseWords[i];
+        let word = thisResponseWord.word;
+        let location = thisResponseWord.location;
+        ctx.font = '24px Arial';
+        ctx.fillStyle = 'black';
+        let w = ctx.measureText(word).width;
+        ctx.fillText(word, location.x - w / 2, location.y);
+    }
+
+
     requestAnimationFrame(animate);
 }
 
-function drawWord(prompt, response, location) {
-    const ctx = canvas.getContext('2d');
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '30px Arial';
-    ctx.fillStyle = 'black';
-    let responseWidth = ctx.measureText(response).width;
-    let promptWidth = ctx.measureText(prompt).width;
-    ctx.fillText(response, location.x - responseWidth / 2, location.y);
-    ctx.fillText(prompt, location.x - promptWidth / 2, location.y + 50);
-}
 
 
-async function askWord(word, location) {
-    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
+
+async function askWord(promptWord, location) {
+    let thisPromptWord = {
+        word: promptWord,
+        location: location,
+    }
+    promptWords.push(thisPromptWord);
+    let prompt = "a json list of 5 words related to " + promptWord + " with no extra words or punctuation";
     document.body.style.cursor = "progress";
     const data = {
         //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
@@ -74,9 +95,22 @@ async function askWord(word, location) {
     const json_response = await raw_response.json();
     document.body.style.cursor = "auto";
     let textResponse = json_response.output.join("").trim();
-    drawWord(word, textResponse, location);
-
-    console.log("Response", json_response, text, location);
+    let textResponseJSON = JSON.parse(textResponse);
+    let angleIncrements = 2 * Math.PI / textResponseJSON.length;
+    let radius = 100;
+    for (let i = 0; i < textResponseJSON.length; i++) {
+        textResponseJSON[i] = textResponseJSON[i].replace(/[^a-zA-Z ]/g, "");
+        console.log(textResponseJSON[i]);
+        let angle = i * angleIncrements;
+        let xPos = location.x + radius * Math.cos(angle);
+        let yPos = location.y + radius * Math.sin(angle);
+        let thisWord = {
+            word: textResponseJSON[i],
+            location: { x: xPos, y: yPos },
+            prompt: promptWord,
+        }
+        responseWords.push(thisWord);
+    }
     inputBoxDirectionX = 1;
     inputBoxDirectionY = 1;
 }
@@ -93,6 +127,7 @@ function initInterface() {
     canvas.style.top = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
+    ctx = canvas.getContext('2d');
     document.body.appendChild(canvas);
     console.log('canvas', canvas.width, canvas.height);
 
@@ -122,6 +157,8 @@ function initInterface() {
         }
     });
 
+
+
     // Add event listener to the document for mouse down event
     document.addEventListener('mousedown', (event) => {
         // Set the location of the input box to the mouse location
@@ -129,6 +166,17 @@ function initInterface() {
         inputLocationY = event.clientY;
         inputBoxDirectionX = 0;
         inputBoxDirectionY = 0;
+        for (let i = 0; i < responseWords.length; i++) {
+            let thisResponseWord = responseWords[i];
+            let location = thisResponseWord.location;
+            let dist = Math.sqrt((location.x - inputLocationX) * (location.x - inputLocationX) + (location.y - inputLocationY) * (location.y - inputLocationY));
+            if (dist < 50) {
+                console.log("Clicked on ", thisResponseWord.word);
+                inputBox.value = thisResponseWord.word;
+                askWord(thisResponseWord.word, location);
+                break;
+            }
+        }
     });
 }
 
