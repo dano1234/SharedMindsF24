@@ -26,6 +26,7 @@ let fakePeople = [];
 let faceBorderFactor = 1.5;
 let harris;
 let trump;
+let busyAsking = false;
 let bodySegmentation;
 
 
@@ -120,6 +121,32 @@ function draw() {
     for (let i = 0; i < people.length; i++) {
         people[i].drawMe(i);
     }
+
+    if (people.length == 1) {
+        let xDiff = people[0].center.x - trump.center.x;
+        let yDiff = people[0].center.y - trump.center.y;
+        let trumpLeanLevel = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) //- (width / 10) / 2;
+        xDiff = people[0].center.x - harris.center.x;
+        yDiff = people[0].center.y - harris.center.y;
+        let harrisLeanLevel = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) // - (width / 10) / 2;
+        if (trumpLeanLevel < harrisLeanLevel) {
+            if (!busyAsking) {
+                let percent = trumpLeanLevel / (width / 2)
+                console.log("asking for trump", percent);
+                askBetween(people[0], trump, percent);
+            }
+        }
+        // let harrisChanged = harris.setLean(harrisLeanLevel);
+        // if (harrisChanged) {
+        //     askBetween(people[0], harris, harrisLeanLevel / 10);
+        // }
+
+        // let trumpChanged = trump.setLean(trumpLeanLevel);
+        // if (trumpChanged) {
+        //     askBetween(people[0], trump, trumpLeanLevel / 10);
+        // }
+        //console.log(trump.center.x, harris.center.x, "trumpLean", trumpLeanLevel, "harrisLean", harrisLeanLevel);
+    }
 }
 
 function mousePressed() {
@@ -176,6 +203,7 @@ async function gotFaces(results) {
 
 
 async function askBetween(person1, person2, amount) {
+    busyAsking = true;
     let postData = {
         v1: person1.latents,
         v2: person2.latents,
@@ -198,6 +226,7 @@ async function askBetween(person1, person2, amount) {
 
     loadImage(result.b64Image, function (newImage,) {
         betweenImage = newImage;
+        busyAsking = false;
     });
 }
 

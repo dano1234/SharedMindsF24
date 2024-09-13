@@ -12,7 +12,7 @@ class Person {
             this.justFace.image(this.staticImage, 0, 0, 300, 300);
             this.faceRect = { left: x, top: y, right: 300 + x, bottom: 300 + y, width: 300, height: 300 };
             this.frameRect = { left: x, top: y, right: 300 + x, bottom: 300 + y, width: 300, height: 300 };
-            this.center = { x: this.faceRect.right - this.faceRect.width / 2, y: this.faceRect.bottom - this.faceRect.height / 2 };
+            this.center = { x: this.staticX + this.faceRect.width / 2, y: this.staticY + this.faceRect.height / 2 };
             this.innerBorder = { left: 0, top: 0, right: 0 + x, bottom: 0 + y, width: 0, height: 0 };
 
             let currentPerson = this;
@@ -36,6 +36,7 @@ class Person {
         let thisPos = await bodyPose.detect(this.staticImage);
         console.log("thisPos", thisPos);
         this.getMaskAndRect(thisPos[0], this.staticImage, "bottom");
+        this.center = { x: thisPos[0].nose.x + this.staticX, y: thisPos[0].nose.y + this.staticY };
         console.log("got fake face rect", this.faceRect, this.frameRect);
     }
 
@@ -144,14 +145,21 @@ class Person {
         // console.log("got mask and rect", this.faceRect, this.frameRect);
     }
 
+    maybeAskBetween(amount) {
+        if (!busyAsking) {
+            a
+        }
+    }
+
     drawMe(number) {
 
         //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
         if (this.staticImage) {
-            image(this.staticImage, this.staticX, this.staticY, 300, 300);
+            image(this.staticImage, this.staticX, this.staticY, 400, 400);
             if (this.alterEgoGraphics) {
                 //image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
-                image(this.alterEgoImage, this.faceRect.left + this.staticX, this.faceRect.top + this.staticY, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
+                // console.log(this.faceRect.left, this.staticX);
+                image(this.alterEgoImage, this.alterEgoFaceRect.left + this.staticX, this.alterEgoFaceRect.top + this.staticY, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
                 //image(this.alterEgoMask, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
                 // image(this.alterEgoGraphics, this.staticX, this.staticY);
                 // image(this.alterEgoImage, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
@@ -352,7 +360,7 @@ class Person {
         // };
         // newImage.src = result.b64Image;
         currentPerson.latents = result.latents;
-        console.log("latents", currentPerson.latents);
+        //console.log("latents", currentPerson.latents);
         loadImage(result.b64Image, async function (newImage,) {
             //currentPerson.imageLoaded(newImage, result);
             currentPerson.alterEgoImage = newImage;
