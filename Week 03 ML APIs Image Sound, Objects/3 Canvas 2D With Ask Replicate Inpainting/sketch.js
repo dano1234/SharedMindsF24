@@ -4,9 +4,13 @@ let inputLocationY = window.innerHeight / 2;
 let inputBoxDirectionX = 1;
 let inputBoxDirectionY = 1;
 
+let canvasDimension = 1024;
 let canvas;
+let mask;
 let inputBox;
+
 const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
+let mouseDown = false;
 
 init();
 
@@ -14,7 +18,14 @@ function init() {
 
     // Perform initialization logic here
     initInterface();
-    askPictures("the disneyland of my life disagrees with my level of hapieness", { x: 0, y: 0 });
+    // Load Disney.png and paint it on the canvas
+    const img = new Image();
+    img.onload = function () {
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+    };
+    img.src = 'Disney.png';
+    // askPictures("the disneyland of my life disagrees with my level of hapieness", { x: 0, y: 0 });
     animate();
 }
 
@@ -35,30 +46,19 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-function drawWord(prompt, response, location) {
-    const ctx = canvas.getContext('2d');
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '30px Arial';
-    ctx.fillStyle = 'black';
-    let responseWidth = ctx.measureText(response).width;
-    let promptWidth = ctx.measureText(prompt).width;
-    ctx.fillText(response, location.x - responseWidth / 2, location.y);
-    ctx.fillText(prompt, location.x - promptWidth / 2, location.y + 50);
-}
 
 
-
-
-async function askPictures(word, location) {
-    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
+async function askPictures(prompt, location) {
     document.body.style.cursor = "progress";
+    let maskBase64 = mask.toDataURL();
+    let imageBase64 = canvas.toDataURL();
     const data = {
-        //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
-        //llama  "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48"
-        //modelURL: "https://api.replicate.com/v1/models/meta/meta-llama-3-70b-instruct/predictions",
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",   //stable diffusion
+        version: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
+        //version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc95b7223104132402a9ae91cc677285bc5eb997834bd2349fa486f53910fd68b3",   //stable diffusion
         input: {
             prompt: prompt,
+            mask: maskBase64,
+            image: imageBase64,
         },
     };
     console.log("Making a Fetch Request", data);
@@ -72,8 +72,9 @@ async function askPictures(word, location) {
     };
 
     const picture_info = await fetch(url, options);
-    //console.log("picture_response", picture_info);
+    console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
+    console.log("proxy_said", proxy_said);
 
     if (proxy_said.output.length == 0) {
         console.log("Something went wrong, try it again");
@@ -83,8 +84,10 @@ async function askPictures(word, location) {
         img.src = proxy_said.output[0];
         img.onload = function () {
             let ctx = canvas.getContext('2d');
-            ctx.drawImage(img, location.x, location.y);
+            ctx.drawImage(img, 0, 0);
         }
+
+
         // document.body.appendChild(img);
         // img.style.position = 'absolute';
         // img.style.left = location.x + 'px';
@@ -95,43 +98,13 @@ async function askPictures(word, location) {
 
     }
     document.body.style.cursor = "auto";
+    let maskCtx = mask.getContext('2d');
+    maskCtx.clearRect(0, 0, mask.width, mask.height);
     inputBoxDirectionX = 1;
     inputBoxDirectionY = 1;
 }
 
-
-async function askWord(word, location) {
-    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
-    document.body.style.cursor = "progress";
-    const data = {
-        //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
-        //llama  "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48"
-        //"version": "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48",
-        modelURL: "https://api.replicate.com/v1/models/meta/meta-llama-3-70b-instruct/predictions",
-        input: {
-            prompt: prompt,
-            max_tokens: 100,
-            max_length: 100,
-        },
-    };
-    console.log("Making a Fetch Request", data);
-    const options = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: 'application/json',
-        },
-        body: JSON.stringify(data),
-    };
-    const raw_response = await fetch(url, options);
-    //turn it into json
-    const json_response = await raw_response.json();
-    document.body.style.cursor = "auto";
-    let textResponse = json_response.output.join("").trim();
-    drawWord(word, textResponse, location);
-
-    console.log("Response", json_response, text, location);
-}
+//maskCtx.clearRect(0, 0, mask.width, mask.height);
 
 
 function initInterface() {
@@ -139,14 +112,28 @@ function initInterface() {
     canvas = document.createElement('canvas');
     canvas.setAttribute('id', 'myCanvas');
     canvas.style.position = 'absolute';
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = canvasDimension;
+    canvas.height = canvasDimension;
     canvas.style.left = '0';
     canvas.style.top = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
+    // canvas.style.width = '100%';
+    // canvas.style.height = '100%';
+    canvas.style.zIndex = '1';
     document.body.appendChild(canvas);
     console.log('canvas', canvas.width, canvas.height);
+
+    mask = document.createElement('canvas');
+    mask.setAttribute('id', 'mask');
+    mask.style.position = 'absolute';
+    mask.width = canvasDimension;
+    mask.height = canvasDimension;
+    mask.style.left = '0';
+    mask.style.zIndex = '99';
+    mask.style.top = '0';
+    // mask.style.width = '100%';
+    // mask.style.height = '100%';
+    document.body.appendChild(mask);
+
 
 
     inputBox = document.createElement('input');
@@ -175,11 +162,37 @@ function initInterface() {
         }
     });
 
-    // Add event listener to the document for mouse down event
-    document.addEventListener('mousedown', (event) => {
-        // Set the location of the input box to the mouse location
-        inputLocationX = event.clientX;
-        inputLocationY = event.clientY;
+
+    // Add event listener to the document for mouse move event
+    mask.addEventListener('mousemove', (event) => {
+        // Check if the input box is being dragged
+        if (mouseDown) {
+            let rect = mask.getBoundingClientRect();
+            let y = event.clientY - rect.top;
+            let x = event.clientX - rect.left;
+
+            //let y = event.clientY;
+
+            let maskCtx = mask.getContext('2d');
+
+            maskCtx.beginPath();
+            maskCtx.fillStyle = 'white';
+
+            maskCtx.ellipse(x, y, 20, 20, 0, 0, 2 * Math.PI);
+            maskCtx.fill();
+            maskCtx.closePath();
+            inputLocationX = x;
+            inputLocationY = y + 50;
+            inputBox.style.left = inputLocationX + 'px';
+            inputBox.style.top = inputLocationY + 'px';
+            //console.log("Mouse is moving", inputLocationX, inputLocationY);
+        }
+    });
+    mask.addEventListener('mouseup', () => {
+        mouseDown = false;
+    });
+    mask.addEventListener('mousedown', () => {
+        mouseDown = true;
         inputBoxDirectionX = 0;
         inputBoxDirectionY = 0;
     });

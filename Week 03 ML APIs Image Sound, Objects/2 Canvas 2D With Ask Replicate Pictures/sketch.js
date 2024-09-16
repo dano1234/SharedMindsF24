@@ -11,7 +11,6 @@ const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
 init();
 
 function init() {
-
     // Perform initialization logic here
     initInterface();
     animate();
@@ -34,22 +33,8 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-function drawWord(prompt, response, location) {
-    const ctx = canvas.getContext('2d');
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '30px Arial';
-    ctx.fillStyle = 'black';
-    let responseWidth = ctx.measureText(response).width;
-    let promptWidth = ctx.measureText(prompt).width;
-    ctx.fillText(response, location.x - responseWidth / 2, location.y);
-    ctx.fillText(prompt, location.x - promptWidth / 2, location.y + 50);
-}
 
-
-
-
-async function askPictures(word, location) {
-    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
+async function askPictures(prompt, location) {
     document.body.style.cursor = "progress";
     const data = {
         //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
@@ -93,38 +78,6 @@ async function askPictures(word, location) {
 }
 
 
-async function askWord(word, location) {
-    let prompt = "a json list of 5 words related to " + word + " with no extra words or punctuation";
-    document.body.style.cursor = "progress";
-    const data = {
-        //mistral "cf18decbf51c27fed6bbdc3492312c1c903222a56e3fe9ca02d6cbe5198afc10",
-        //llama  "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48"
-        //"version": "2d19859030ff705a87c746f7e96eea03aefb71f166725aee39692f1476566d48",
-        modelURL: "https://api.replicate.com/v1/models/meta/meta-llama-3-70b-instruct/predictions",
-        input: {
-            prompt: prompt,
-            max_tokens: 100,
-            max_length: 100,
-        },
-    };
-    console.log("Making a Fetch Request", data);
-    const options = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: 'application/json',
-        },
-        body: JSON.stringify(data),
-    };
-    const raw_response = await fetch(url, options);
-    //turn it into json
-    const json_response = await raw_response.json();
-    document.body.style.cursor = "auto";
-    let textResponse = json_response.output.join("").trim();
-    drawWord(word, textResponse, location);
-
-    console.log("Response", json_response, text, location);
-}
 
 
 function initInterface() {
