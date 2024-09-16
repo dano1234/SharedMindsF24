@@ -30,7 +30,7 @@ class Person {
         this.tries = 0;
         this.lastUpdate = millis();
         this.asked = false;
-        this.locateAlterEgo();
+        //this.locateAlterEgo();
     }
 
     async getFakeFaceRect() {

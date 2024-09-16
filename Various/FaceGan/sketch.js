@@ -77,8 +77,8 @@ function setup() {
     });
     trump = new Person(trumpPic, width - 200, height / 2)
     harris = new Person(harrisPic, -100, height / 2)
-    //trump.locateAlterEgo();
-    //harris.locateAlterEgo();
+    trump.locateAlterEgo();
+    harris.locateAlterEgo();
     fakePeople.push(trump);
     fakePeople.push(harris);
 
@@ -196,6 +196,8 @@ async function gotFaces(results) {
             let newPerson = new Person();
             people.push(newPerson);
             newPerson.getMaskAndRect(results[i], video, "bottom");
+            setTimeout(function () { newPerson.locateAlterEgo(); }, 5000);
+
         } else {
             let closest = 100000;
             let closestIndex = -1;
