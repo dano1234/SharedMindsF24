@@ -28,7 +28,7 @@ let harris;
 let trump;
 let busyAsking = false;
 let bodySegmentation;
-
+let pos = 0;
 
 
 let bodyPoseOptions = {
@@ -129,13 +129,13 @@ function draw() {
         xDiff = people[0].center.x - harris.center.x;
         yDiff = people[0].center.y - harris.center.y;
         let harrisLeanLevel = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) // - (width / 10) / 2;
-        if (trumpLeanLevel < harrisLeanLevel) {
-            if (!busyAsking) {
-                let percent = trumpLeanLevel / (width / 2)
-                console.log("asking for trump", percent);
-                askBetween(people[0], trump, percent);
-            }
-        }
+        // if (trumpLeanLevel < harrisLeanLevel) {
+        //     if (!busyAsking) {
+        //         let percent = trumpLeanLevel / (width / 2)
+        //         console.log("asking for trump", percent);
+        //         //askBetween(people[0], trump, percent);
+        //     }
+        // }
         // let harrisChanged = harris.setLean(harrisLeanLevel);
         // if (harrisChanged) {
         //     askBetween(people[0], harris, harrisLeanLevel / 10);
@@ -146,6 +146,9 @@ function draw() {
         //     askBetween(people[0], trump, trumpLeanLevel / 10);
         // }
         //console.log(trump.center.x, harris.center.x, "trumpLean", trumpLeanLevel, "harrisLean", harrisLeanLevel);
+    }
+    if (betweenImage) {
+        image(betweenImage, 0, 0, 160, 120);
     }
 }
 
@@ -158,6 +161,24 @@ function mousePressed() {
         }
     }
 }
+
+function keyPressed() {
+    if (keyCode === LEFT_ARROW) {
+        pos--;
+    } else if (keyCode === RIGHT_ARROW) {
+        pos++;
+    }
+    pos = constrain(pos, -10, 10);
+
+    let percent = Math.abs(pos / 10);
+    console.log("asking for percent", percent);
+    if (pos > 0) {
+        askBetween(people[0], trump, percent);
+    } else if (pos < 0) {
+        askBetween(people[0], harris, percent);
+    }
+}
+
 
 
 // Callback function for when bodyPose outputs data
@@ -194,9 +215,7 @@ async function gotFaces(results) {
     }
 
 
-    if (betweenImage) {
-        image(betweenImage, 0, 0, 160, 120);
-    }
+
     //faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
     bodyPose.detect(video, gotFaces);
 }
@@ -226,6 +245,10 @@ async function askBetween(person1, person2, amount) {
 
     loadImage(result.b64Image, function (newImage,) {
         betweenImage = newImage;
+        people[0].alterEgoImage = betweenImage;
+
+        console.log("got pose in image load of b64 returned as alter ego");
+        currentPerson.getMaskAndRect(null, newImage, "top");
         busyAsking = false;
     });
 }
