@@ -77,8 +77,8 @@ function setup() {
     });
     trump = new Person(trumpPic, width - 200, height / 2)
     harris = new Person(harrisPic, -100, height / 2)
-    trump.locateAlterEgo();
-    harris.locateAlterEgo();
+    //trump.locateAlterEgo();
+    //harris.locateAlterEgo();
     fakePeople.push(trump);
     fakePeople.push(harris);
 
