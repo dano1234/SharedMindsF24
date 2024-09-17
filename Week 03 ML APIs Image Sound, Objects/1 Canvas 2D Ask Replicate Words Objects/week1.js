@@ -1,8 +1,6 @@
 
 let inputLocationX = window.innerWidth / 2;
 let inputLocationY = window.innerHeight / 2;
-let inputBoxDirectionX = 1;
-let inputBoxDirectionY = 1;
 
 let canvas;
 let ctx;
@@ -10,7 +8,8 @@ let inputBox;
 const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
 let responseWords = [];
 let promptWords = [];
-
+let mouseDown = false;
+let currentWord = -1;
 init();
 
 function init() {
@@ -22,15 +21,6 @@ function init() {
 
 // Animate loop
 function animate() {
-    // Perform animation logic here
-    inputLocationX = inputLocationX + inputBoxDirectionX;
-    inputLocationY = inputLocationY + inputBoxDirectionY;
-    if (inputLocationX > window.innerWidth || inputLocationX < 0) {
-        inputBoxDirectionX = - inputBoxDirectionX;
-    }
-    if (inputLocationY > window.innerHeight || inputLocationY < 0) {
-        inputBoxDirectionY = - inputBoxDirectionY;
-    }
 
     inputBox.style.left = inputLocationX + 'px';
     inputBox.style.top = inputLocationY + 'px';
@@ -109,7 +99,9 @@ async function askWord(promptWord, location) {
             location: { x: xPos, y: yPos },
             prompt: promptWord,
         }
+
         responseWords.push(thisWord);
+        console.log(responseWords);
     }
     inputBoxDirectionX = 1;
     inputBoxDirectionY = 1;
@@ -137,8 +129,8 @@ function initInterface() {
     inputBox.setAttribute('id', 'inputBox');
     inputBox.setAttribute('placeholder', 'Enter text here');
     inputBox.style.position = 'absolute';
-    inputBox.style.left = '50%';
-    inputBox.style.top = '50%';
+    inputBox.style.left = '10%';
+    inputBox.style.top = '10%';
     inputBox.style.transform = 'translate(-50%, -50%)';
     inputBox.style.zIndex = '100';
     inputBox.style.fontSize = '30px';
@@ -153,7 +145,7 @@ function initInterface() {
         if (event.key === 'Enter') {
             const inputValue = inputBox.value;
             askWord(inputValue, { x: inputLocationX, y: inputLocationY });
-
+            inputBox.style.display = 'none';
         }
     });
 
@@ -161,22 +153,44 @@ function initInterface() {
 
     // Add event listener to the document for mouse down event
     document.addEventListener('mousedown', (event) => {
-        // Set the location of the input box to the mouse location
-        inputLocationX = event.clientX;
-        inputLocationY = event.clientY;
-        inputBoxDirectionX = 0;
-        inputBoxDirectionY = 0;
+        mouseDown = true;
+        // Check if the mouse is clicked on any of the words
+        currentWord = -1;
         for (let i = 0; i < responseWords.length; i++) {
             let thisResponseWord = responseWords[i];
             let location = thisResponseWord.location;
-            let dist = Math.sqrt((location.x - inputLocationX) * (location.x - inputLocationX) + (location.y - inputLocationY) * (location.y - inputLocationY));
-            if (dist < 50) {
+            let xdist = location.x - event.clientX;
+            let ydist = location.y - event.clientY;
+            let dist = Math.sqrt(xdist * xdist + ydist * ydist);
+            if (dist < 20) {
                 console.log("Clicked on ", thisResponseWord.word);
-                inputBox.value = thisResponseWord.word;
-                askWord(thisResponseWord.word, location);
+                currentWord = i;
                 break;
             }
         }
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        //move words around
+        if (mouseDown && currentWord > 0) {
+            let thisLocation = { x: event.clientX, y: event.clientY };
+            responseWords[currentWord].location = thisLocation;
+        }
+
+    });
+    document.addEventListener('mouseup', (event) => {
+        mouseDown = false
+    });
+
+    // Add event listener to the document for double click event
+    document.addEventListener('dblclick', (event) => {
+        //ask for related words
+        if (currentWord > 0) {
+            let location = responseWords[currentWord].location;
+            askWord(responseWords[currentWord].word, location);
+        }
+
+        console.log("Document double clicked");
     });
 }
 

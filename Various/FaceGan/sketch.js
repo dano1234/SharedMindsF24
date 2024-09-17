@@ -387,9 +387,9 @@ async function askBetween(person1, person2, amount) {
 
 
 
-if (people.length == 1) {
+// if (people.length == 1) {
 
-}
+// }
 
 // for (let i = 0; i < fakePeople.length; i++) {
 //     fakePeople[i].drawMe(i);

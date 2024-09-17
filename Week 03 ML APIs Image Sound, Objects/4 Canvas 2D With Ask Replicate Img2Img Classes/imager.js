@@ -192,12 +192,12 @@ class Imager {
         function startLiveVideo() {
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function (stream) {
-                    const video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.autoplay = true;
-                    video.style.width = '100%';
-                    video.style.height = '100%';
-                    this.video = video;
+                    this.video = document.createElement('video');
+                    this.video.srcObject = stream;
+                    this.video.autoplay = true;
+                    this.video.style.width = '100%';
+                    this.video.style.height = '100%';
+
                     this.video.addEventListener('play', function () {
                         const ctx = this.canvas.getContext('2d');
                         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

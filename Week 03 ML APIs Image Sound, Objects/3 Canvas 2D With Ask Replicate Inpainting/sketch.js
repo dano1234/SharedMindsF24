@@ -25,6 +25,7 @@ function init() {
         ctx.drawImage(img, 0, 0);
     };
     img.src = 'Disney.png';
+
     // askPictures("the disneyland of my life disagrees with my level of hapieness", { x: 0, y: 0 });
     animate();
 }
@@ -57,6 +58,7 @@ async function askPictures(prompt, location) {
         //version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc95b7223104132402a9ae91cc677285bc5eb997834bd2349fa486f53910fd68b3",   //stable diffusion
         input: {
             prompt: prompt,
+            prompt_strength: 0.8,
             mask: maskBase64,
             image: imageBase64,
         },
@@ -82,6 +84,7 @@ async function askPictures(prompt, location) {
 
         let img = document.createElement("img");
         img.src = proxy_said.output[0];
+        img.setAttribute('crossOrigin', 'anonymous');
         img.onload = function () {
             let ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
@@ -178,7 +181,7 @@ function initInterface() {
             maskCtx.beginPath();
             maskCtx.fillStyle = 'white';
 
-            maskCtx.ellipse(x, y, 20, 20, 0, 0, 2 * Math.PI);
+            maskCtx.ellipse(x, y, 10, 10, 0, 0, 2 * Math.PI);
             maskCtx.fill();
             maskCtx.closePath();
             inputLocationX = x;

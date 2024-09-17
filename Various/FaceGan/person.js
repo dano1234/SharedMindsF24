@@ -143,6 +143,7 @@ class Person {
             }
 
         }
+        g.remove();
         // console.log("got mask and rect", this.faceRect, this.frameRect);
     }
 
@@ -156,7 +157,7 @@ class Person {
 
         //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
         if (this.staticImage) {
-            image(this.staticImage, this.staticX, this.staticY, 400, 400);
+            //image(this.staticImage, this.staticX, this.staticY, 400, 400);
             if (this.alterEgoGraphics) {
                 //image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
                 // console.log(this.faceRect.left, this.staticX);
@@ -176,7 +177,7 @@ class Person {
             this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
             this.alterEgoGraphics.rotate(this.headAngle);
 
-            this.alterEgoGraphics.tint(255, 255);
+            this.alterEgoGraphics.tint(255, 210);
             this.alterEgoGraphics.image(this.alterEgoImage, 0, 0);;
 
             let newFaceRect = this.faceRect;
