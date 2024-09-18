@@ -67,15 +67,13 @@ async function askPictures(prompt, location) {
         img.style.width = '256px';
         img.style.height = '256px';
         img.src = proxy_said.output[0];
-        let newVisualObject = new VisualObject(img, location.x, location.y, prompt);
+        let newVisualObject = new VisualObject(prompt, img, location.x, location.y, 256, 256);
         visualObjects.push(newVisualObject);
     }
     document.body.style.cursor = "auto";
     inputBoxDirectionX = 1;
     inputBoxDirectionY = 1;
 }
-
-
 
 
 
@@ -100,7 +98,7 @@ function initInterface() {
     inputBox.setAttribute('id', 'inputBox');
     inputBox.setAttribute('placeholder', 'Enter text here');
     inputBox.style.position = 'absolute';
-    inputBox.style.left = '50%';;
+    inputBox.style.left = '50%';
     inputBox.style.top = '50%';
     inputBox.style.transform = 'translate(-50%, -50%)';
     inputBox.style.zIndex = '100';
@@ -115,7 +113,10 @@ function initInterface() {
 
         if (event.key === 'Enter') {
             const inputValue = inputBox.value;
-            askPictures(inputValue, { x: inputLocationX, y: inputLocationY });
+            var rect = inputBox.getBoundingClientRect()
+            let location = { x: rect.left, y: rect.top };
+            console.log("Location: ", location);
+            askPictures(inputValue, location);
             inputBox.style.display = 'none';
         }
     });
@@ -168,10 +169,13 @@ function initInterface() {
 
 
 class VisualObject {
-    constructor(img, x, y, prompt) {
+    constructor(prompt, img, x, y, w, h) {
+        this.prompt = prompt;
         this.x = x;
         this.y = y;
         this.img = img;
+        this.width = w;
+        this.height = h;
     }
     setLocation(location) {
 
@@ -179,13 +183,17 @@ class VisualObject {
         this.y = location.y;
     }
     isOver(x, y) {
-        return (x > this.x && x < this.x + this.img.width && y > this.y && y < this.y + this.img.height);
+        return (x > this.x && x < this.x + this.width && y > this.y && y < this.y + this.height);
     }
 
     display() {
         let ctx = canvas.getContext('2d');
         // Update logic for the visual object
-        ctx.drawImage(this.img, this.x, this.y);
+        ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+        ctx.font = '20px Arial';
+        ctx.fillStyle = 'black';
+        let textWidth = ctx.measureText(this.prompt).width;
+        ctx.fillText(this.prompt, this.x + this.width / 2 - textWidth / 2, this.y + this.height + 20);
     }
 }
 
