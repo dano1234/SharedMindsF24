@@ -13,21 +13,44 @@ initFirebase()
 recall();
 
 
+function initFirebase() {
+    const firebaseConfig = {
+        apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
+        authDomain: "sharedmindss24.firebaseapp.com",
+        databaseURL: "https://sharedmindss24-default-rtdb.firebaseio.com",
+        projectId: "sharedmindss24",
+        storageBucket: "sharedmindss24.appspot.com",
+        messagingSenderId: "1039430447930",
+        appId: "1:1039430447930:web:edf98d7d993c21017ad603"
+    };
+    const app = initializeApp(firebaseConfig);
+    //make a folder in your firebase for this example
+    db = getDatabase();
+}
+
 function save() {
     let title = document.getElementById('title').value;
-    let forFirebase = { title: title, objects: localObjects };
-    setDataInFirebase(exampleName + "/" + title, forFirebase);
+    let data = { title: title, objects: localObjects };
+    let folder = exampleName + "/" + title;
+    const dbRef = ref(db, folder + '/')
+    set(dbRef, data);
 }
 
 function recall() {
-    let title = document.getElementById('title').value
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // if in 3D scene.remove() for all objects
-    getStuffFromFirebase(title, (data) => {
+    let title = document.getElementById('title').value;
+    let folder = exampleName + "/" + title + "/";
+    console.log("recalling from", folder);
+    const dbRef = ref(db, folder);
+    onValue(dbRef, (snapshot) => {
+        console.log("here is a snapshot of everyting", snapshot.val());
+        let data = snapshot.val();
         if (data) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let title = document.getElementById('title').value;
             localObjects = data.objects;
             for (let i = 0; i < localObjects.length; i++) {
+                console.log("drawing", localObjects[i]);
                 drawText(localObjects[i].position.x, localObjects[i].position.y, localObjects[i].text);
             }
         }
@@ -147,40 +170,5 @@ document.addEventListener('mouseup', (event) => {
 
 
 
-////FIREBASE STUFF
-
-function initFirebase() {
-    const firebaseConfig = {
-        apiKey: "AIzaSyDHOrU4Lrtlmk-Af2svvlP8RiGsGvBLb_Q",
-        authDomain: "sharedmindss24.firebaseapp.com",
-        databaseURL: "https://sharedmindss24-default-rtdb.firebaseio.com",
-        projectId: "sharedmindss24",
-        storageBucket: "sharedmindss24.appspot.com",
-        messagingSenderId: "1039430447930",
-        appId: "1:1039430447930:web:edf98d7d993c21017ad603"
-    };
-    const app = initializeApp(firebaseConfig);
-    //make a folder in your firebase for this example
-    db = getDatabase();
-}
-
-
-
-function setDataInFirebase(folder, data) {
-    //if it doesn't exist, it adds (pushes) with you providing the key
-    //if it does exist, it overwrites
-    const dbRef = ref(db, folder + '/')
-    set(dbRef, data);
-}
-
-function getStuffFromFirebase(folder, callback) {
-    //make a one time ask, not a subscription
-    const dbRef = ref(db, folder + '/');
-    onValue(dbRef, (snapshot) => {
-        console.log("here is a snapshot of everyting", snapshot.val());
-        callback(snapshot.val());
-
-    });
-}
 
 
