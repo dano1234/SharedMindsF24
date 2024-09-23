@@ -50,10 +50,8 @@ function bodyPoseResults(poses) {
         let wDiff = rightEarX - leftEarX;
         let hDiff = rightEarY - leftEarY;
         let faceWidth = int(Math.sqrt(wDiff * wDiff + hDiff * hDiff));
-        console.log(faceWidth);
 
 
-        g = createGraphics(faceWidth, faceWidth);
         let top = int(centerY - faceWidth / 2);
         let left = int(centerX - faceWidth / 2);
         // let xDiff = pose.left_eye.x / 2 - pose.right_eye.x / 2;
@@ -62,26 +60,35 @@ function bodyPoseResults(poses) {
         this.center = { x: int(pose.nose.x), y: int(pose.nose.y) };
 
         faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
-        //console.log(faceRect);
+        //do I nee faceRect?  //maybe for inserting face into a face
         const border = faceWidth / 5;
         frameRect = { left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2 };
+        g = createGraphics(frameRect.width, frameRect.width);
+
         g.image(
             video,
             0,
             0,
-            faceRect.width,
-            faceRect.height,
-            faceRect.left,
-            faceRect.top,
-            faceRect.width,
-            faceRect.height
+            frameRect.width,
+            frameRect.height,
+            frameRect.left,
+            frameRect.top,
+            frameRect.width,
+            frameRect.height
         );
-        //gradientMaskIt(g.get());//better way to get an image from a p5.Graphics?
         background(255);
-        image(g, left, top);
+        //const outputImg = g.get();
+        var outputImg = createImage(g.width, g.height);
+        outputImg.copy(g, 0, 0, g.width, g.height, 0, 0, g.width, g.height);
+        const maskGraphics = gradientMaskIt(outputImg);//better way to get an image from a p5.Graphics?
+        outputImg.mask(maskGraphics);
+        maskGraphics.remove();
+
+        image(outputImg, frameRect.left, frameRect.top, frameRect.width, frameRect.height, 0, 0, outputImg.width, outputImg.height);
+        g.remove();
+        //image(maskGraphics, frameRect.left, frameRect.top, frameRect.width, frameRect.height);
         noFill();
         rect(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
-        g.remove();
 
     }
     // bodyPose.detect(video, bodyPoseResults)
@@ -89,16 +96,18 @@ function bodyPoseResults(poses) {
 }
 
 function gradientMaskIt(img) {
+
     maskGraphics = createGraphics(img.width, img.height);
-    maskGraphics.clear(0, 0, img.width, img.height);
-    maskGraphics.angleMode(DEGREES);
     maskGraphics.noStroke();
-    const sX = img.width / 2;
-    const sY = img.height / 2;
-    const sR = img.width / 5;
-    const eX = img.width / 2;
-    const eY = img.height / 2;
-    const eR = img.height / 2;
+    //maskGraphics.clear(0, 0, img.width, img.height);
+    //maskGraphics.angleMode(DEGREES);
+
+    const sX = maskGraphics.width / 2;
+    const sY = maskGraphics.height / 2;
+    const sR = maskGraphics.width / 10;
+    const eX = maskGraphics.width / 2;
+    const eY = maskGraphics.height / 2;
+    const eR = maskGraphics.height / 2;
     const colorS = color(0, 0, 0, 255); //Start color
     const colorE = color(250, 255, 255, 0); //End color
     let gradient = maskGraphics.drawingContext.createRadialGradient(
@@ -112,9 +121,12 @@ function gradientMaskIt(img) {
     gradient.addColorStop(0, colorS);
     gradient.addColorStop(1, colorE);
     maskGraphics.drawingContext.fillStyle = gradient;
-    maskGraphics.ellipse(img.width / 2, img.height / 2, img.width, img.height);
-    img.mask(maskGraphics);
-    // image(img,0,0);
-    maskGraphics.remove();
-    masked = true;
+    //maskGraphics.ellipse(maskGraphics.width / 2, maskGraphics.height / 2, maskGraphics.width, maskGraphics.height);
+    maskGraphics.ellipseMode(CENTER);
+    maskGraphics.ellipse(maskGraphics.width / 2, maskGraphics.height / 2, maskGraphics.width - 50, maskGraphics.height + 50);
+    maskGraphics.stroke(0, 244, 0);
+    maskGraphics.rect(0, 0, maskGraphics.width, maskGraphics.height);
+
+    return maskGraphics;
+
 }
