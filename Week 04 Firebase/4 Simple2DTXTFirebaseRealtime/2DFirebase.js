@@ -45,7 +45,7 @@ function drawAll(x, y, text) {
         const textData = allText[key];
         let thisName = textData.name;
         if (thisName === myName) myKey = key; //keep track of your key
-        ctx.font = '30px Arial';
+        ctx.font = '24px Arial';
         ctx.fillStyle = 'black';
         ctx.fillText(thisName + ":" + textData.text, textData.position.x, textData.position.y);
     }

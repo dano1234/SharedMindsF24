@@ -57,6 +57,7 @@ function drawAll(x, y, text) {
         let thisName = drawingInfo.name;
         if (thisName === myName) myKey = key; //keep track of your key
         ctx.stroke();
+        ctx.font = '14px Arial';
         ctx.strokeStyle = 'black';
         ctx.fillText(thisName, drawingInfo.location.x, drawingInfo.location.y);
         ctx.lineWidth = 3;

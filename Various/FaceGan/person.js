@@ -2,6 +2,7 @@ class Person {
 
     constructor(image, x, y) {
         //this.liveMask = createGraphics(width, height);
+
         if (image) {
             this.staticImage = image;
 
@@ -27,8 +28,10 @@ class Person {
             //     currentPerson.getAlterEgoFaceMaskFromParts(results);
             // });
         }
+        this.lastRefresh = millis();
+        this.stage = "actual";
         this.tries = 0;
-        this.lastUpdate = millis();
+        this.lastAlterEgoFreshening = millis();
         this.asked = false;
         //this.locateAlterEgo();
     }
@@ -46,7 +49,9 @@ class Person {
         this.lastUpdate = millis();
         let g;
         let frameRect = { left: 0, top: 0, width: image.width, height: image.height };
-        if (layer == "bottom") {
+        let faceRect = { left: 0, top: 0, right: image.width, bottom: image.height, width: image.width, height: image.height };
+
+        if (pose) {
             let rightEarX = pose.right_ear.x;
             let rightEarY = pose.right_ear.y;
             let leftEarX = pose.left_ear.x;
@@ -54,75 +59,108 @@ class Person {
             let centerX = pose.nose.x;
             let centerY = pose.nose.y;
             let earWidth = int(leftEarX - rightEarX);
-            g = createGraphics(earWidth * 2, earWidth * 2);
+            let wDiff = rightEarX - leftEarX;
+            let hDiff = rightEarY - leftEarY;
+            let faceWidth = Math.sqrt(wDiff * wDiff + hDiff * hDiff);
 
-            let top = int(centerY - earWidth);
-            let left = int(centerX - earWidth);
-            let xDiff = pose.left_eye.x / 2 - pose.right_eye.x / 2;
-            let yDiff = pose.left_eye.y / 2 - pose.right_eye.y / 2;
-            this.headAngle = Math.atan2(yDiff, xDiff);
-            this.center = { x: int(pose.nose.x), y: int(pose.nose.y) };
+            if (layer == "bottom") {
+                g = createGraphics(earWidth * 2, earWidth * 2);
+                let top = int(centerY - earWidth);
+                let left = int(centerX - earWidth);
+                let xDiff = pose.left_eye.x / 2 - pose.right_eye.x / 2;
+                let yDiff = pose.left_eye.y / 2 - pose.right_eye.y / 2;
+                this.headAngle = Math.atan2(yDiff, xDiff);
+                this.center = { x: int(pose.nose.x), y: int(pose.nose.y) };
 
-            frameRect = { left: left, top: top, width: earWidth * 2, height: earWidth * 2 };
-            g.image(
-                image,
-                0,
-                0,
-                earWidth * 2,
-                earWidth * 2,
-                left,
-                top,
-                earWidth * 2,
-                earWidth * 2
-            );
-        } else {
-            g = createGraphics(image.width, image.height);
-            g.image(image, 0, 0);
-            console.log("create graphics for top");
-        }
-        //frameRect.top = frameRect.top - 15;
+                frameRect = { left: left, top: top, width: earWidth * 2, height: earWidth * 2 };
+                g.image(
+                    image,
+                    0,
+                    0,
+                    earWidth * 2,
+                    earWidth * 2,
+                    left,
+                    top,
+                    earWidth * 2,
+                    earWidth * 2
+                );
+            } else {
+                g = createGraphics(image.width, image.height);
+                g.image(image, 0, 0);
+                console.log("create graphics for top");
+            }
 
-        //image(g, 0, 0);
-        // for (let j = 0; j < pose.keypoints.length; j++) {
-        //     let keypoint = pose.keypoints[j];
-        //     // Only draw a circle if the keypoint's confidence is bigger than 0.1
-        //     if (keypoint.confidence > 0.1) {
-        //         fill(0, 255, 0);
-        //         //noStroke();
-        //         ellipse(keypoint.x, keypoint.y, 10, 10);
-        //     }
-        // }
-        let segmentation = await bodySegmentation.detect(g);
-        if (segmentation) {
             let faceMask = createGraphics(g.width, g.height);
-            let faceRect = { left: width, top: height, right: 0, bottom: 0 };
+            faceRect = { left: leftEarY, top: centerY - faceWidth / 2, right: rightEarX, bottom: centerY - faceWidth / 2 };
+            //let faceRect = { left: width, top: height, right: 0, bottom: 0 };
             //image(segmentation.mask, 0, 0, width, height);
             faceMask.clear();
             faceMask.loadPixels();
-            // this.centroid = { x: 0, y: 0 };
-            // let total = 0;
+            for (let x = 0; x < g.width; x++) {
+                for (let y = 0; y < g.height; y++) {
+                    let xDiff = x - centerX;
+                    let yDiff = y - centerY;
+                    let offset = (y * g.width + x) * 4;
+                    let distCenter = Math.sqrt(xDiff * xDiff + yDiff * yDiff);
+                    let alpha = 255 - distCenter * 255 / faceWidth;
+                    if (distCenter < faceWidth / 2) alpha = 255;
+                    else alpha = 0;
 
-            for (let i = 0; i < segmentation.data.length; i++) {
-                if (segmentation.data[i] == 1 || segmentation.data[i] == 0) {
-                    faceMask.pixels[i * 4] = 0;
-                    faceMask.pixels[i * 4 + 1] = 0;
-                    faceMask.pixels[i * 4 + 2] = 0;
-                    faceMask.pixels[i * 4 + 3] = 255;
-                    let x = i % faceMask.width;
-                    let y = int(i / faceMask.width);
-                    //console.log("x", x, "y", y);
-                    // this.centroid.x += x;
-                    // this.centroid.y += y;
-                    //total++;
-                    if (x > faceRect.right) faceRect.right = x;
-                    if (y > faceRect.bottom) faceRect.bottom = y;
-                    if (x < faceRect.left) faceRect.left = x;
-                    if (y < faceRect.top) faceRect.top = y;
+                    faceMask.pixels[offset] = 255;
+                    faceMask.pixels[offset + 1] = 255;
+
+                    faceMask.pixels[offset + 2] = 255;
+                    faceMask.pixels[offset + 3] = 127;
                 }
             }
-            // this.centroid.x = this.centroid.x / total;
-            // this.centroid.y = this.centroid.y / total;
-            // console.log("cntroid", this.centroid, "center", this.center);
+
+
+
+            //frameRect.top = frameRect.top - 15;
+
+            //image(g, 0, 0);
+            // for (let j = 0; j < pose.keypoints.length; j++) {
+            //     let keypoint = pose.keypoints[j];
+            //     // Only draw a circle if the keypoint's confidence is bigger than 0.1
+            //     if (keypoint.confidence > 0.1) {
+            //         fill(0, 255, 0);
+            //         //noStroke();
+            //         ellipse(keypoint.x, keypoint.y, 10, 10);
+            //     }
+            // }
+            /*
+            let segmentation = await bodySegmentation.detect(g);
+            if (segmentation) {
+                let faceMask = createGraphics(g.width, g.height);
+                let faceRect = { left: width, top: height, right: 0, bottom: 0 };
+                //image(segmentation.mask, 0, 0, width, height);
+                faceMask.clear();
+                faceMask.loadPixels();
+                // this.centroid = { x: 0, y: 0 };
+                // let total = 0;
+    
+                for (let i = 0; i < segmentation.data.length; i++) {
+                    if (segmentation.data[i] == 1 || segmentation.data[i] == 0) {
+                        faceMask.pixels[i * 4] = 0;
+                        faceMask.pixels[i * 4 + 1] = 0;
+                        faceMask.pixels[i * 4 + 2] = 0;
+                        faceMask.pixels[i * 4 + 3] = 255;
+                        let x = i % faceMask.width;
+                        let y = int(i / faceMask.width);
+                        //console.log("x", x, "y", y);
+                        // this.centroid.x += x;
+                        // this.centroid.y += y;
+                        //total++;
+                        if (x > faceRect.right) faceRect.right = x;
+                        if (y > faceRect.bottom) faceRect.bottom = y;
+                        if (x < faceRect.left) faceRect.left = x;
+                        if (y < faceRect.top) faceRect.top = y;
+                    }
+                }
+                // this.centroid.x = this.centroid.x / total;
+                // this.centroid.y = this.centroid.y / total;
+                // console.log("cntroid", this.centroid, "center", this.center);
+                */
             faceMask.updatePixels();
             faceRect.width = faceRect.right - faceRect.left;
             faceRect.height = faceRect.bottom - faceRect.top;
@@ -141,15 +179,16 @@ class Person {
                 this.alterEgoImage.mask(this.alterEgoMask);
                 console.log("got alter ego mask and rect");
             }
-
+            g.remove();
         }
-        g.remove();
+
+
         // console.log("got mask and rect", this.faceRect, this.frameRect);
     }
 
     maybeAskBetween(amount) {
         if (!busyAsking) {
-            a
+
         }
     }
 
@@ -157,7 +196,7 @@ class Person {
 
         //if (this.alterEgoCanvas) image(this.ctx, 0, 0);
         if (this.staticImage) {
-            //image(this.staticImage, this.staticX, this.staticY, 400, 400);
+
             if (this.alterEgoGraphics) {
                 //image(this.alterEgoGraphics, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
                 // console.log(this.faceRect.left, this.staticX);
@@ -166,6 +205,14 @@ class Person {
                 // image(this.alterEgoGraphics, this.staticX, this.staticY);
                 // image(this.alterEgoImage, this.frameRect.left + this.faceRect.left, this.frameRect.top + this.faceRect.top, this.faceRect.width, this.faceRect.height, this.alterEgoFaceRect.left, this.alterEgoFaceRect.top, this.alterEgoFaceRect.width, this.alterEgoFaceRect.height);
 
+            } else {
+                image(this.staticImage, this.staticX, this.staticY, 400, 400);
+                textSize(14);
+                let wordsWidth = textWidth(waitingMessage);
+                fill(0, 0, 0);
+                //text("Finding Your AI Version", this.frameRect.left + this.frameRect.width / 2 - wordsWidth / 2, this.frameRect.bottom - 30);
+                text(waitingMessage, this.frameRect.left + wordsWidth / 2, this.frameRect.top);
+                text(waitingMessage, 100, 100);
             }
 
         } else if (this.alterEgoImage && this.faceRect && this.alterEgoMask && this.frameRect) {
@@ -177,7 +224,7 @@ class Person {
             this.alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
             this.alterEgoGraphics.rotate(this.headAngle);
 
-            this.alterEgoGraphics.tint(255, 210);
+            // this.alterEgoGraphics.tint(255, 210);
             this.alterEgoGraphics.image(this.alterEgoImage, 0, 0);;
 
             let newFaceRect = this.faceRect;
@@ -200,6 +247,20 @@ class Person {
             this.lastFaceRect = newFaceRect;
             this.alterEgoGraphics.pop();
             //image(this.alterEgoMask, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
+        } else if (this.faceRect && this.frameRect) {
+            image(this.justFace, this.frameRect.left, this.frameRect.top, this.frameRect.width, this.frameRect.height);
+            textSize(14);
+            let wordsWidth = textWidth(waitingMessage);
+            fill(0, 0, 0);
+            //text("Finding Your AI Version", this.frameRect.left + this.frameRect.width / 2 - wordsWidth / 2, this.frameRect.bottom - 30);
+            text(waitingMessage, this.frameRect.left + wordsWidth / 2, this.frameRect.top);
+            text(waitingMessage, 300, 300);
+
+        }
+
+        if (!this.staticImage && millis() - this.lastAlterEgoFreshening > 5000) {
+            this.locateAlterEgo();
+            this.lastAlterEgoFreshening = millis();
         }
 
         // if (this.alterEgoMask) {
@@ -345,7 +406,7 @@ class Person {
             method: "POST",
             body: JSON.stringify(postData), //p)
         };
-        console.log("Asking for My Image ");
+        console.log("Locating My Image ");
         const response = await fetch(url, options);
         const result = await response.json();
         //console.log("result", result);

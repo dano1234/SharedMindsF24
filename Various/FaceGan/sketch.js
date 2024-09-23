@@ -29,6 +29,7 @@ let trump;
 let busyAsking = false;
 let bodySegmentation;
 let pos = 0;
+const waitingMessage = "Finding You In AI..."
 
 
 let bodyPoseOptions = {
@@ -40,11 +41,12 @@ let bodyPoseOptions = {
     trackerType: "boundingBox", // "keypoint" or "boundingBox"
     trackerConfig: {},
     modelUrl: undefined,
-    flipped: false
+    flipped: false,
 }
 
 let bodyPixOptions = {
     maskType: "parts",
+    flipped: false,
 }
 
 //let options = { maxFaces: 1, refineLandmarks: false, flipHorizontal: false };
@@ -62,19 +64,19 @@ function preload() {
 function setup() {
     canvas = createCanvas(dimension, (dimension * 3) / 4);
     //imageForFaceMesh = createGraphics(dimension, (dimension * 3) / 4);
-    ageSlider = createSlider(-5, 5, 0);
-    ageSlider.position(0, (dimension * 3) / 4); // x and y
-    ageSlider.size(400, 20); // width and height
-    ageSlider.changed(function (what) {
-        currentPerson.vecToImg("age", what.target.value);
-    });
+    // ageSlider = createSlider(-5, 5, 0);
+    // ageSlider.position(0, (dimension * 3) / 4); // x and y
+    // ageSlider.size(400, 20); // width and height
+    // ageSlider.changed(function (what) {
+    //     currentPerson.vecToImg("age", what.target.value);
+    // });
 
-    smileSlider = createSlider(-5, 5, 0);
-    smileSlider.position(0, (dimension * 3) / 4 + 30); // x and y
-    smileSlider.size(400, 20); // width and height
-    smileSlider.changed(function (what) {
-        currentPerson.vecToImg("smile", what.target.value);
-    });
+    // smileSlider = createSlider(-5, 5, 0);
+    // smileSlider.position(0, (dimension * 3) / 4 + 30); // x and y
+    // smileSlider.size(400, 20); // width and height
+    // smileSlider.changed(function (what) {
+    //     currentPerson.vecToImg("smile", what.target.value);
+    // });
     trump = new Person(trumpPic, width - 200, height / 2)
     harris = new Person(harrisPic, -100, height / 2)
     trump.locateAlterEgo();
@@ -91,7 +93,7 @@ function setup() {
     img = video;
     //myMask = createGraphics(width, height);
     //faceMesh.detectStart(imageForFaceMesh.canvas, gotFaces);
-    bodyPose.detect(video, gotFaces);
+    bodyPose.detectStart(video, gotFaces);
 
     // faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
     //console.log("canvas", canvas);
@@ -104,14 +106,16 @@ function setup() {
 
 
 function draw() {
-    image(video, 0, 0);
+    //image(video, 0, 0);
+    background(255);
+    let numberOfPeople = people.length;
 
-    for (let i = people.length - 1; i > -1; i--) {
-        if (people[i].isGone()) {
-            people.splice(i, 1);
-            console.log("removing person", i);
-        }
-    }
+    // for (let i = people.length - 1; i > -1; i--) {
+    //     if (people[i].isGone()) {
+    //         people.splice(i, 1);
+    //         console.log("removing person", i);
+    //     }
+    // }
     for (let i = 0; i < fakePeople.length; i++) {
         fakePeople[i].drawMe(i);
         // if (people.length > 0)
@@ -125,10 +129,13 @@ function draw() {
     if (people.length == 1) {
         let xDiff = people[0].center.x - trump.center.x;
         let yDiff = people[0].center.y - trump.center.y;
-        let trumpLeanLevel = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) //- (width / 10) / 2;
+        let trumpDist = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) //- (width / 10) / 2;
         xDiff = people[0].center.x - harris.center.x;
         yDiff = people[0].center.y - harris.center.y;
-        let harrisLeanLevel = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) // - (width / 10) / 2;
+        let harrisDist = int(Math.sqrt(xDiff * xDiff + yDiff * yDiff)) // - (width / 10) / 2;
+
+
+        // console.log("trumpDist", trumpDist, "harrisDist", harrisDist);
         // if (trumpLeanLevel < harrisLeanLevel) {
         //     if (!busyAsking) {
         //         let percent = trumpLeanLevel / (width / 2)
@@ -147,9 +154,12 @@ function draw() {
         // }
         //console.log(trump.center.x, harris.center.x, "trumpLean", trumpLeanLevel, "harrisLean", harrisLeanLevel);
     }
-    if (betweenImage) {
-        image(betweenImage, 0, 0, 160, 120);
-    }
+    //textSize(15);
+    //fill(0);
+    //text("Number of People: " + numberOfPeople, 30, 30);
+    // if (betweenImage) {
+    //     image(betweenImage, 0, 0, 160, 120);
+    // }
 }
 
 function mousePressed() {
@@ -194,9 +204,10 @@ async function gotFaces(results) {
         //if (results[i].keypoints.length < 5) continue;
         if (existingPeople.length == 0) {
             let newPerson = new Person();
+
             people.push(newPerson);
             newPerson.getMaskAndRect(results[i], video, "bottom");
-            setTimeout(function () { newPerson.locateAlterEgo(); }, 5000);
+
 
         } else {
             let closest = 100000;
@@ -219,7 +230,7 @@ async function gotFaces(results) {
 
 
     //faceMesh.detect(imageForFaceMesh.canvas, gotFaces)
-    bodyPose.detect(video, gotFaces);
+    //bodyPose.detect(video, gotFaces);
 }
 
 
