@@ -8,6 +8,7 @@ let selectedObject = null;
 let canvas;
 let inputBox;
 let db;
+let existingSubscribedFolder = null;
 
 const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
 
@@ -16,7 +17,7 @@ let exampleName = "SharedMindsExampleSequence2D";
 
 initFirebaseDB();
 initHTML();
-listenForChangesInNewFrame(null, currentFrame);
+subscribeToData();
 
 
 function clearLocalScene() {
@@ -52,17 +53,25 @@ async function askPictures(prompt, location) {
     if (proxy_said.output.length == 0) {
         console.log("Something went wrong, try it again");
     } else {
-        console.log("proxy_said", proxy_said.output[0]);
-        addImageRemote(proxy_said.output[0], prompt, location);
+        console.log("returned from API", proxy_said);
+        let imageURL = proxy_said.output[0];
+        // let img = new Image()
+        // img.crossOrigin = "anonymous";
+        // img.src = imageURL;
+        // img.onload = function () {
+        //     console.log("img", img);
+        //     let tempCanvas = document.createElement('canvas');
+        //     tempCanvas.width = img.width;
+        //     tempCanvas.height = img.height;
+        //     let tempContext = tempCanvas.getContext('2d');
+        //     tempContext.drawImage(img, 0, 0);
+        //     let base64 = tempCanvas.toDataURL('image/png');
+        //     console.log("base64", base64);
+        //     addImageRemote(base64, prompt, location);
+        // }
 
-        // let img = document.createElement("img"); 
-        // displayDiv.appendChild(img);
-        // img.style.position = 'absolute';
-        // img.style.left = location.x + 'px';
-        // img.style.top = location.y + 'px';
-        // img.style.width = '256px';
-        // img.style.height = '256px';
-        // img.src = proxy_said.output[0];
+        //send by url but maybe safer in long term to uncomment above and send by base64
+        addImageRemote(proxy_said.output[0], prompt, location);
 
     }
     document.body.style.cursor = "auto";
@@ -73,7 +82,7 @@ function nextFrame() {
     currentFrame++;
     let currentFrameDisplay = document.getElementById("currentFrameDisplay");
     currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
-    listenForChangesInNewFrame(oldFrame, currentFrame);
+    subscribeToData();
 }
 
 function previousFrame() {
@@ -82,67 +91,14 @@ function previousFrame() {
         currentFrame--;
         let currentFrameDisplay = document.getElementById("currentFrameDisplay");
         currentFrameDisplay.textContent = `Current Frame: ${currentFrame}`;
-        listenForChangesInNewFrame(oldFrame, currentFrame);
+        subscribeToData();
     }
 }
 
 
-function listenForChangesInNewFrame(oldFrame, currentFrame) {
-    let title = document.getElementById("title").value;
-    if (oldFrame) unSubscribeToData(exampleName + "/" + title + "/frames/" + oldFrame);
-    clearLocalScene();
-    subscribeToData(exampleName + "/" + title + "/frames/" + currentFrame, (reaction, data, key) => {
-        if (data) {
-            if (reaction === "added") {
-                if (data.type === "text") {
-                    createNewText(data, key);
-                } else if (data.type === "image") {
-                    let img = new Image();  //create a new image
-                    img.onload = function () {
-                        let posInWorld = data.position;
-                        createNewImage(img, posInWorld, key);
-                    }
-                    img.src = data.base64;
-                } else if (data.type === "p5ParticleSystem") {
-                    createNewP5(data, key);
-                }
-            } else if (reaction === "changed") {
-                console.log("changed", data);
-                let thisObject = myObjectsByFirebaseKey[key];
-                if (thisObject) {
-                    if (data.type === "text") {
-                        thisObject.text = data.text;
-                        thisObject.position = data.position;
-                        redrawText(thisObject);
-                    } else if (data.type === "image") {
-                        let img = new Image();  //create a new image
-                        img.onload = function () {
-                            thisObject.img = img;
-                            thisObject.position = data.position;
-                            redrawImage(thisObject);
-                        }
-                        img.src = data.base64;
 
-                    } else if (data.type === "p5ParticleSystem") {
-                        thisObject.position = data.position;
-                        redrawP5(thisObject);
-                    }
-                }
-            } else if (reaction === "removed") {
-                console.log("removed", data);
-                let thisObject = myObjectsByFirebaseKey[key];
-                if (thisObject) {
-                    scene.remove(thisObject.mesh);
-                    delete myObjectsByThreeID[thisObject.threeID];
-                }
-            }
-        }; //get notified if anything changes in this folder
-    });
-}
-
-export function addTextRemote(text, mouse) {
+export function addTextRemote(text, pos) {
     let title = document.getElementById("title").value;
-    const pos = project2DCoordsInto3D(150 - camera.fov, mouse);
     const data = { type: "text", position: { x: pos.x, y: pos.y, z: pos.z }, text: text };
     let folder = exampleName + "/" + title + "/frames/" + currentFrame;
     console.log("Entered Text, Send to Firebase", folder, title, exampleName);
@@ -159,7 +115,22 @@ export function addImageRemote(imgURL, prompt, pos) {
 }
 
 function animate() {
-    requestAnimationFrame(animate);
+    for (let key in myObjectsByFirebaseKey) {
+        let thisObject = myObjectsByFirebaseKey[key];
+        let ctx = canvas.getContext('2d');
+        if (thisObject.type === "image") {
+            let pos = thisObject.position;
+            let img = thisObject.loadedImage;
+            if (img) {
+                ctx.drawImage(img, pos.x, pos.y);
+            }
+        } else if (thisObject.type === "text") {
+            let pos = thisObject.position;
+            ctx.font = "30px Arial";
+            ctx.fillText(thisObject.text, pos.x, pos.y);
+        }
+        requestAnimationFrame(animate);
+    }
 }
 
 
@@ -199,28 +170,69 @@ function deleteFromFirebase(folder, key) {
     set(dbRef, null);
 }
 
-function subscribeToData(folder, callback) {
+function subscribeToData() {
+    let title = document.getElementById("title").value;
+    let currentFrame = document.getElementById("currentFrameDisplay").textContent.split(" ")[2];
+    let folder = exampleName + "/" + title + "/frames/" + currentFrame + "/";
     //get callbacks when there are changes either by you locally or others remotely
-    const commentsRef = ref(db, folder + '/');
-    onChildAdded(commentsRef, (data) => {
-        callback("added", data.val(), data.key);
-        //reactToFirebase("added", data.val(), data.key);
+    if (existingSubscribedFolder) {
+        const oldRef = ref(db, existingSubscribedFolder);
+        console.log("unsubscribing from", existingSubscribedFolder, oldRef);
+        off(oldRef);
+    }
+    existingSubscribedFolder = folder;
+
+    const thisRef = ref(db, folder);
+    console.log("subscribing to", folder, thisRef);
+    onChildAdded(thisRef, (data) => {
+        let key = data.key;
+        myObjectsByFirebaseKey[key] = data;
+        if (data.type === "text") {
+            createNewText(data, key);
+        } else if (data.type === "image") {
+            console.log("added", data);
+            let img = new Image();  //create a new image
+            img.onload = function () {
+                myObjectsByFirebaseKey[key].loadedImage = img;
+            }
+            img.src = data.imageURL;
+        }
+
+
     });
-    onChildChanged(commentsRef, (data) => {
+    onChildChanged(thisRef, (data) => {
         callback("changed", data.val(), data.key);
-        //reactToFirebase("changed", data.val(), data.key)
+        let key = data.key;
+        let thisObject = myObjectsByFirebaseKey[key];
+        if (thisObject) {
+            if (data.type === "text") {
+                thisObject.text = data.text;
+                thisObject.position = data.position;
+                redrawText(thisObject);
+            } else if (data.type === "image") {
+                let img = new Image();  //create a new image
+                img.onload = function () {
+                    thisObject.img = img;
+                    thisObject.position = data.position;
+
+                }
+                img.src = data.imageURL;
+
+            }
+        }
     });
-    onChildRemoved(commentsRef, (data) => {
+    onChildRemoved(thisRef, (data) => {
         callback("removed", data.val(), data.key);
-        //reactToFirebase("removed", data.val(), data.key)
+        console.log("removed", data);
+        let thisObject = myObjectsByFirebaseKey[key];
+        if (thisObject) {
+
+            delete myObjectsByFirebaseKey[key];
+        }
     });
 }
 
-function unSubscribeToData(folder) {
-    const oldRef = ref(db, folder + '/');
-    console.log("unsubscribing from", folder, oldRef);
-    off(oldRef);
-}
+
 
 
 function setDataInFirebase(folder, key, data) {
@@ -235,7 +247,7 @@ function setDataInFirebase(folder, key, data) {
 ///////////////////////HTML INTERFACE//////////////////////////
 
 
-export function initHTML() {
+function initHTML() {
 
     //make a container that is easy to clean out
     const displayDiv = document.createElement("div");
