@@ -184,16 +184,27 @@ function subscribeToData() {
 
     const thisRef = ref(db, folder);
     console.log("subscribing to", folder, thisRef);
-    onChildAdded(thisRef, (data) => {
-        let key = data.key;
+    onChildAdded(thisRef, (snapshot) => {
+        let key = snapshot.key;
+        let data = snapshot.val();
+        console.log("added", data, key);
+
         myObjectsByFirebaseKey[key] = data;
         if (data.type === "text") {
             createNewText(data, key);
-        } else if (data.type === "image") {
+        } else if (data.type == "image") {
             console.log("added", data);
             let img = new Image();  //create a new image
             img.onload = function () {
                 myObjectsByFirebaseKey[key].loadedImage = img;
+                console.log("loaded", img);
+                document.body.appendChild(img);
+                img.id = key;
+                img.style.position = "absolute";
+                img.style.left = data.position.x + "px";
+                img.style.top = data.position.y + "px";
+                img.style.width = "100px";
+                img.style.height = "100px";
             }
             img.src = data.imageURL;
         }
@@ -293,8 +304,9 @@ function initHTML() {
 
         if (event.key === 'Enter') {
             const inputValue = inputBox.value;
+            let inputBoxLocation = inputBox.getBoundingClientRect();
             //askWord(inputValue, { x: inputLocationX, y: inputLocationY });
-            let pos = { x: inputBox.style.left, y: inputBox.style.top };
+            let pos = { x: inputBoxLocation.left, y: inputBoxLocation.top };
 
             askPictures(inputValue, pos);
 

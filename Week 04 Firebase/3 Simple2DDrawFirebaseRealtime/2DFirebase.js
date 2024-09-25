@@ -101,7 +101,7 @@ function initFirebase() {
     });
     onChildRemoved(commentsRef, (data) => {
         console.log("removed", data.key);
-        delete allText[data.key]; //removes it
+        delete allDrawings[data.key]; //removes it
         drawAll();
     });
 }
