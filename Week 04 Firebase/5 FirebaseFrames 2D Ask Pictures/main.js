@@ -4,11 +4,12 @@ import { getDatabase, ref, off, onValue, update, set, push, onChildAdded, onChil
 
 let myObjectsByFirebaseKey = {}; //for converting from firebase key to my JSON object
 let currentFrame = 1;
-let selectedObject = null;
+let selectedObjectKey = null;
 let canvas;
 let inputBox;
 let db;
 let existingSubscribedFolder = null;
+let mouseDown = false;
 
 const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
 
@@ -118,11 +119,16 @@ function animate() {
     for (let key in myObjectsByFirebaseKey) {
         let thisObject = myObjectsByFirebaseKey[key];
         let ctx = canvas.getContext('2d');
+        console.log("thisObject", thisObject);
         if (thisObject.type === "image") {
             let pos = thisObject.position;
             let img = thisObject.loadedImage;
+            console.log("drawing image", img, pos.x, pos.y);
             if (img) {
-                ctx.drawImage(img, pos.x, pos.y);
+                img.style.left = pos.x + "px";
+                img.style.top = pos.y + "px";
+
+                //ctx.drawImage(img, pos.x, pos.y);
             }
         } else if (thisObject.type === "text") {
             let pos = thisObject.position;
@@ -194,11 +200,11 @@ function subscribeToData() {
         if (data.type === "text") {
             createNewText(data, key);
         } else if (data.type == "image") {
-            console.log("added", data);
+
             let img = new Image();  //create a new image
             img.onload = function () {
                 myObjectsByFirebaseKey[key].loadedImage = img;
-                console.log("loaded", img);
+
                 displayDiv.appendChild(img);
                 img.id = key;
                 img.style.position = "absolute";
@@ -315,13 +321,13 @@ function initHTML() {
     });
 
     // Add event listener to the document for mouse down event
-    document.addEventListener('mousedown', (event) => {
-        // Set the location of the input box to the mouse location
+    // document.addEventListener('mousedown', (event) => {
+    //     // Set the location of the input box to the mouse location
 
-        inputBox.style.left = event.clientX + "px";
-        inputBox.style.top = event.clientY + "px";
+    //     inputBox.style.left = event.clientX + "px";
+    //     inputBox.style.top = event.clientY + "px";
 
-    });
+    // });
 
     const titleBox = document.createElement('input');
     titleBox.setAttribute('type', 'text');
@@ -339,6 +345,7 @@ function initHTML() {
     document.body.appendChild(titleBox);
 
     titleBox.addEventListener('mousedown', function (event) {
+        //don't pass the click to the document
         event.stopPropagation();
     });
 
@@ -401,11 +408,52 @@ function initHTML() {
 
 
 
+    // Add event listener to the document for mouse down event
+    document.addEventListener('mousedown', (event) => {
+        mouseDown = true;
+        // Check if the mouse is clicked on any of the words
+        selectedObjectKey = null;
+        for (let key in myObjectsByFirebaseKey) {
+            let thisObject = myObjectsByFirebaseKey[key];
+            if (event.clientX > thisObject.position.x && event.clientX < thisObject.position.x + 100 && event.clientY > thisObject.position.y && event.clientY < thisObject.position.y + 100) {
+
+                selectedObjectKey = key;
+                //break;
+            }
+        }
+
+        console.log("Clicked on ", selectedObjectKey);
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        //move words around
+        if (mouseDown && selectedObjectKey) {
+            // console.log("Mouse moved", myObjectsByFirebaseKey[selectedObjectKey].position);
+            let thisLocation = { x: event.clientX, y: event.clientY };
+            myObjectsByFirebaseKey[selectedObjectKey].position = thisLocation;
+        }
+
+    });
+    document.addEventListener('mouseup', (event) => {
+        mouseDown = false
+    });
+
+    // Add event listener to the document for double click event
+    document.addEventListener('dblclick', (event) => {
+        //ask for related words
+        inputBox.style.display = 'block';
+        inputBox.focus();
+        inputBox.style.left = event.clientX + 'px';
+        inputBox.style.top = event.clientY + 'px';
+
+        console.log("Document double clicked");
+    });
+
 
     document.addEventListener('keydown', function (event) {
-        if (selectedObject) {
+        if (selectedObjectKey) {
             if (event.key === "Backspace" || event.key === "Delete") {
-                deleteFromFirebase("objects", selectedObject.firebaseKey);
+                deleteFromFirebase("objects", myObjectsByFirebaseKey[selectedObjectKey].key);
             }
         }
     });
