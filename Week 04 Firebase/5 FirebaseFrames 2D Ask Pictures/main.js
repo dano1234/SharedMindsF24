@@ -171,6 +171,7 @@ function deleteFromFirebase(folder, key) {
 }
 
 function subscribeToData() {
+    clearLocalScene()
     let title = document.getElementById("title").value;
     let currentFrame = document.getElementById("currentFrameDisplay").textContent.split(" ")[2];
     let folder = exampleName + "/" + title + "/frames/" + currentFrame + "/";
@@ -198,7 +199,7 @@ function subscribeToData() {
             img.onload = function () {
                 myObjectsByFirebaseKey[key].loadedImage = img;
                 console.log("loaded", img);
-                document.body.appendChild(img);
+                displayDiv.appendChild(img);
                 img.id = key;
                 img.style.position = "absolute";
                 img.style.left = data.position.x + "px";
@@ -363,6 +364,12 @@ function initHTML() {
     nextFrameButton.style.transform = 'translate(-50%, -50%)';
     nextFrameButton.style.zIndex = '200';
     nextFrameButton.addEventListener('click', nextFrame);
+    nextFrameButton.addEventListener('mousedown', function (event) {
+        //don't pass the click to the document
+        event.stopPropagation();
+    });
+
+
 
     document.body.appendChild(nextFrameButton);
 
@@ -376,6 +383,10 @@ function initHTML() {
     previousFrameButton.addEventListener('click', previousFrame);
 
     document.body.appendChild(previousFrameButton);
+    previousFrameButton.addEventListener('mousedown', function (event) {
+        //don't pass the click to the document
+        event.stopPropagation();
+    });
 
     const currentFrameDisplay = document.createElement('div');
     currentFrameDisplay.setAttribute('id', 'currentFrameDisplay');
