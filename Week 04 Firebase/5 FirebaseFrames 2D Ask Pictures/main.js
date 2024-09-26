@@ -19,11 +19,36 @@ let exampleName = "SharedMindsExampleSequence2D";
 initFirebaseDB();
 initHTML();
 subscribeToData();
+animate();
 
+function animate() {
+    let ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let key in myObjectsByFirebaseKey) {
+        let thisObject = myObjectsByFirebaseKey[key];
+        if (thisObject.type === "image") {
+            let position = thisObject.position;
+            let img = thisObject.loadedImage;
+            if (img) {
+                ctx.fillColor = "black";
+                ctx.font = "30px Arial";
+                ctx.fillText(thisObject.prompt, position.x, position.y - 30);
+                ctx.drawImage(img, position.x, position.y, 256, 256);
+            }
+        } else if (thisObject.type === "text") {
+            let position = thisObject.position;
+            ctx.font = "30px Arial";
+            ctx.fillText(thisObject.text, position.x, position.y);
+        }
+    }
+    requestAnimationFrame(animate);
+}
 
 function clearLocalScene() {
     myObjectsByFirebaseKey = {};
-    displayDiv.innerHTML = "";
+    let ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    //displayDiv.innerHTML = "";
 }
 
 async function askPictures(prompt, location) {
@@ -115,29 +140,7 @@ export function addImageRemote(imgURL, prompt, pos) {
     addNewThingToFirebase(folder, data);//put empty for the key when you are making a new thing.
 }
 
-function animate() {
-    for (let key in myObjectsByFirebaseKey) {
-        let thisObject = myObjectsByFirebaseKey[key];
-        let ctx = canvas.getContext('2d');
-        console.log("thisObject", thisObject);
-        if (thisObject.type === "image") {
-            let pos = thisObject.position;
-            let img = thisObject.loadedImage;
-            console.log("drawing image", img, pos.x, pos.y);
-            if (img) {
-                img.style.left = pos.x + "px";
-                img.style.top = pos.y + "px";
 
-                //ctx.drawImage(img, pos.x, pos.y);
-            }
-        } else if (thisObject.type === "text") {
-            let pos = thisObject.position;
-            ctx.font = "30px Arial";
-            ctx.fillText(thisObject.text, pos.x, pos.y);
-        }
-        requestAnimationFrame(animate);
-    }
-}
 
 
 ///////////////////////FIREBASE///////////////////////////
@@ -164,10 +167,20 @@ function addNewThingToFirebase(folder, data) {
     return newKey; //useful for later updating
 }
 
-function updateJSONFieldInFirebase(folder, key, data) {
-    console.log(folder + '/' + key)
-    const dbRef = ref(db, folder + '/' + key);
+function updateJSONFieldInFirebase(folder, data) {
+    console.log("updateDataInFirebase", folder, data);
+    const dbRef = ref(db, folder);
     update(dbRef, data);
+}
+
+
+function setDataInFirebase(folder, data) {
+    //if it doesn't exist, it adds (pushes) with you providing the key
+    //if it does exist, it overwrites
+    console.log("setDataInFirebase", folder, data);
+    const dbRef = ref(db, folder)
+    set(dbRef, data);
+
 }
 
 function deleteFromFirebase(folder, key) {
@@ -194,39 +207,32 @@ function subscribeToData() {
     onChildAdded(thisRef, (snapshot) => {
         let key = snapshot.key;
         let data = snapshot.val();
-        console.log("added", data, key);
-
+        //console.log("added", data, key);
+        //transfer data into your local variable
+        //replaces it if it already exists, otherwise makes a new entry
         myObjectsByFirebaseKey[key] = data;
-        if (data.type === "text") {
-            createNewText(data, key);
-        } else if (data.type == "image") {
-
+        //if it is an image, load it
+        if (data.type == "image") {
             let img = new Image();  //create a new image
             img.onload = function () {
+                img.setAttribute("id", key + "_image");
                 myObjectsByFirebaseKey[key].loadedImage = img;
 
-                displayDiv.appendChild(img);
-                img.id = key;
-                img.style.position = "absolute";
-                img.style.left = data.position.x + "px";
-                img.style.top = data.position.y + "px";
-                img.style.width = "100px";
-                img.style.height = "100px";
             }
             img.src = data.imageURL;
         }
-
+        console.log(myObjectsByFirebaseKey);
 
     });
+
     onChildChanged(thisRef, (data) => {
-        callback("changed", data.val(), data.key);
+        callback("CHANGED", data.val(), data.key);
         let key = data.key;
         let thisObject = myObjectsByFirebaseKey[key];
         if (thisObject) {
             if (data.type === "text") {
                 thisObject.text = data.text;
                 thisObject.position = data.position;
-                redrawText(thisObject);
             } else if (data.type === "image") {
                 let img = new Image();  //create a new image
                 img.onload = function () {
@@ -248,17 +254,13 @@ function subscribeToData() {
             delete myObjectsByFirebaseKey[key];
         }
     });
+
+
 }
 
 
 
 
-function setDataInFirebase(folder, key, data) {
-    //if it doesn't exist, it adds (pushes) with you providing the key
-    //if it does exist, it overwrites
-    const dbRef = ref(db, appName + '/' + folder)
-    set(dbRef, data);
-}
 
 
 
@@ -268,14 +270,14 @@ function setDataInFirebase(folder, key, data) {
 function initHTML() {
 
     //make a container that is easy to clean out
-    const displayDiv = document.createElement("div");
-    displayDiv.setAttribute("id", "displayDiv");
-    document.body.appendChild(displayDiv);
-    displayDiv.style.position = "absolute";
-    displayDiv.style.top = "0";
-    displayDiv.style.left = "0";
-    displayDiv.style.width = "100%";
-    displayDiv.style.height = "100%";
+    // const displayDiv = document.createElement("div");
+    // displayDiv.setAttribute("id", "displayDiv");
+    // document.body.appendChild(displayDiv);
+    // displayDiv.style.position = "absolute";
+    // displayDiv.style.top = "0";
+    // displayDiv.style.left = "0";
+    // displayDiv.style.width = "100%";
+    // displayDiv.style.height = "100%";
 
     // Get the input box and the canvas element
     canvas = document.createElement('canvas');
@@ -283,12 +285,13 @@ function initHTML() {
     canvas.style.position = 'absolute';
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    canvas.style.zIndex = '100';
     canvas.style.left = '0';
     canvas.style.top = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
+    // canvas.style.width = '100%';
+    // canvas.style.height = '100%';
     document.body.appendChild(canvas);
-    console.log('canvas', canvas.width, canvas.height);
+    console.log('created canvas', canvas.width, canvas.height);
 
 
     inputBox = document.createElement('input');
@@ -320,14 +323,7 @@ function initHTML() {
         }
     });
 
-    // Add event listener to the document for mouse down event
-    // document.addEventListener('mousedown', (event) => {
-    //     // Set the location of the input box to the mouse location
 
-    //     inputBox.style.left = event.clientX + "px";
-    //     inputBox.style.top = event.clientY + "px";
-
-    // });
 
     const titleBox = document.createElement('input');
     titleBox.setAttribute('type', 'text');
@@ -415,22 +411,32 @@ function initHTML() {
         selectedObjectKey = null;
         for (let key in myObjectsByFirebaseKey) {
             let thisObject = myObjectsByFirebaseKey[key];
-            if (event.clientX > thisObject.position.x && event.clientX < thisObject.position.x + 100 && event.clientY > thisObject.position.y && event.clientY < thisObject.position.y + 100) {
-
+            if (event.clientX > thisObject.position.x && event.clientX < thisObject.position.x + 256 && event.clientY > thisObject.position.y && event.clientY < thisObject.position.y + 256) {
                 selectedObjectKey = key;
-                //break;
             }
         }
-
         console.log("Clicked on ", selectedObjectKey);
     });
 
     document.addEventListener('mousemove', (event) => {
         //move words around
-        if (mouseDown && selectedObjectKey) {
+        let amountMoved = Math.sqrt((event.movementX * event.movementX) + (event.movementY * event.movementY));
+
+        if (mouseDown && selectedObjectKey && amountMoved > 1) {
+            console.log("Mouse moved", amountMoved);
             // console.log("Mouse moved", myObjectsByFirebaseKey[selectedObjectKey].position);
-            let thisLocation = { x: event.clientX, y: event.clientY };
-            myObjectsByFirebaseKey[selectedObjectKey].position = thisLocation;
+            let newLocation = { x: event.clientX, y: event.clientY };
+            //setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame, myObjectsByFirebaseKey[selectedObjectKey]);
+            // console.log("/SharedMindsExampleSequence2D/War and Peace/frames/1/-O7dPIS5aInF24c-GNX3/position");
+
+            let thisObject = myObjectsByFirebaseKey[selectedObjectKey]
+            //thisObject.position = newLoc
+            // updateJSONFieldInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey + "/position", { x: newLocation.x, y: newLocation.y });
+            //setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey + "/position", { x: newLocation.x, y: newLocation.y });
+            setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey, thisObject);
+            //myObjectsByFirebaseKey[selectedObjectKey].position = thisLocation;
+
+
         }
 
     });
