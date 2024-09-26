@@ -42,26 +42,32 @@ function draw() {
 
 function bodyPoseVideoResults(poses) {
     background(255);
+    console.log("poses", poses.length)
     if (poses.length > 0) {
-        let pose = poses[0];
-        let thisFrameRect = getRect(pose);
-        if (people.length == 0) {
+
+
+        if (people.length < poses.length) {
             let person = new Person(null, "live");
+            let thisFrameRect = getRect(thisPose);
             person.getCropMaskUnderImage(thisFrameRect, video);
             people.push(person);
         } else {
-            let closestPerson;
-            let closestDistance = Infinity;
+            for (let i = 0; i < poses.length; i++) {
+                let thisPose = poses[i];
 
-            for (let person of people) {
-                let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
-                if (distance < closestDistance) {
-                    closestPerson = person;
-                    closestDistance = distance;
+                let closestPerson;
+                let closestDistance = Infinity;
+
+                for (let person of people) {
+                    let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
+                    if (distance < closestDistance) {
+                        closestPerson = person;
+                        closestDistance = distance;
+                    }
                 }
+                console.log("closestPerson", closestPerson);
+                closestPerson.getCropMaskUnderImage(thisFrameRect, video);
             }
-            closestPerson.getCropMaskUnderImage(thisFrameRect, video);
-
             //let outputImage = getMaskedImage(fr, video);
             //image(outputImage, fr.left, fr.top, fr.width, fr.height);
         }
