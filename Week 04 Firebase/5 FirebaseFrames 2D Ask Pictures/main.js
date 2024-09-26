@@ -167,10 +167,11 @@ function addNewThingToFirebase(folder, data) {
     return newKey; //useful for later updating
 }
 
-function updateJSONFieldInFirebase(folder, data) {
+async function updateJSONFieldInFirebase(folder, data) {
     console.log("updateDataInFirebase", folder, data);
     const dbRef = ref(db, folder);
-    update(dbRef, data);
+    let updater = await update(dbRef, data);
+    console.log("update", updater);
 }
 
 
@@ -428,15 +429,12 @@ function initHTML() {
             let newLocation = { x: event.clientX, y: event.clientY };
             //setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame, myObjectsByFirebaseKey[selectedObjectKey]);
             // console.log("/SharedMindsExampleSequence2D/War and Peace/frames/1/-O7dPIS5aInF24c-GNX3/position");
-
             let thisObject = myObjectsByFirebaseKey[selectedObjectKey]
             //thisObject.position = newLoc
             // updateJSONFieldInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey + "/position", { x: newLocation.x, y: newLocation.y });
-            //setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey + "/position", { x: newLocation.x, y: newLocation.y });
-            setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey, thisObject);
+            updateJSONFieldInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/" + selectedObjectKey + "/position/", { x: newLocation.x, y: newLocation.y });
+            //setDataInFirebase(exampleName + "/" + titleBox.value + "/frames/" + currentFrame + "/", { selectedObjectKey: thisObject });
             //myObjectsByFirebaseKey[selectedObjectKey].position = thisLocation;
-
-
         }
 
     });

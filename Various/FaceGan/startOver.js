@@ -2,7 +2,7 @@ let staticImage;
 let maskGraphics;
 let masked = false;
 let video;
-
+let people = [];
 
 let bodyPoseOptions = {
     modelType: "MULTIPOSE_LIGHTNING", // "MULTIPOSE_LIGHTNING", "SINGLEPOSE_LIGHTNING", or "SINGLEPOSE_THUNDE"
@@ -26,7 +26,7 @@ function setup() {
     createCanvas(640, 480);
     video = createCapture(VIDEO);
     video.hide();
-    bodyPose.detectStart(video, bodyPoseResults);
+    bodyPose.detectStart(video, bodyPoseVideoResults);
 }
 
 function draw() {
@@ -35,68 +35,62 @@ function draw() {
     //image(staticImage, 0, 0);
     // gradientMaskIt(video);
     // image(video, 0, 0);
+    for (let person of people) {
+        person.drawMe();
+    }
 }
 
-function bodyPoseResults(poses) {
-
+function bodyPoseVideoResults(poses) {
+    background(255);
     if (poses.length > 0) {
         let pose = poses[0];
-        let rightEarX = pose.right_ear.x;
-        let rightEarY = pose.right_ear.y;
-        let leftEarX = pose.left_ear.x;
-        let leftEarY = pose.left_ear.y;
-        let centerX = pose.nose.x;
-        let centerY = pose.nose.y;
-        let wDiff = rightEarX - leftEarX;
-        let hDiff = rightEarY - leftEarY;
-        let faceWidth = int(Math.sqrt(wDiff * wDiff + hDiff * hDiff));
+        let thisFrameRect = getRect(pose);
+        if (people.length == 0) {
+            let person = new Person(null, "live");
+            person.getCropMaskUnderImage(thisFrameRect, video);
+            people.push(person);
+        } else {
+            let closestPerson;
+            let closestDistance = Infinity;
 
+            for (let person of people) {
+                let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
+                if (distance < closestDistance) {
+                    closestPerson = person;
+                    closestDistance = distance;
+                }
+            }
+            closestPerson.getCropMaskUnderImage(thisFrameRect, video);
 
-        let top = int(centerY - faceWidth / 2);
-        let left = int(centerX - faceWidth / 2);
-        // let xDiff = pose.left_eye.x / 2 - pose.right_eye.x / 2;
-        // let yDiff = pose.left_eye.y / 2 - pose.right_eye.y / 2;
-        this.headAngle = Math.atan2(wDiff, hDiff);
-        this.center = { x: int(pose.nose.x), y: int(pose.nose.y) };
-
-        faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
-        //do I nee faceRect?  //maybe for inserting face into a face
-        const border = faceWidth / 5;
-        frameRect = { left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2 };
-        g = createGraphics(frameRect.width, frameRect.width);
-
-        g.image(
-            video,
-            0,
-            0,
-            frameRect.width,
-            frameRect.height,
-            frameRect.left,
-            frameRect.top,
-            frameRect.width,
-            frameRect.height
-        );
-        background(255);
-        //const outputImg = g.get();
-        var outputImg = createImage(g.width, g.height);
-        outputImg.copy(g, 0, 0, g.width, g.height, 0, 0, g.width, g.height);
-        const maskGraphics = gradientMaskIt(outputImg);//better way to get an image from a p5.Graphics?
-        outputImg.mask(maskGraphics);
-        maskGraphics.remove();
-
-        image(outputImg, frameRect.left, frameRect.top, frameRect.width, frameRect.height, 0, 0, outputImg.width, outputImg.height);
-        g.remove();
-        //image(maskGraphics, frameRect.left, frameRect.top, frameRect.width, frameRect.height);
-        noFill();
-        rect(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
-
+            //let outputImage = getMaskedImage(fr, video);
+            //image(outputImage, fr.left, fr.top, fr.width, fr.height);
+        }
     }
-    // bodyPose.detect(video, bodyPoseResults)
+}
 
+function getRect(pose) {
+    let rightEarX = pose.right_ear.x;
+    let rightEarY = pose.right_ear.y;
+    let leftEarX = pose.left_ear.x;
+    let leftEarY = pose.left_ear.y;
+    let centerX = pose.nose.x;
+    let centerY = pose.nose.y;
+    let wDiff = rightEarX - leftEarX;
+    let hDiff = rightEarY - leftEarY;
+    let faceWidth = int(Math.sqrt(wDiff * wDiff + hDiff * hDiff));
+
+    let top = int(centerY - faceWidth / 2);
+    let left = int(centerX - faceWidth / 2);
+    let headAngle = Math.atan2(wDiff, hDiff);
+
+    faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
+    //do I nee faceRect?  //maybe for inserting face into a face
+    const border = faceWidth / 5;
+    frameRect = { left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2, cx: pose.nose.x, cy: pose.nose.y, headAngle: headAngle };
+    return frameRect;
 }
 
 function gradientMaskIt(img) {
-
     maskGraphics = createGraphics(img.width, img.height);
     maskGraphics.noStroke();
     //maskGraphics.clear(0, 0, img.width, img.height);
@@ -104,12 +98,12 @@ function gradientMaskIt(img) {
 
     const sX = maskGraphics.width / 2;
     const sY = maskGraphics.height / 2;
-    const sR = maskGraphics.width / 10;
+    const sR = maskGraphics.width / 4;
     const eX = maskGraphics.width / 2;
     const eY = maskGraphics.height / 2;
     const eR = maskGraphics.height / 2;
     const colorS = color(0, 0, 0, 255); //Start color
-    const colorE = color(250, 255, 255, 0); //End color
+    const colorE = color(255, 255, 255, 0); //End color
     let gradient = maskGraphics.drawingContext.createRadialGradient(
         sX,
         sY,
@@ -124,9 +118,56 @@ function gradientMaskIt(img) {
     //maskGraphics.ellipse(maskGraphics.width / 2, maskGraphics.height / 2, maskGraphics.width, maskGraphics.height);
     maskGraphics.ellipseMode(CENTER);
     maskGraphics.ellipse(maskGraphics.width / 2, maskGraphics.height / 2, maskGraphics.width - 50, maskGraphics.height + 50);
-    maskGraphics.stroke(0, 244, 0);
-    maskGraphics.rect(0, 0, maskGraphics.width, maskGraphics.height);
-
-    return maskGraphics;
-
+    // maskGraphics.stroke(0, 244, 0);
+    maskGraphics.noStroke();
+    //maskGraphics.rect(0, 0, maskGraphics.width, maskGraphics.height);
+    img.mask(maskGraphics);
+    maskGraphics.remove();
+    return img;
 }
+
+class Person {
+    constructor(image, type) {
+        this.type = type;
+        this.underImage = image;
+        this.alterEgoImage = null;
+        this.underFrameRect = null;
+        this.alterEgoFrameRect = null;
+    }
+
+    getCropMaskUnderImage(frameRect, incomingImage) {
+        this.underFrameRect = frameRect;
+        this.underImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
+        this.underImage = gradientMaskIt(this.underImage);//better way to get an image from a p5.Graphics?
+    }
+
+    getCropMaskAlterEgoImage(frameRect, incomingImage) {
+        this.alterEgoframeRect = frameRect;
+        this.alterEgoImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
+        this.alterEgoImage = gradientMaskIt(this.alterEgoImage);//better way to get an image from a p5.Graphics?
+    }
+
+    drawMe() {
+
+        if (this.alterEgoImage) {
+            console.log("drawing alteregoperson");
+            let alterEgoGraphics = createGraphics(this.alterEgoImage.width, this.alterEgoImage.width);
+            //alterEgoGraphics.push();
+            alterEgoGraphics.imageMode(CENTER);
+            alterEgoGraphics.clear()
+            //this.alterEgoGraphics.translate(this.faceRect.width * faceBorderFactor / 2, this.faceRect.width * faceBorderFactor / 2);
+            alterEgoGraphics.translate(this.alterEgoGraphics.width / 2, this.alterEgoGraphics.height / 2);
+            alterEgoGraphics.rotate(this.underFrameRect.headAngle);
+
+            // this.alterEgoGraphics.tint(255, 210);
+            alterEgoGraphics.image(this.alterEgoImage, 0, 0);
+            image(this.alterEgoGraphics, this.alterEgoFrameRect.left, this.alterEgoFrameRect.top, this.alterEgoFrameRect.width, this.alterEgoFrameRect.height);
+            alterEgoGraphics.remove();
+        } else if (this.underImage) {
+            console.log("drawing under person");
+            image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
+        }
+
+    }
+}
+
