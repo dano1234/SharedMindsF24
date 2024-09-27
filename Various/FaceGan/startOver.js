@@ -42,36 +42,48 @@ function draw() {
 
 function bodyPoseVideoResults(poses) {
     background(255);
-    console.log("poses", poses.length)
-    if (poses.length > 0) {
 
-
-        if (people.length < poses.length) {
-            let person = new Person(null, "live");
-            let thisFrameRect = getRect(thisPose);
-            person.getCropMaskUnderImage(thisFrameRect, video);
-            people.push(person);
-        } else {
-            for (let i = 0; i < poses.length; i++) {
-                let thisPose = poses[i];
-
-                let closestPerson;
-                let closestDistance = Infinity;
-
-                for (let person of people) {
-                    let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
-                    if (distance < closestDistance) {
-                        closestPerson = person;
-                        closestDistance = distance;
-                    }
-                }
-                console.log("closestPerson", closestPerson);
-                closestPerson.getCropMaskUnderImage(thisFrameRect, video);
+    //make a new person if there is a new person posing
+    if (poses.length > people.length) {
+        let person = new Person(null, "live");
+        people.push(person);
+    } else if (poses.length < people.length) {
+        //remove a person if there has not been a pose for a while
+        for (let i = people.length - 1; i > poses.length - 1; i--) {
+            thisPerson = people[i];
+            if (thisPerson.isNotUpdating()) {
+                people.splice(i, 1);
             }
-            //let outputImage = getMaskedImage(fr, video);
-            //image(outputImage, fr.left, fr.top, fr.width, fr.height);
         }
+
     }
+
+    for (let person of people) {
+        person.matched = false;
+    }
+
+    for (let poseNum = poses.length - 1; poseNum > -1; poseNum--) {
+        let thisPose = poses[poseNum];
+        let thisFrameRect = getRect(thisPose);
+        let closestPerson;
+        let closestDistance = Infinity;
+
+        for (let person of people) {
+            //don't reuse a person
+            if (person.matched) continue;
+            let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
+            if (distance < closestDistance) {
+                closestPerson = person;
+                closestDistance = distance;
+            }
+        }
+        //set this person as used
+        closestPerson.matched = true;
+        //console.log("closestPerson", closestPerson);
+        closestPerson.getCropMaskUnderImage(thisFrameRect, video, poseNum);
+    }
+
+
 }
 
 function getRect(pose) {
@@ -135,22 +147,30 @@ function gradientMaskIt(img) {
 class Person {
     constructor(image, type) {
         this.type = type;
+        this.matched = false;
         this.underImage = image;
         this.alterEgoImage = null;
-        this.underFrameRect = null;
+        this.underFrameRect = { left: 0, top: 0, width: 0, height: 0, cx: -9000, cy: -9000, headAngle: 0 };
         this.alterEgoFrameRect = null;
+        this.lastUpdate = millis();
     }
 
-    getCropMaskUnderImage(frameRect, incomingImage) {
+    getCropMaskUnderImage(frameRect, incomingImage, poseNum) {
+        this.lastUpdate = millis();
         this.underFrameRect = frameRect;
         this.underImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
         this.underImage = gradientMaskIt(this.underImage);//better way to get an image from a p5.Graphics?
+        this.poseNum = poseNum;
     }
 
     getCropMaskAlterEgoImage(frameRect, incomingImage) {
         this.alterEgoframeRect = frameRect;
         this.alterEgoImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
         this.alterEgoImage = gradientMaskIt(this.alterEgoImage);//better way to get an image from a p5.Graphics?
+    }
+
+    isNotUpdating() {
+        return (millis() - this.lastUpdate) > 1000;
     }
 
     drawMe() {
@@ -173,7 +193,7 @@ class Person {
             console.log("drawing under person");
             image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
-
+        text(this.poseNum + "-P", this.underFrameRect.cx, this.underFrameRect.cy);
     }
 }
 
