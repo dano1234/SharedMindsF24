@@ -6,6 +6,7 @@ let people = [];
 let readyForRequest = true;
 let whoseTurn = 0;
 const GPUServer = "https://dano.ngrok.dev/";
+let flipGraphics;
 
 
 let bodyPoseOptions = {
@@ -28,6 +29,7 @@ function preload() {
 
 function setup() {
     createCanvas(640, 480);
+    flipGraphics = createGraphics(width, height);
     video = createCapture(VIDEO);
     video.hide();
     bodyPose.detectStart(video, bodyPoseVideoResults);
@@ -35,19 +37,21 @@ function setup() {
 
 function draw() {
 
-    push();
 
-    // Scale -1, 1 means reverse the x axis, keep y the same.
-    scale(-1, 1);
 
-    tint(255, 20);
-    image(video, -width, 0, width, height);
+    flipGraphics.tint(255, 20);
+    flipGraphics.image(video, 0, 0, width, height);
     //background(255, 255, 255, 50);
-    tint(255, 255);
+    flipGraphics.tint(255, 255);
     doTurnTaking();
     for (let person of people) {
         person.drawMe();
     }
+    push();
+
+    // Scale -1, 1 means reverse the x axis, keep y the same.
+    scale(-1, 1);
+    image(flipGraphics, -width, 0);
 
     // Because the x-axis is reversed, we need to draw at different x position.
     //image(img, -width, 0);
@@ -82,15 +86,20 @@ function bodyPoseVideoResults(poses) {
                 people.splice(i, 1);
             }
         }
-
     }
+    matchPosesToPeople(poses);
+
+}
+
+function matchPosesToPeople(poses) {
 
     for (let person of people) {
         person.matched = false;
     }
 
-    for (let poseNum = poses.length - 1; poseNum > -1; poseNum--) {
+    for (let poseNum = 0; poseNum < people.length; poseNum++) {
         let thisPose = poses[poseNum];
+        //if (!thisPose) continue;  //why is this neccessary?
         let thisFrameRect = getRect(thisPose);
         let closestPerson;
         let closestDistance = Infinity;
@@ -98,18 +107,21 @@ function bodyPoseVideoResults(poses) {
         for (let person of people) {
             //don't reuse a person
             if (person.matched) continue;
-            let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisFrameRect.cx, thisFrameRect.cy);
+            fill(255, 0, 0);
+            ellipse(thisPose.nose.x, thisPose.nose.y, 10, 10);
+            let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisPose.nose.x, thisPose.nose.y);
             if (distance < closestDistance) {
                 closestPerson = person;
                 closestDistance = distance;
             }
         }
-        //set this person as used
-        closestPerson.matched = true;
-        //console.log("closestPerson", closestPerson);
-        closestPerson.getCropMaskUnderImage(thisFrameRect, video, poseNum);
+        if (closestPerson) {
+            //set this person as used
+            closestPerson.matched = true;
+            //console.log("closestPerson", closestPerson);
+            closestPerson.getCropMaskUnderImage(thisFrameRect, video, poseNum);
+        }
     }
-
 }
 
 function getRect(pose) {
@@ -127,10 +139,10 @@ function getRect(pose) {
     let left = int(centerX - faceWidth / 2);
     let headAngle = Math.atan2(hDiff, wDiff) + PI;
 
-    faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
+    let faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
     //do I nee faceRect?  //maybe for inserting face into a face
     const border = faceWidth / 5;
-    frameRect = { border: border, faceRect: faceRect, left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2, cx: pose.nose.x, cy: pose.nose.y, headAngle: headAngle };
+    let frameRect = { border: border, faceRect: faceRect, left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2, cx: pose.nose.x, cy: pose.nose.y, headAngle: headAngle };
     return frameRect;
 }
 
@@ -257,7 +269,6 @@ class Person {
     drawMe() {
 
         if (this.alterEgoImage) {
-            console.log("drawing alteregoperson");
             let alterEgoGraphics = createGraphics(this.alterEgoImage.width, this.alterEgoImage.width);
             //alterEgoGraphics.push();
             alterEgoGraphics.imageMode(CENTER);
@@ -269,16 +280,17 @@ class Person {
             // this.alterEgoGraphics.tint(255, 210);
             alterEgoGraphics.image(this.alterEgoImage, 0, 0);
             let b = this.underFrameRect.border;
-            image(alterEgoGraphics, this.underFrameRect.left - b - width, this.underFrameRect.top - 2 * b, this.underFrameRect.width + 2 * b, this.underFrameRect.height + 2 * b);
+            flipGraphics.image(alterEgoGraphics, this.underFrameRect.left - b, this.underFrameRect.top - 2 * b, this.underFrameRect.width + 2 * b, this.underFrameRect.height + 2 * b);
 
             //image(alterEgoGraphics, this.alterEgoFrameRect.left, this.alterEgoFrameRect.top, this.alterEgoFrameRect.width, this.alterEgoFrameRect.height);
             alterEgoGraphics.remove();
         } else if (this.underImage) {
             //console.log("drawing under person");
-            image(this.underImage, this.underFrameRect.left - width, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
+            flipGraphics.image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
-        textSize(72);
-        text(this.poseNum + "", this.underFrameRect.cx - width, this.underFrameRect.cy);
+        flipGraphics.textSize(72);
+        flipGraphics.text(this.poseNum + "", this.underFrameRect.cx, this.underFrameRect.cy);
+        flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
     }
 }
 
