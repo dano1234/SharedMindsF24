@@ -99,7 +99,7 @@ function matchPosesToPeople(poses) {
 
     for (let poseNum = 0; poseNum < people.length; poseNum++) {
         let thisPose = poses[poseNum];
-        //if (!thisPose) continue;  //why is this neccessary?
+        if (!thisPose) continue;  //why is this neccessary?
         let thisFrameRect = getRect(thisPose);
         let closestPerson;
         let closestDistance = Infinity;
@@ -108,7 +108,7 @@ function matchPosesToPeople(poses) {
             //don't reuse a person
             if (person.matched) continue;
             fill(255, 0, 0);
-            ellipse(thisPose.nose.x, thisPose.nose.y, 10, 10);
+            //ellipse(thisPose.nose.x, thisPose.nose.y, 10, 10);
             let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisPose.nose.x, thisPose.nose.y);
             if (distance < closestDistance) {
                 closestPerson = person;
@@ -288,9 +288,9 @@ class Person {
             //console.log("drawing under person");
             flipGraphics.image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
-        flipGraphics.textSize(72);
-        flipGraphics.text(this.poseNum + "", this.underFrameRect.cx, this.underFrameRect.cy);
-        flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
+        //flipGraphics.textSize(72);
+        //flipGraphics.text(this.poseNum + "", this.underFrameRect.cx, this.underFrameRect.cy);
+        //flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
     }
 }
 
