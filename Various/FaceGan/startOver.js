@@ -11,10 +11,10 @@ let flipGraphics;
 
 let bodyPoseOptions = {
     modelType: "MULTIPOSE_LIGHTNING", // "MULTIPOSE_LIGHTNING", "SINGLEPOSE_LIGHTNING", or "SINGLEPOSE_THUNDE"
-    enableSmoothing: true,
-    minPoseScore: 0.25,
+    enableSmoothing: false,
+    minPoseScore: 0.2,
     multiPoseMaxDimension: 256,
-    enableTracking: true,
+    enableTracking: false,
     trackerType: "boundingBox", // "keypoint" or "boundingBox"
     trackerConfig: {},
     modelUrl: undefined,
@@ -32,14 +32,13 @@ function setup() {
     flipGraphics = createGraphics(width, height);
     video = createCapture(VIDEO);
     video.hide();
-    bodyPose.detectStart(video, bodyPoseVideoResults);
+    bodyPose.detect(video, bodyPoseVideoResults);
 }
 
 function draw() {
 
-
-
-    flipGraphics.tint(255, 20);
+    flipGraphics.background(255);
+    flipGraphics.tint(255, 15);
     flipGraphics.image(video, 0, 0, width, height);
     //background(255, 255, 255, 50);
     flipGraphics.tint(255, 255);
@@ -48,14 +47,8 @@ function draw() {
         person.drawMe();
     }
     push();
-
-    // Scale -1, 1 means reverse the x axis, keep y the same.
     scale(-1, 1);
     image(flipGraphics, -width, 0);
-
-    // Because the x-axis is reversed, we need to draw at different x position.
-    //image(img, -width, 0);
-
     pop();
 }
 
@@ -75,6 +68,7 @@ async function doTurnTaking() {
 function bodyPoseVideoResults(poses) {
 
     //make a new person if there is a new person posing
+    //console.log("poses", poses.length, "people", people.length);
     if (poses.length > people.length) {
         let person = new Person(null, "live");
         people.push(person);
@@ -88,6 +82,11 @@ function bodyPoseVideoResults(poses) {
         }
     }
     matchPosesToPeople(poses);
+    for (let i = people.length - 1; i > poses.length - 1; i--) {
+        thisPerson = people[i];
+        thisPerson.findClosestPerson(people, i);
+    }
+    bodyPose.detect(video, bodyPoseVideoResults);
 
 }
 
@@ -108,7 +107,7 @@ function matchPosesToPeople(poses) {
             //don't reuse a person
             if (person.matched) continue;
             fill(255, 0, 0);
-            //ellipse(thisPose.nose.x, thisPose.nose.y, 10, 10);
+
             let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisPose.nose.x, thisPose.nose.y);
             if (distance < closestDistance) {
                 closestPerson = person;
@@ -193,6 +192,7 @@ class Person {
         this.underFrameRect = { left: 0, top: 0, width: 0, height: 0, cx: -9000, cy: -9000, headAngle: 0 };
         this.alterEgoFrameRect = null;
         this.lastUpdate = millis();
+        this.closestPerson = null;
     }
 
     getCropMaskUnderImage(frameRect, incomingImage, poseNum) {
@@ -266,6 +266,26 @@ class Person {
         }
     }
 
+    findClosestPerson(people, myIndex) {
+        let closestPerson;
+        let closestDistance = Infinity;
+        for (let i = 0; i < people.length; i++) {
+            if (i == myIndex) continue;
+            let person = people[i];
+            let distance = dist(this.underFrameRect.cx, this.underFrameRect.cy, person.underFrameRect.cx, person.underFrameRect.cy);
+            if (distance < closestDistance) {
+                closestPerson = person;
+                closestDistance = distance;
+            }
+        }
+        if (closestDistance < width / 3) {
+            this.closestPerson = closestPerson;
+        } else {
+            this.closestPerson = null;
+        }
+
+    }
+
     drawMe() {
 
         if (this.alterEgoImage) {
@@ -288,8 +308,11 @@ class Person {
             //console.log("drawing under person");
             flipGraphics.image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
-        //flipGraphics.textSize(72);
-        //flipGraphics.text(this.poseNum + "", this.underFrameRect.cx, this.underFrameRect.cy);
+        flipGraphics.textSize(72);
+        flipGraphics.text(this.poseNum, this.underFrameRect.cx, this.underFrameRect.cy);
+
+        if (this.closestPerson)
+            flipGraphics.text(this.closestPerson.poseNum, this.underFrameRect.cx, this.underFrameRect.cy + 70);
         //flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
     }
 }
