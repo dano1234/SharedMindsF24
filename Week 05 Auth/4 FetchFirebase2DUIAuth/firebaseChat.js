@@ -5,7 +5,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
 import { getDatabase, ref, set, query, orderByChild, equalTo, push, onValue, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 
-const replicateProxy = "https://replicate-api-proxy.glitch.me"
+const url = "https://replicate-api-proxy.glitch.me/create_n_get/";
 
 let name;
 let db;
@@ -153,11 +153,9 @@ async function askReplicateForImage(key, textField, imageElement, nameField, x, 
     //const imageDiv = document.getElementById("resulting_image");
     //imageDiv.innerHTML = "Waiting for reply from Replicate's Stable Diffusion API...";
     let data = {
-        "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf",
+        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",   //stable diffusion
         input: {
-            "prompt": prompt,
-            "width": 512,
-            "height": 512,
+            prompt: prompt,
         },
     };
     console.log("Asking for Picture Info From Replicate via Proxy", data);
@@ -168,7 +166,7 @@ async function askReplicateForImage(key, textField, imageElement, nameField, x, 
         },
         body: JSON.stringify(data),
     };
-    const url = replicateProxy + "/create_n_get/"
+
     console.log("url", url, "options", options);
     const picture_info = await fetch(url, options);
     //console.log("picture_response", picture_info);

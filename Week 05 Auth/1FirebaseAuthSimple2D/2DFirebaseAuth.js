@@ -154,7 +154,6 @@ function initFirebase() {
         appId: "1:1039430447930:web:edf98d7d993c21017ad603"
     };
     app = initializeApp(firebaseConfig);
-    //make a folder in your firebase for this example
 
 
     db = getDatabase();
