@@ -357,7 +357,7 @@ class Person {
 
             if (!this.latents) return null;
             this.closestPerson = closest.person;
-            let percent = Math.abs(1 - closest.distance / (width / 6)); //).toFixed(2);
+            let percent = Math.min(0.9, Math.max(0.1, 3 * (1 - Math.abs(closest.distance / width)))); //).toFixed(2);
             console.log(percent + "someone close enough,find inbetween" + closest.person.name + " num " + closest.person.poseNum);
 
             postData = {
