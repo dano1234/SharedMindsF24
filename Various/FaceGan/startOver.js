@@ -1,12 +1,16 @@
-let staticImage;
+let trumpImage;
+let harrisImage;
 let maskGraphics;
 let masked = false;
 let video;
 let people = [];
+let fakePeople = [];
 let readyForRequest = true;
 let whoseTurn = 0;
 const GPUServer = "https://dano.ngrok.dev/";
 let flipGraphics;
+let globalPoses = [];
+let raisingHands = null;
 
 
 let bodyPoseOptions = {
@@ -22,7 +26,8 @@ let bodyPoseOptions = {
 }
 
 function preload() {
-    staticImage = loadImage("trump2.png");
+    trumpImage = loadImage("trump3.jpg");
+    harrisImage = loadImage("harris.png");
     bodyPose = ml5.bodyPose(bodyPoseOptions);
 
 }
@@ -30,22 +35,43 @@ function preload() {
 function setup() {
     createCanvas(640, 480);
     flipGraphics = createGraphics(width, height);
+    trump = new Person(trumpImage, "Trump", width - 150, height / 4)
+    harris = new Person(harrisImage, "Harris", -50, height / 4)
+    let req = trump.formRequest();
+    trump.ask(req);
+    req = harris.formRequest();
+    harris.ask(req);
+    fakePeople.push(trump);
+    fakePeople.push(harris);
     video = createCapture(VIDEO);
     video.hide();
-    bodyPose.detect(video, bodyPoseVideoResults);
+
+    bodyPose.detectStart(video, bodyPoseVideoResults);
 }
 
 function draw() {
 
     flipGraphics.background(255);
-    flipGraphics.tint(255, 15);
+    flipGraphics.tint(255, 40);
     flipGraphics.image(video, 0, 0, width, height);
     //background(255, 255, 255, 50);
     flipGraphics.tint(255, 255);
     doTurnTaking();
+
     for (let person of people) {
         person.drawMe();
     }
+    if (people.length < 2) {
+        for (let fakePerson of fakePeople) {
+            fakePerson.drawMe();
+        }
+    }
+    //debugging
+    // for (let poseNum = 0; poseNum < globalPoses.length; poseNum++) {
+    //     let thisPose = globalPoses[poseNum];
+    //     flipGraphics.fill(0, 255, 0);
+    //     flipGraphics.ellipse(thisPose.nose.x, thisPose.nose.y, 50, 50);
+    // }
     push();
     scale(-1, 1);
     image(flipGraphics, -width, 0);
@@ -58,68 +84,90 @@ async function doTurnTaking() {
         if (whoseTurn >= people.length) {
             whoseTurn = 0;
         }
-        readyForRequest = false
-        await people[whoseTurn].ask();
-        readyForRequest = true;
+
+        let currentPerson = people[whoseTurn];
+        let postData = currentPerson.formRequest();
+        if (postData) {
+
+            currentPerson.ask(postData)
+
+        }
+
     }
 }
 
 
 function bodyPoseVideoResults(poses) {
+    globalPoses = poses;
 
     //make a new person if there is a new person posing
-    //console.log("poses", poses.length, "people", people.length);
-    if (poses.length > people.length) {
-        let person = new Person(null, "live");
-        people.push(person);
-    } else if (poses.length < people.length) {
-        //remove a person if there has not been a pose for a while
-        for (let i = people.length - 1; i > poses.length - 1; i--) {
-            thisPerson = people[i];
-            if (thisPerson.isNotUpdating()) {
-                people.splice(i, 1);
-            }
+    for (let i = people.length - 1; i > - 1; i--) {
+        thisPerson = people[i];
+        // console.log(thisPerson.isNotUpdating());
+        if (thisPerson.isNotUpdating()) {
+            people.splice(i, 1);
+            console.log("removing person");
         }
     }
-    matchPosesToPeople(poses);
-    for (let i = people.length - 1; i > poses.length - 1; i--) {
-        thisPerson = people[i];
-        thisPerson.findClosestPerson(people, i);
+    if (poses.length > people.length) {
+        let person = new Person(null, null, -9000, -9000);
+        people.push(person);
     }
-    bodyPose.detect(video, bodyPoseVideoResults);
+    // else if (poses.length < people.length) {
+    //     //remove a person if there has not been a pose for a while
+    //     for (let i = people.length - 1; i > people.length - 1; i--) {
+    //         thisPerson = people[i];
+    //         if (thisPerson.isNotUpdating()) {
+    //             people.splice(i, 1);
+    //             console.log("removing person");
+    //         }
+    //     }
+    // }
+
+    matchPosesToPeople(poses);
+
+    //bodyPose.detect(video, bodyPoseVideoResults);
 
 }
+
 
 function matchPosesToPeople(poses) {
 
     for (let person of people) {
         person.matched = false;
     }
-
-    for (let poseNum = 0; poseNum < people.length; poseNum++) {
-        let thisPose = poses[poseNum];
-        if (!thisPose) continue;  //why is this neccessary?
-        let thisFrameRect = getRect(thisPose);
-        let closestPerson;
+    let sliceAblePoses = poses.slice();
+    for (let person of people) {
+        //don't reuse a person
+        //if (person.matched) continue;
+        let closestPose;
         let closestDistance = Infinity;
+        let winningPosNum;
 
-        for (let person of people) {
-            //don't reuse a person
-            if (person.matched) continue;
-            fill(255, 0, 0);
+        for (let poseNum = sliceAblePoses.length - 1; poseNum > -1; poseNum--) {
+            let thisPose = sliceAblePoses[poseNum];
+            if (!thisPose) continue;  //why is this neccessary?
+            // let thisFrameRect = getRect(thisPose);
+
 
             let distance = dist(person.underFrameRect.cx, person.underFrameRect.cy, thisPose.nose.x, thisPose.nose.y);
             if (distance < closestDistance) {
-                closestPerson = person;
+                closestPose = thisPose;
                 closestDistance = distance;
+                winningPosNum = poseNum;
             }
         }
-        if (closestPerson) {
-            //set this person as used
-            closestPerson.matched = true;
-            //console.log("closestPerson", closestPerson);
-            closestPerson.getCropMaskUnderImage(thisFrameRect, video, poseNum);
-        }
+        if (!closestPose) continue;
+        let thisFrameRect = getRect(closestPose);
+        person.getCropMaskUnderImage(thisFrameRect, video, winningPosNum);
+        person.checkForRaisingHands(closestPose);
+        sliceAblePoses.splice(winningPosNum, 1);
+        //if (closestPerson) {
+        //set this person as used
+        //closestPerson.matched = true;
+
+        // closestPerson.getCropMaskUnderImage(thisFrameRect, video, poseNum);
+        //}
     }
 }
 
@@ -158,7 +206,7 @@ function gradientMaskIt(inputImg, outputImg) {
     const eX = maskGraphics.width / 2;
     const eY = maskGraphics.height / 2;
     const eR = maskGraphics.height / 2;
-    const colorS = color(0, 0, 0, 255); //Start color
+    const colorS = color(0, 0, 0, 200); //Start color
     const colorE = color(255, 255, 255, 0); //End color
     let gradient = maskGraphics.drawingContext.createRadialGradient(
         sX,
@@ -183,19 +231,87 @@ function gradientMaskIt(inputImg, outputImg) {
 }
 
 class Person {
-    constructor(image, type) {
-        this.type = type;
-        this.matched = false;
-        this.underImage = image;
-        this.alterEgoImage = null;
+    constructor(image, name, x, y) {
+        this.name = name;
+        this.raisingHands = null;
+        this.underImage = null;
         this.imageWithoutMask = null;
-        this.underFrameRect = { left: 0, top: 0, width: 0, height: 0, cx: -9000, cy: -9000, headAngle: 0 };
+        this.alterEgoImage = null;
+        this.latents = null;
+        this.underFrameRect = { left: x, top: y, width: 0, height: 0, cx: x, cy: y, headAngle: 0 };
         this.alterEgoFrameRect = null;
         this.lastUpdate = millis();
         this.closestPerson = null;
+        if (this.name) {
+            this.imageWithoutMask = image;
+            this.underImage = image;
+            this.underFrameRect = { left: 0, top: 0, width: image.width, height: image.height, cx: x, cy: y, headAngle: 0 };
+            this.underImage = gradientMaskIt(this.imageWithoutMask, this.underImage);//better way to get an image from a p5.Graphics?
+            this.poseNum = -1;
+            this.underFrameRect = { border: 0, left: x, top: y, width: image.width / 2, height: image.height / 2, cx: x + image.width / 4, cy: y + image.height / 4, headAngle: 0 };
+        }
+
+    }
+
+    checkForRaisingHands(pose) {
+        //console.log("checking for raising hands", pose.right_wrist.confidence);
+        let leftDiff = pose.left_shoulder.y - pose.left_wrist.y;
+        let rightDiff = pose.right_shoulder.y - pose.right_wrist.y;
+        this.raisingHands = null;
+        if (pose.right_wrist.confidence > 0.2 && rightDiff > 10) {
+            let amount = 5 - 1 + int(5 * (pose.right_shoulder.y - pose.right_wrist.y) / (pose.right_shoulder.y))
+            this.raisingHands = {};
+            this.raisingHands.direction = "age";
+            this.raisingHands.factor = amount;
+
+        }
+        if (pose.left_wrist.confidence > 0.2 && leftDiff > 10) {
+            let amount = 1 + int(5 * (pose.left_shoulder.y - pose.left_wrist.y) / (pose.left_shoulder.y))
+            this.raisingHands = {};
+            this.raisingHands.direction = "smile";
+            this.raisingHands.factor = amount;
+        }
+        // raisingHands = { side: "both", direction: "up" };
+        //if (ransingHands.side = "left") factor = "age";
+        //else factor = "smile";
+    }
+
+
+    async ask(req) {
+        const options = {
+            headers: {
+                "Content-Type": `application/json`,
+            },
+            method: "POST",
+            body: JSON.stringify(req.postData), //p)
+        };
+
+        try {
+            readyForRequest = false
+            const response = await fetch(req.url, options);
+            const result = await response.json();
+            readyForRequest = true;
+            if (!result.error) {
+                let currentPerson = this;
+                currentPerson.latents = result.latents;
+                readyForRequest = true;
+                loadImage(result.b64Image, async function (newImage,) {
+                    currentPerson.dealWithImageFromAI(newImage);
+                });
+            } else {
+                console.log("Error in colab", result.error);
+                readyForRequest = true;
+                return;
+            }
+        } catch (e) {
+            readyForRequest = true;
+            console.log("error locating face in AI");
+        }
+
     }
 
     getCropMaskUnderImage(frameRect, incomingImage, poseNum) {
+
         this.lastUpdate = millis();
         this.underFrameRect = frameRect;
         this.imageWithoutMask = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
@@ -204,86 +320,88 @@ class Person {
     }
 
     async dealWithImageFromAI(newImage) {
-        this.getCropMaskAlterEgoImage(null, newImage)
-        // let thisPose = await bodyPose.detect(newImage, function (poses) {
-        //     console.log("poses after inspecting return from AI", poses)
-        //     if (poses.length > 0) {
-        //         let thisFrameRect = getRect(poses[0]);
-        //         console.log("got Frame Rect of image from AI", thisFrameRect)
-        //         this.getCropMaskAlterEgoImage(thisFrameRect, newImage);
-        //     } else {
-        //         console.log("didn't find a bodyPos poses in the image from AI");
-        //     }
-        // });
-    }
-
-    getCropMaskAlterEgoImage(frameRect, incomingImage) {
-        console.log("got image from AI", frameRect, incomingImage);
-        //this.alterEgoFrameRect = frameRect;
-
-        //this.alterEgoImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
-        //this.alterEgoImage = gradientMaskIt(this.alterEgoImage);//better way to get an image from a p5.Graphics?
-        this.alterEgoImage = gradientMaskIt(incomingImage, this.alterEgoImage);//better way to get an image from a p5.Graphics?
+        this.alterEgoImage = gradientMaskIt(newImage, this.alterEgoImage);//better way to get an image from a p5.Graphics?
     }
 
     isNotUpdating() {
-        return (millis() - this.lastUpdate) > 1000;
+        return (millis() - this.lastUpdate) > 2000;
     }
 
-    async ask() {
-        console.log("asking for person ");
-        let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
-        imgBase64 = imgBase64.split(",")[1];
-        let postData = {
-            image: imgBase64,
-            faceRect: this.frameRect,
-        };
+    formRequest() {
+        let closest = this.findClosestPerson();
+        let postData;
+        let url;
+        let request;
+        if (this.name) {
+            console.log("this is a static person, just locate self");
+            if (!this.imageWithoutMask) return null;
+            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
+            imgBase64 = imgBase64.split(",")[1];
 
-        let url = GPUServer + "locateImage/";
-        const options = {
-            headers: {
-                "Content-Type": `application/json`,
-            },
-            method: "POST",
-            body: JSON.stringify(postData), //p)
-        };
-        console.log("Locating My Image ");
-        try {
-            const response = await fetch(url, options);
-            const result = await response.json();
-            console.log("result", result);
-            if (result.error) {
-                console.log("Error", result.error);
-                return;
-            }
-            let currentPerson = this;
-            currentPerson.latents = result.latents;
-            loadImage(result.b64Image, async function (newImage,) {
-                currentPerson.dealWithImageFromAI(newImage);
-            });
-        } catch (e) {
-            console.log("error locating face in AI");
+            postData = {
+                image: imgBase64,
+            };
+            url = GPUServer + "locateImage/";
+            request = { postData: postData, url: url };
+        } else if (this.raisingHands) {
+
+            postData = {
+                latents: this.latents,
+                direction: this.raisingHands.direction,
+                factor: this.raisingHands.factor,
+            };
+            console.log("someone is raising hands", postData);
+            url = GPUServer + "latentsToImage/";
+            request = { postData: postData, url: url };
+        } else if (closest.distance < width / 3) {
+
+            if (!this.latents) return null;
+            this.closestPerson = closest.person;
+            let percent = Math.abs(1 - closest.distance / (width / 6)); //).toFixed(2);
+            console.log(percent + "someone close enough,find inbetween" + closest.person.name + " num " + closest.person.poseNum);
+
+            postData = {
+                v1: this.latents,
+                v2: this.closestPerson.latents,
+                percent: percent,
+            };
+
+            url = GPUServer + "getBetween/";
+            request = { postData: postData, url: url };
+
+        } else {
+            console.log("no one close enough, just locate self");
+            if (!this.imageWithoutMask) return null;
+            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
+            imgBase64 = imgBase64.split(",")[1];
+            postData = {
+                image: imgBase64,
+            };
+            url = GPUServer + "locateImage/";
+            request = { postData: postData, url: url };
+
         }
+
+        return request;
     }
 
-    findClosestPerson(people, myIndex) {
+
+    findClosestPerson() {
+        let whichArray = people;
+        if (people.length < 2) whichArray = fakePeople;
         let closestPerson;
         let closestDistance = Infinity;
-        for (let i = 0; i < people.length; i++) {
-            if (i == myIndex) continue;
-            let person = people[i];
+        for (let i = 0; i < whichArray.length; i++) {
+
+            let person = whichArray[i];
+            if (person == this) continue;
             let distance = dist(this.underFrameRect.cx, this.underFrameRect.cy, person.underFrameRect.cx, person.underFrameRect.cy);
             if (distance < closestDistance) {
                 closestPerson = person;
                 closestDistance = distance;
             }
         }
-        if (closestDistance < width / 3) {
-            this.closestPerson = closestPerson;
-        } else {
-            this.closestPerson = null;
-        }
-
+        return { person: closestPerson, distance: closestDistance };
     }
 
     drawMe() {
@@ -305,15 +423,35 @@ class Person {
             //image(alterEgoGraphics, this.alterEgoFrameRect.left, this.alterEgoFrameRect.top, this.alterEgoFrameRect.width, this.alterEgoFrameRect.height);
             alterEgoGraphics.remove();
         } else if (this.underImage) {
-            //console.log("drawing under person");
+
             flipGraphics.image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
-        flipGraphics.textSize(72);
-        flipGraphics.text(this.poseNum, this.underFrameRect.cx, this.underFrameRect.cy);
+        // flipGraphics.textSize(72);
+        // flipGraphics.text(this.poseNum, this.underFrameRect.cx, this.underFrameRect.cy);
 
-        if (this.closestPerson)
-            flipGraphics.text(this.closestPerson.poseNum, this.underFrameRect.cx, this.underFrameRect.cy + 70);
-        //flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
+        // if (this.closestPerson)
+        //     flipGraphics.text(this.closestPerson.poseNum + this.closestPerson.name, this.underFrameRect.cx, this.underFrameRect.cy + 70);
+        // flipGraphics.ellipse(this.underFrameRect.cx, this.underFrameRect.cy, 10, 10);
     }
 }
 
+// this.getCropMaskAlterEgoImage(null, newImage)
+// let thisPose = await bodyPose.detect(newImage, function (poses) {
+//
+//     if (poses.length > 0) {
+//         let thisFrameRect = getRect(poses[0]);
+
+//         this.getCropMaskAlterEgoImage(thisFrameRect, newImage);
+//     } else {
+//
+//     }
+// });
+
+
+//getCropMaskAlterEgoImage(frameRect, incomingImage) {
+
+//this.alterEgoFrameRect = frameRect;
+
+//this.alterEgoImage = incomingImage.get(frameRect.left, frameRect.top, frameRect.width, frameRect.height);
+//this.alterEgoImage = gradientMaskIt(this.alterEgoImage);//better way to get an image from a p5.Graphics?
+//  }
