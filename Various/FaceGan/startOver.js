@@ -10,7 +10,7 @@ let whoseTurn = 0;
 const GPUServer = "https://dano.ngrok.dev/";
 let flipGraphics;
 let globalPoses = [];
-let raisingHands = null;
+
 
 
 let bodyPoseOptions = {
@@ -37,9 +37,9 @@ function setup() {
     flipGraphics = createGraphics(width, height);
     trump = new Person(trumpImage, "Trump", width - 150, height / 4)
     harris = new Person(harrisImage, "Harris", -50, height / 4)
-    let req = trump.formRequest();
+    let req = trump.decideOnRequest();
     trump.ask(req);
-    req = harris.formRequest();
+    req = harris.decideOnRequest();
     harris.ask(req);
     fakePeople.push(trump);
     fakePeople.push(harris);
@@ -86,7 +86,7 @@ async function doTurnTaking() {
         }
 
         let currentPerson = people[whoseTurn];
-        let postData = currentPerson.formRequest();
+        let postData = currentPerson.decideOnRequest();
         if (postData) {
 
             currentPerson.ask(postData)
@@ -160,7 +160,7 @@ function matchPosesToPeople(poses) {
         if (!closestPose) continue;
         let thisFrameRect = getRect(closestPose);
         person.getCropMaskUnderImage(thisFrameRect, video, winningPosNum);
-        person.checkForRaisingHands(closestPose);
+        person.lastPos = closestPose;
         sliceAblePoses.splice(winningPosNum, 1);
         //if (closestPerson) {
         //set this person as used
@@ -233,7 +233,8 @@ function gradientMaskIt(inputImg, outputImg) {
 class Person {
     constructor(image, name, x, y) {
         this.name = name;
-        this.raisingHands = null;
+        this.raisingHands = { left: { raised: false, amount: 0, direction: "age" }, right: { raised: false, amount: 0, direction: "smile" } };
+        this.lastPos = null;
         this.underImage = null;
         this.imageWithoutMask = null;
         this.alterEgoImage = null;
@@ -253,23 +254,106 @@ class Person {
 
     }
 
+    decideOnRequest() {
+        let closest = this.findClosestPerson();
+        let postData;
+        let url;
+        let request;
+        if (this.lastPos) this.checkForRaisingHands(this.lastPos);
+        if (this.name) {
+            console.log("this is a static person, just locate self");
+            if (!this.imageWithoutMask) return null;
+            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
+            imgBase64 = imgBase64.split(",")[1];
+
+            postData = {
+                image: imgBase64,
+            };
+            url = GPUServer + "locateImage/";
+            request = { postData: postData, url: url };
+        } else if (this.raisingHands.left.raised == true) {
+
+            postData = {
+                latents: this.latents,
+                direction: this.raisingHands.left.direction,
+                factor: this.raisingHands.left.amount,
+            };
+            console.log("someone is raising hands", postData);
+            url = GPUServer + "latentsToImage/";
+            request = { postData: postData, url: url };
+        } else if (this.raisingHands.right.raised == true) {
+
+            postData = {
+                latents: this.latents,
+                direction: this.raisingHands.right.direction,
+                factor: this.raisingHands.right.amount,
+            };
+            console.log("someone is raising hands", postData);
+            url = GPUServer + "latentsToImage/";
+            request = { postData: postData, url: url };
+        } else if (closest.distance < width / 3) {
+
+            if (!this.latents) return null;
+            this.closestPerson = closest.person;
+            let percent = Math.min(0.9, Math.max(0.1, 1 - 3 * (Math.abs(closest.distance / width)))); //).toFixed(2);
+            console.log(percent + "someone close enough,find inbetween" + closest.person.name + " num " + closest.person.poseNum);
+
+            postData = {
+                v1: this.latents,
+                v2: this.closestPerson.latents,
+                percent: percent,
+            };
+
+            url = GPUServer + "getBetween/";
+            request = { postData: postData, url: url };
+
+        } else {
+            console.log("no one close enough, just locate self");
+            if (!this.imageWithoutMask) return null;
+            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
+            imgBase64 = imgBase64.split(",")[1];
+            postData = {
+                image: imgBase64,
+            };
+            url = GPUServer + "locateImage/";
+            request = { postData: postData, url: url };
+
+        }
+
+        return request;
+    }
+
+
     checkForRaisingHands(pose) {
         //console.log("checking for raising hands", pose.right_wrist.confidence);
         let leftDiff = pose.left_shoulder.y - pose.left_wrist.y;
         let rightDiff = pose.right_shoulder.y - pose.right_wrist.y;
-        this.raisingHands = null;
-        if (pose.right_wrist.confidence > 0.2 && rightDiff > 10) {
-            let amount = 5 - 1 + int(5 * (pose.right_shoulder.y - pose.right_wrist.y) / (pose.right_shoulder.y))
-            this.raisingHands = {};
-            this.raisingHands.direction = "age";
-            this.raisingHands.factor = amount;
 
+        if (pose.right_wrist.confidence > 0.2 && rightDiff > 10) {
+            let amount = min(5, this.raisingHands.right.amount + 1);
+            this.raisingHands.right.raised = true;
+            this.raisingHands.right.amount = amount;
+            // let amount = 5 - 1 + int(5 * (pose.right_shoulder.y - pose.right_wrist.y) / (pose.right_shoulder.y))
+            // this.raisingHands = {};
+            // this.raisingHands.direction = "age";
+            // this.raisingHands.factor = amount;
+
+        } else {
+            this.raisingHands.right.amount = max(0, this.raisingHands.right.amount - 1);
+            if (this.raisingHands.right.amount == 0) this.raisingHands.right.raised = false;
         }
         if (pose.left_wrist.confidence > 0.2 && leftDiff > 10) {
-            let amount = 1 + int(5 * (pose.left_shoulder.y - pose.left_wrist.y) / (pose.left_shoulder.y))
-            this.raisingHands = {};
-            this.raisingHands.direction = "smile";
-            this.raisingHands.factor = amount;
+            let amount = min(5, this.raisingHands.left.amount + 1);
+            this.raisingHands.left.raised = true;
+            this.raisingHands.left.amount = amount;
+            //let amount = 5 - 1 + int(5 * (pose.left_shoulder.y - pose.left_wrist.y) / (pose.left_shoulder.y))
+            // let amount = 5 - Math.min(5, Math.max(0, int(5 * pose.left_wrist.y / pose.left_shoulder.y)));
+            // this.raisingHands = {};
+            // this.raisingHands.direction = "smile";
+            // this.raisingHands.factor = amount;
+        } else {
+            this.raisingHands.left.amount = max(0, this.raisingHands.left.amount - 1);
+            if (this.raisingHands.left.amount == 0) this.raisingHands.left.raised = false;
         }
         // raisingHands = { side: "both", direction: "up" };
         //if (ransingHands.side = "left") factor = "age";
@@ -293,7 +377,8 @@ class Person {
             readyForRequest = true;
             if (!result.error) {
                 let currentPerson = this;
-                currentPerson.latents = result.latents;
+                if (result.latents)
+                    currentPerson.latents = result.latents;
                 readyForRequest = true;
                 loadImage(result.b64Image, async function (newImage,) {
                     currentPerson.dealWithImageFromAI(newImage);
@@ -325,64 +410,6 @@ class Person {
 
     isNotUpdating() {
         return (millis() - this.lastUpdate) > 2000;
-    }
-
-    formRequest() {
-        let closest = this.findClosestPerson();
-        let postData;
-        let url;
-        let request;
-        if (this.name) {
-            console.log("this is a static person, just locate self");
-            if (!this.imageWithoutMask) return null;
-            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
-            imgBase64 = imgBase64.split(",")[1];
-
-            postData = {
-                image: imgBase64,
-            };
-            url = GPUServer + "locateImage/";
-            request = { postData: postData, url: url };
-        } else if (this.raisingHands) {
-
-            postData = {
-                latents: this.latents,
-                direction: this.raisingHands.direction,
-                factor: this.raisingHands.factor,
-            };
-            console.log("someone is raising hands", postData);
-            url = GPUServer + "latentsToImage/";
-            request = { postData: postData, url: url };
-        } else if (closest.distance < width / 3) {
-
-            if (!this.latents) return null;
-            this.closestPerson = closest.person;
-            let percent = Math.min(0.9, Math.max(0.1, 3 * (1 - Math.abs(closest.distance / width)))); //).toFixed(2);
-            console.log(percent + "someone close enough,find inbetween" + closest.person.name + " num " + closest.person.poseNum);
-
-            postData = {
-                v1: this.latents,
-                v2: this.closestPerson.latents,
-                percent: percent,
-            };
-
-            url = GPUServer + "getBetween/";
-            request = { postData: postData, url: url };
-
-        } else {
-            console.log("no one close enough, just locate self");
-            if (!this.imageWithoutMask) return null;
-            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
-            imgBase64 = imgBase64.split(",")[1];
-            postData = {
-                image: imgBase64,
-            };
-            url = GPUServer + "locateImage/";
-            request = { postData: postData, url: url };
-
-        }
-
-        return request;
     }
 
 
