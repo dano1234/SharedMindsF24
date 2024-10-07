@@ -33,7 +33,8 @@ function preload() {
 }
 
 function setup() {
-    createCanvas(640, 480);
+    //createCanvas(640, 480);
+    createCanvas(1280, 720);
     flipGraphics = createGraphics(width, height);
     trump = new Person(trumpImage, "Trump", width - 150, height / 4)
     harris = new Person(harrisImage, "Harris", -50, height / 4)
