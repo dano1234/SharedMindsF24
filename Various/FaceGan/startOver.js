@@ -45,6 +45,7 @@ function setup() {
     fakePeople.push(trump);
     fakePeople.push(harris);
     video = createCapture(VIDEO);
+    video.size(width, height);
     video.hide();
 
     bodyPose.detectStart(video, bodyPoseVideoResults);
@@ -309,7 +310,7 @@ class Person {
             request = { postData: postData, url: url };
 
         } else {
-            console.log("no one close enough, just locate self");
+            console.log("no one close enough, just locate self", this.imageWithoutMask);
             if (!this.imageWithoutMask) return null;
             let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
             imgBase64 = imgBase64.split(",")[1];
