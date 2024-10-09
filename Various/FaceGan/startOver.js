@@ -275,7 +275,7 @@ class Person {
         if (this.name) {
             console.log("this is a static person, just locate self");
             if (!this.imageWithoutMask) return null;
-
+            this.imageWithoutMask.resize(256, 256);
             let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
             imgBase64 = imgBase64.split(",")[1];
 
