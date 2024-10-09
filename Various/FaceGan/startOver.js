@@ -26,7 +26,7 @@ let bodyPoseOptions = {
 }
 
 function preload() {
-    trumpImage = loadImage("trump3.jpg");
+    trumpImage = loadImage("trump4.png");
     harrisImage = loadImage("harris.png");
     bodyPose = ml5.bodyPose(bodyPoseOptions);
 
@@ -68,6 +68,7 @@ function draw() {
             fakePerson.drawMe();
         }
     }
+
     //debugging
     // for (let poseNum = 0; poseNum < globalPoses.length; poseNum++) {
     //     let thisPose = globalPoses[poseNum];
@@ -78,6 +79,14 @@ function draw() {
     scale(-1, 1);
     image(flipGraphics, -width, 0);
     pop();
+    // if (people.length > 0) {
+    //     let thisPerson = people[0];
+    //     if (thisPerson.imageWithoutMask) {
+    //         let thisImage = thisPerson.imageWithoutMask;
+    //         image(thisImage, 0, 0);
+    //         text(thisImage.width + " " + thisImage.height, 10, 10);
+    //     }
+    // }
 }
 
 async function doTurnTaking() {
@@ -190,7 +199,7 @@ function getRect(pose) {
 
     let faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
     //do I nee faceRect?  //maybe for inserting face into a face
-    const border = faceWidth / 5;
+    const border = faceWidth / 3;
     let frameRect = { border: border, faceRect: faceRect, left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2, cx: pose.nose.x, cy: pose.nose.y, headAngle: headAngle };
     return frameRect;
 }
@@ -245,6 +254,7 @@ class Person {
         this.alterEgoFrameRect = null;
         this.lastUpdate = millis();
         this.closestPerson = null;
+        this.lastFrameRect = null;
         if (this.name) {
             this.imageWithoutMask = image;
             this.underImage = image;
@@ -265,6 +275,7 @@ class Person {
         if (this.name) {
             console.log("this is a static person, just locate self");
             if (!this.imageWithoutMask) return null;
+
             let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
             imgBase64 = imgBase64.split(",")[1];
 
@@ -374,7 +385,10 @@ class Person {
 
         try {
             readyForRequest = false
-            const response = await fetch(req.url, options);
+
+            const response = await fetch(req.url, options)
+            console.log("response", response);
+
             const result = await response.json();
             readyForRequest = true;
             if (!result.error) {
@@ -386,7 +400,7 @@ class Person {
                     currentPerson.dealWithImageFromAI(newImage);
                 });
             } else {
-                console.log("Error in colab", result.error);
+                console.log("Error in colab");
                 readyForRequest = true;
                 return;
             }
@@ -447,7 +461,23 @@ class Person {
             // this.alterEgoGraphics.tint(255, 210);
             alterEgoGraphics.image(this.alterEgoImage, 0, 0);
             let b = this.underFrameRect.border;
-            flipGraphics.image(alterEgoGraphics, this.underFrameRect.left - b, this.underFrameRect.top - 2 * b, this.underFrameRect.width + 2 * b, this.underFrameRect.height + 2 * b);
+
+
+
+            let lerpAmount = 0.3;
+            let displayRect = this.underFrameRect;
+            if (this.lastFrameRect) {
+                displayRect = { left: lerp(this.lastFrameRect.left, this.underFrameRect.left, lerpAmount), top: lerp(this.lastFrameRect.top, this.underFrameRect.top, lerpAmount), right: lerp(this.lastFrameRect.right, this.underFrameRect.right, lerpAmount), bottom: lerp(this.lastFrameRect.bottom, this.underFrameRect.bottom, lerpAmount), width: lerp(this.lastFrameRect.width, this.underFrameRect.width, lerpAmount), height: lerp(this.lastFrameRect.height, this.underFrameRect.height, lerpAmount) };
+            }
+            this.lastFrameRect = displayRect;
+
+            flipGraphics.image(alterEgoGraphics, displayRect.left, displayRect.top - b / 3, displayRect.width, displayRect.height);
+
+
+
+
+            // flipGraphics.image(alterEgoGraphics, this.underFrameRect.left, this.underFrameRect.top - b / 3, this.underFrameRect.width, this.underFrameRect.height);
+            // flipGraphics.image(alterEgoGraphics, this.underFrameRect.left - b, this.underFrameRect.top - 2 * b, this.underFrameRect.width + 2 * b, this.underFrameRect.height + 2 * b);
 
             //image(alterEgoGraphics, this.alterEgoFrameRect.left, this.alterEgoFrameRect.top, this.alterEgoFrameRect.width, this.alterEgoFrameRect.height);
             alterEgoGraphics.remove();
