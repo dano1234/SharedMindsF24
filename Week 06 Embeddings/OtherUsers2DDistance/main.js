@@ -3,7 +3,7 @@ import * as FB from './firebaseAuth.js';
 let others = {};
 let me;
 const replicateProxy = "https://replicate-api-proxy.glitch.me";
-let exampleName = "2DImageEmbeddingDistances";
+let exampleName = "2DEmbeddingDistances";
 
 FB.initFirebase(function (user) {
     if (user) {
@@ -43,8 +43,6 @@ function reactToFirebase(action, data, key) {
     console.log("others", others);
 }
 
-
-
 function renderOthers() {
 
     if (!me) return;
@@ -69,32 +67,16 @@ function renderOthers() {
         otherDiv.style.left = (window.innerWidth / 2 + x) + "px";
         otherDiv.style.top = 100 + (window.innerHeight / 2 + y) + "px";
         otherDiv.style.transform = "translate(-50%,-50%)";
+
         let otherImage = document.createElement("img");
         otherImage.src = other.base64;
         otherDiv.innerHTML = "";
         otherDiv.appendChild(otherImage);
-        let otherName = document.createElement("p");
-        otherName.innerHTML = other.userName;
-        otherName.style.zIndex = 100;
-        otherName.style.position = "absolute";
-        otherName.style.top = 0;
-        otherName.style.left = 0;
-        otherName.style.color = "white";
-        otherDiv.appendChild(otherName);
-        let otherPrompt = document.createElement("p");
-        otherPrompt.style.fontSize = 10 + 10 * (other.normalizedDistance) + "px";
-        otherPrompt.style.color = "white";
-
-        otherPrompt.zIndex = 100;
-        otherPrompt.style.position = "absolute";
-        otherPrompt.style.top = 20;
-        otherPrompt.style.left = 0;
-        otherPrompt.innerHTML = other.prompt;
-        otherDiv.appendChild(otherPrompt);
-
+        //  otherDiv.innerHTML = "<p>" + other.userName + "</p><img src='" + other.base64 + "' />";
         otherImage.style.width = 100 + 100 * (other.normalizedDistance) + "px";
         otherImage.style.height = 100 + 100 * (other.normalizedDistance) + "px";
     }
+
 
 }
 
@@ -105,7 +87,7 @@ function getNormalized2DDistance(me, others) {
     for (let key in others) {
         let other = others[key];
         console.log("me", me, other);
-        other.distance = cosineSimilarity(me.imageEmbedding, other.imageEmbedding);
+        other.distance = cosineSimilarity(me.embedding, other.embedding);
         console.log("distance", other.distance);
         if (other.distance > maxDistance) maxDistance = other.distance;
         if (other.distance < minDistance) minDistance = other.distance;
@@ -141,16 +123,14 @@ inputField.addEventListener("keyup", function (event) {
 });
 
 
-async function askForImageEmbedding(prompt, base64) {
-    let justBase64 = base64.split(",")[1];
+async function askForEmbedding(prompt, base64) {
+
     const data = {
         "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
-        "fieldToConvertBase64ToURL": "input",
-        "fileFormat": "png",
         // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
         "input": {
-            "input": justBase64,
-            "modality": "vision"
+            "text_input": prompt,
+            "modality": "text"
         },
     };
 
@@ -182,17 +162,14 @@ async function askForImageEmbedding(prompt, base64) {
     if (replicateJSON.output.length == 0) {
         feedback.innerHTML = "Something went wrong, try it again";
     } else {
-        console.log("image embedding", replicateJSON.output);
         feedback.innerHTML = "";
         console.log("embedding", replicateJSON.output);
         let user = FB.getUser();
         console.log("user", user);
         let userName = user.displayName ? user.displayName : user.email.split("@")[0];
-        FB.setDataInFirebase(exampleName + "/" + user.uid, { userName: userName, prompt: prompt, base64: base64, imageEmbedding: replicateJSON.output });
+        FB.setDataInFirebase(exampleName + "/" + user.uid, { userName: userName, prompt: prompt, base64: base64, embedding: replicateJSON.output });
     }
 }
-
-
 
 async function askForPicture(prompt) {
     const data = {
@@ -237,7 +214,7 @@ async function askForPicture(prompt) {
             context.drawImage(localImage, 0, 0, localImage.width, localImage.height);
             let base64 = canvas.toDataURL();
             //addImageRemote(base64,prompt);
-            askForImageEmbedding(prompt, base64);
+            askForEmbedding(prompt, base64);
         }
         localImage.src = imageURL;
 
