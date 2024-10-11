@@ -10,6 +10,8 @@ let whoseTurn = 0;
 const GPUServer = "https://dano.ngrok.dev/";
 let flipGraphics;
 let globalPoses = [];
+let searchingTextImage;
+
 
 
 
@@ -28,6 +30,7 @@ let bodyPoseOptions = {
 function preload() {
     trumpImage = loadImage("trump4.png");
     harrisImage = loadImage("harris.png");
+    searchingTextImage = loadImage("searching.png");
     bodyPose = ml5.bodyPose(bodyPoseOptions);
 
 }
@@ -199,7 +202,7 @@ function getRect(pose) {
 
     let faceRect = { left: left, top: top, width: faceWidth, height: faceWidth };
     //do I nee faceRect?  //maybe for inserting face into a face
-    const border = faceWidth / 3;
+    const border = faceWidth / 4;
     let frameRect = { border: border, faceRect: faceRect, left: left - border, top: top - border, width: faceWidth + border * 2, height: faceWidth + border * 2, cx: pose.nose.x, cy: pose.nose.y, headAngle: headAngle };
     return frameRect;
 }
@@ -217,7 +220,7 @@ function gradientMaskIt(inputImg, outputImg) {
     const eX = maskGraphics.width / 2;
     const eY = maskGraphics.height / 2;
     const eR = maskGraphics.height / 2;
-    const colorS = color(0, 0, 0, 200); //Start color
+    const colorS = color(0, 0, 0, 220); //Start color
     const colorE = color(255, 255, 255, 0); //End color
     let gradient = maskGraphics.drawingContext.createRadialGradient(
         sX,
@@ -304,7 +307,7 @@ class Person {
             console.log("someone is raising hands", postData);
             url = GPUServer + "latentsToImage/";
             request = { postData: postData, url: url };
-        } else if (closest.distance < width / 3) {
+        } else if (closest.distance < width / 2.5) {
 
             if (!this.latents) return null;
             this.closestPerson = closest.person;
@@ -321,7 +324,7 @@ class Person {
             request = { postData: postData, url: url };
 
         } else {
-            console.log("no one close enough, just locate self", this.imageWithoutMask);
+            console.log("no one close enough, just locate self");
             if (!this.imageWithoutMask) return null;
             let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
             imgBase64 = imgBase64.split(",")[1];
@@ -387,7 +390,7 @@ class Person {
             readyForRequest = false
 
             const response = await fetch(req.url, options)
-            console.log("response", response);
+            //console.log("response", response);
 
             const result = await response.json();
             readyForRequest = true;
@@ -484,6 +487,7 @@ class Person {
         } else if (this.underImage) {
 
             flipGraphics.image(this.underImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
+            flipGraphics.image(searchingTextImage, this.underFrameRect.left, this.underFrameRect.top, this.underFrameRect.width, this.underFrameRect.height);
         }
         // flipGraphics.textSize(72);
         // flipGraphics.text(this.poseNum, this.underFrameRect.cx, this.underFrameRect.cy);
