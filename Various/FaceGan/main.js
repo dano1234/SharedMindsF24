@@ -11,6 +11,7 @@ const GPUServer = "https://dano.ngrok.dev/";
 let flipGraphics;
 let globalPoses = [];
 let searchingTextImage;
+let delayBetweenRequests = 200;
 
 
 
@@ -207,6 +208,10 @@ function getRect(pose) {
     return frameRect;
 }
 
+function readyForRequestFunction() {
+    readyForRequest = true;
+}
+
 function gradientMaskIt(inputImg, outputImg) {
     outputImg = inputImg.get();
     maskGraphics = createGraphics(inputImg.width, inputImg.height);
@@ -393,26 +398,32 @@ class Person {
             //console.log("response", response);
 
             const result = await response.json();
-            readyForRequest = true;
+            setTimeout(readyForRequestFunction, delayBetweenRequests);
+
             if (!result.error) {
                 let currentPerson = this;
                 if (result.latents)
                     currentPerson.latents = result.latents;
-                readyForRequest = true;
+                setTimeout(readyForRequestFunction, delayBetweenRequests);
+
                 loadImage(result.b64Image, async function (newImage,) {
                     currentPerson.dealWithImageFromAI(newImage);
                 });
             } else {
                 console.log("Error in colab");
-                readyForRequest = true;
+                setTimeout(readyForRequestFunction, delayBetweenRequests);
+
                 return;
             }
         } catch (e) {
-            readyForRequest = true;
+            setTimeout(readyForRequestFunction, delayBetweenRequests);
             console.log("error locating face in AI");
         }
 
     }
+
+
+
 
     getCropMaskUnderImage(frameRect, incomingImage, poseNum) {
 
