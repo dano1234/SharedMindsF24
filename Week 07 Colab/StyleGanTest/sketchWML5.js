@@ -5,8 +5,10 @@ let video; // webcam
 let canvas;
 let img;
 let myLatents;
-
-
+let bodyPose;
+let poses = [];
+let faceRect = [0, 0, dimension, (dimension * 3) / 4];
+let justFace;
 let mode = "live";
 let ageSlider;
 let smileSlider;
@@ -15,7 +17,8 @@ let poseSlider;
 const GPUServer = "https://dano.ngrok.dev/";
 
 function preload() {
-
+  // Load the bodyPose model
+  bodyPose = ml5.bodyPose();
 }
 
 function setup() {
@@ -64,6 +67,7 @@ function setup() {
   video.size(dimension, (dimension * 3) / 4);
   video.hide();
   img = video;
+  bodyPose.detectStart(video, gotPoses);
 }
 function changeAge(what) {
 
@@ -73,10 +77,22 @@ function changeAge(what) {
 function draw() {
   if (img) {
     image(img, 0, 0, img.width, img.height);//dimension, (dimension * 3) / 4);
-  } else {
-    image(video, 0, 0);
   }
-
+  if (poses.length > 0 && mode == "live") {
+    let p = poses[0];
+    let faceWidth = abs(p.left_ear.x - p.right_ear.x);
+    let left = p.nose.x - faceWidth;
+    let right = p.nose.x + faceWidth;
+    let top = p.nose.y - faceWidth;
+    let bottom = p.nose.y + faceWidth;
+    let w = right - left;
+    let h = bottom - top;
+    justFace = createGraphics(w, h);
+    justFace.image(video, 0, 0, faceWidth * 2, faceWidth * 2, left, top, w, h);
+    faceRect = [left, top, right, bottom];
+    image(justFace, 0, 0);
+    justFace.remove();
+  }
 }
 
 async function vecToImg(direction, factor) {
@@ -112,14 +128,20 @@ async function vecToImg(direction, factor) {
 async function ask() {
   video.pause();
   canvas.loadPixels();
+  console.log(poses);
   let imgBase64;
-
-  imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
-
+  if (justFace) {
+    console.log("justFace");
+    imgBase64 = justFace.canvas.toDataURL("image/jpeg", 1.0);
+  } else {
+    console.log("canvas");
+    imgBase64 = canvas.elt.toDataURL("image/jpeg", 1.0);
+  }
   imgBase64 = imgBase64.split(",")[1];
 
   let postData = {
     image: imgBase64,
+    faceRect: faceRect,
   };
 
   let url = GPUServer + "locateImage/";
@@ -152,3 +174,10 @@ async function ask() {
   }
 }
 
+// Callback function for when bodyPose outputs data
+function gotPoses(results) {
+  // Save the output to the poses variable
+  poses = results;
+
+  // console.log(poses);
+}
