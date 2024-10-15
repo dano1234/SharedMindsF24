@@ -2,8 +2,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebas
 import { getDatabase, equalTo, query, orderByChild, ref, off, onValue, update, set, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
 
 let others = {};
+let everybody = {};
 let me;
 let myKey;
+let featuredKey;
 let db;
 let app;
 const replicateProxy = "https://replicate-api-proxy.glitch.me";
@@ -20,8 +22,8 @@ function addSearchQuery() {
     search_field.setAttribute("type", "text");
     search_field.setAttribute("id", "searchQuery");
     search_field.style.position = "absolute";
-    search_field.style.top = "120px";
-    search_field.style.left = "120px";
+    search_field.style.top = "10px";
+    search_field.style.left = "20px";
     search_field.style.zIndex = 100;
     document.body.appendChild(search_field);
 
@@ -35,6 +37,13 @@ function addSearchQuery() {
             onValue(queryRef, (snapshot) => {
                 let users = snapshot.val();
                 console.log("search results", users);
+                for (let key in users) {
+                    featuredKey = key;
+                    renderEverybody();
+                    break;
+                }
+                //featuredKey = users[0].key;
+                //console.log("search results", featuredKey);
             });
             //  console.log("reply", reply);
 
@@ -45,7 +54,7 @@ function addSearchQuery() {
 function addSelectMenu() {
     let dropdown = document.createElement("select");
     dropdown.style.position = "absolute";
-    dropdown.style.top = "20px";
+    dropdown.style.top = "40px";
     dropdown.style.left = "20px";
     document.body.appendChild(dropdown);
     const dbRef = ref(db, exampleName + '/');
@@ -54,114 +63,89 @@ function addSelectMenu() {
         let users = snapshot.val();
 
         for (let key in users) {
-
-            console.log(users[key]);
+            everybody[key] = users[key];
             let option = document.createElement("option");
             option.value = key;
             option.text = users[key].userName;
             dropdown.appendChild(option);
-            console.log("option", option);
         }
     });
-    dropdown.on('change', function () {
-        console.log("changed", this.value);
-    });
+    dropdown.onchange = function () {
+        featuredKey = dropdown.value;
+        //featuredKey = key;
+        console.log("selected", featuredKey);
+        renderEverybody();
+    }
+}
 
+
+function renderEverybody() {
+    let distanceKeysList = {};
+    if (!featuredKey) return;
+    //put everything else in a array with distance as index
+    let featuredVector = everybody[featuredKey].imageEmbedding;
+    for (let key in everybody) {
+        if (key == featuredKey) continue;
+        let thisVector = everybody[key].imageEmbedding;
+        let thisDistance = cosineSimilarity(featuredVector, thisVector);
+        distanceKeysList[thisDistance] = key;
+    }
+    //sort the keys (distances) from the distanceKeysList
+
+    let keys = Object.keys(distanceKeysList);
+    keys.sort(function (a, b) {
+        return b - a;
+    }
+    );
+    //put the featured one on the left
+    positionDiv(0, 130, featuredKey);
+
+    //go in order of distance
+    for (let i = 0; i < keys.length; i++) {
+        let key = distanceKeysList[keys[i]];
+        positionDiv(100 + 100 * i, 100 + 130 + (i * 50), key);
+    }
 
 }
 
-// function organizedDropDownFor() {
-//     //MAKE A ONE TIME QUERY
-//     db.ref('group/' + group_id + '/notes/').orderByChild('cameraFOV').endAt(320).once("value", function (snapshot) {
-//         console.log("once query", snapshot.val());
-//         //POPULATE PULL DOWN MENU WITH RESULTS
-//         let closeUps = snapshot.val();
-//         let dropdown = document.createElement("select");
-//         dropdown.style.position = "absolute";
-//         dropdown.style.top = "20px";
-//         dropdown.style.left = "20px";
-
-//         document.body.appendChild(dropdown);
-
-
-//         dropdown.empty();
-//         for (key in closeUps) {
-//             console.log(closeUps[key]);
-//             dropdown.append(
-//                 $('<option>', {
-//                     value: key,
-//                     text: closeUps[key].content
-//                 }, '</option>'))
-//         }
-//         //GIVE PULL DOWN AN ACTION
-//         dropdown.on('change', function () {
-//             console.log("changed", texts);
-//             for (var i = 0; i < texts.length; i++) {
-//                 if (texts[i].DBid == this.value) {
-//                     currentObject = texts[i];
-//                     $("#text").val(currentObject.content);
-//                     camera3D.matrix.fromArray(currentObject.camera); // set the camera using saved camera settings
-//                     camera3D.matrix.decompose(camera3D.position, camera3D.quaternion, camera3D.scale);
-//                     camera3D.fov = currentObject.cameraFOV;
-//                     camera3D.updateProjectionMatrix();
-//                     break;
-//                 }
-//             }
-//         });
-
-//     });
-// }
-
-function renderOthers() {
-
-    if (!me) return;
-    console.log("renderOthers", others);
-    getNormalized2DDistance(me, others);
-    let angle = 0;
-    let angleStep = 2 * Math.PI / (Object.keys(others).length + 1);;
-    for (let key in others) {
-        let other = others[key];
-        let otherDiv = document.getElementById(key);
-        if (!otherDiv) {
-            otherDiv = document.createElement("div");
-            otherDiv.setAttribute("id", key);
-            document.body.appendChild(otherDiv);
-        }
-        let distance = 200 + (1 - other.normalizedDistance) * 200;
-        let x = distance * Math.cos(angle);
-        let y = distance * Math.sin(angle);
-        //console.log("x,y", x, y, angle);
-        angle += angleStep;
-        otherDiv.style.position = "absolute";
-        otherDiv.style.left = (window.innerWidth / 2 + x) + "px";
-        otherDiv.style.top = 100 + (window.innerHeight / 2 + y) + "px";
-        otherDiv.style.transform = "translate(-50%,-50%)";
-        let otherImage = document.createElement("img");
-        otherImage.src = other.base64;
-        otherDiv.innerHTML = "";
-        otherDiv.appendChild(otherImage);
-        let otherName = document.createElement("p");
-        otherName.innerHTML = other.userName;
-        otherName.style.zIndex = 100;
-        otherName.style.position = "absolute";
-        otherName.style.top = 0;
-        otherName.style.left = 0;
-        otherName.style.color = "white";
-        otherDiv.appendChild(otherName);
-        let otherPrompt = document.createElement("p");
-        otherPrompt.style.fontSize = 10 + 10 * (other.normalizedDistance) + "px";
-        otherPrompt.style.color = "white";
-
-        otherPrompt.zIndex = 100;
-        otherPrompt.style.position = "absolute";
-        otherPrompt.style.top = 20;
-        otherPrompt.style.left = 0;
-        otherPrompt.innerHTML = other.prompt;
-        otherDiv.appendChild(otherPrompt);
-
-        otherImage.style.width = 100 + 100 * (other.normalizedDistance) + "px";
-        otherImage.style.height = 100 + 100 * (other.normalizedDistance) + "px";
+function positionDiv(x, y, key) {
+    let thisPerson = everybody[key];
+    let theDiv = document.getElementById(key);
+    if (!theDiv) {
+        theDiv = document.createElement("div");
+        theDiv.setAttribute("id", key);
+        document.body.appendChild(theDiv);
     }
+    theDiv.style.position = "absolute";
+    theDiv.style.left = x + "px";
+    theDiv.style.top = y + "px";
+    //theDiv.style.transform = "translate(-50%,-50%)";
+    let theImage = document.createElement("img");
+    theImage.src = thisPerson.base64;
+    theDiv.innerHTML = "";
+    theDiv.appendChild(theImage);
+    let theName = document.createElement("p");
+    theName.innerHTML = thisPerson.userName;
+    theName.style.zIndex = 100;
+    theName.style.position = "absolute";
+    theName.style.top = 0;
+    theName.style.left = 0;
+    theName.style.color = "white";
+    theDiv.appendChild(theName);
+    let thePrompt = document.createElement("p");
+    //thePrompt.style.fontSize = 10 + 10 * (the.normalizedDistance) + "px";
+    thePrompt.style.color = "white";
+
+    thePrompt.zIndex = 100;
+    thePrompt.style.position = "absolute";
+    thePrompt.style.top = 20;
+    thePrompt.style.left = 0;
+    thePrompt.innerHTML = thisPerson.prompt;
+    theDiv.appendChild(thePrompt);
+
+
+    theImage.style.width = 100 + "px";
+    theImage.style.height = 100 + "px";
 
 }
 
@@ -330,7 +314,7 @@ function initFirebase() {
             if (users[key].userName === user) {
                 me = users[key];
                 myKey = key;
-                renderOthers();
+                renderEverybody();
                 break;
             }
         }
@@ -345,34 +329,20 @@ function subscribeToData(folder, callback) {
     onChildAdded(commentsRef, (FBdata) => {
         let data = FBdata.val();
         let key = FBdata.key;
-        if (key == myKey) {
-            document.getElementById("inputText").value = data.prompt;
-            let localImage = document.getElementById("outputImage");
-            localImage.src = data.base64;
-            me = data;
-            renderOthers();
-        } else {
-            others[key] = data;
-            renderOthers();
-        };
+        everybody[key] = data;
+        renderEverybody();
     });
     onChildChanged(commentsRef, (FBdata) => {
         let data = FBdata.val();
         let key = FBdata.key;
-        if (key == myKey) {
-            document.getElementById("inputText").value = data.prompt;
-            let localImage = document.getElementById("outputImage");
-            localImage.src = data.base64;
-            me = data;
-            renderOthers();
-        } else {
-            others[key] = data;
-            renderOthers();
-        }
+        everybody[key] = data;
+        renderEverybody();
     });
     onChildRemoved(commentsRef, (FBdata) => {
         let data = FBdata.val();
         let key = FBdata.key;
+        delete everybody[key];
+        renderEverybody();
         console.log("removed from FB", data, key);
 
     });
