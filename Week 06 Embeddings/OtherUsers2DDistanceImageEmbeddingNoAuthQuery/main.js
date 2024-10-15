@@ -18,14 +18,23 @@ addSearchQuery();
 addSelectMenu();
 
 function addSearchQuery() {
+    let searchLabel = document.createElement("label");
+    searchLabel.setAttribute("for", "search_field");
+    searchLabel.innerText = "Search User:";
+    searchLabel.style.position = "absolute";
+    searchLabel.style.top = "10px";
+    searchLabel.style.left = "10px";
+    searchLabel.style.zIndex = 100;
+    document.body.appendChild(searchLabel);
     let search_field = document.createElement("input");
     search_field.setAttribute("type", "text");
     search_field.setAttribute("id", "searchQuery");
     search_field.style.position = "absolute";
     search_field.style.top = "10px";
-    search_field.style.left = "20px";
+    search_field.style.left = "150px";
     search_field.style.zIndex = 100;
     document.body.appendChild(search_field);
+
 
     search_field.addEventListener("keyup", function (event) {
         if (event.key === "Enter") {
@@ -52,10 +61,19 @@ function addSearchQuery() {
 }
 
 function addSelectMenu() {
+
+    let selectLabel = document.createElement("label");
+    selectLabel.setAttribute("for", "search_field");
+    selectLabel.innerText = "Select User:";
+    selectLabel.style.position = "absolute";
+    selectLabel.style.top = "40px";
+    selectLabel.style.left = "10px";
+    selectLabel.style.zIndex = 100;
+    document.body.appendChild(selectLabel);
     let dropdown = document.createElement("select");
     dropdown.style.position = "absolute";
     dropdown.style.top = "40px";
-    dropdown.style.left = "20px";
+    dropdown.style.left = "150px";
     document.body.appendChild(dropdown);
     const dbRef = ref(db, exampleName + '/');
     let queryRef = query(dbRef, orderByChild('userName'));
