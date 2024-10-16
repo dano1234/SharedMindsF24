@@ -292,7 +292,8 @@ class Person {
             };
             url = GPUServer + "locateImage/";
             request = { postData: postData, url: url };
-        } else if (this.raisingHands.left.raised == true) {
+
+        } else if (this.raisingHands.left.raised == true && this.latents) {
 
             postData = {
                 latents: this.latents,
@@ -302,7 +303,7 @@ class Person {
             console.log("someone is raising hands", postData);
             url = GPUServer + "latentsToImage/";
             request = { postData: postData, url: url };
-        } else if (this.raisingHands.right.raised == true) {
+        } else if (this.raisingHands.right.raised == true && this.latents) {
 
             postData = {
                 latents: this.latents,
@@ -312,7 +313,7 @@ class Person {
             console.log("someone is raising hands", postData);
             url = GPUServer + "latentsToImage/";
             request = { postData: postData, url: url };
-        } else if (closest.distance < width / 2.5) {
+        } else if (closest.distance < width / 2.5 && closest.person.latents && this.latents) {
 
             if (!this.latents) return null;
             this.closestPerson = closest.person;
@@ -347,10 +348,10 @@ class Person {
 
     checkForRaisingHands(pose) {
         //console.log("checking for raising hands", pose.right_wrist.confidence);
-        let leftDiff = pose.left_shoulder.y - pose.left_wrist.y;
-        let rightDiff = pose.right_shoulder.y - pose.right_wrist.y;
+        let leftDiff = pose.nose.y - pose.left_shoulder.y; //pose.left_wrist.y;
+        let rightDiff = pose.nose.y - pose.right_shoulder.y; //pose.right_wrist.y;
 
-        if (pose.right_wrist.confidence > 0.2 && rightDiff > 10) {
+        if (rightDiff > 10) {
             let amount = min(5, this.raisingHands.right.amount + 1);
             this.raisingHands.right.raised = true;
             this.raisingHands.right.amount = amount;
@@ -363,7 +364,7 @@ class Person {
             this.raisingHands.right.amount = max(0, this.raisingHands.right.amount - 1);
             if (this.raisingHands.right.amount == 0) this.raisingHands.right.raised = false;
         }
-        if (pose.left_wrist.confidence > 0.2 && leftDiff > 10) {
+        if (leftDiff > 10) {
             let amount = min(5, this.raisingHands.left.amount + 1);
             this.raisingHands.left.raised = true;
             this.raisingHands.left.amount = amount;
