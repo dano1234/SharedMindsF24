@@ -346,6 +346,7 @@ class Person {
     }
 
 
+
     checkForRaisingHands(pose) {
         //console.log("checking for raising hands", pose.right_wrist.confidence);
         let leftDiff = pose.nose.y - pose.left_shoulder.y; //pose.left_wrist.y;
