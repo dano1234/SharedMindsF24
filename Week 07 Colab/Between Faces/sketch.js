@@ -100,7 +100,7 @@ function draw() {
     image(video, 0, 0);
   }
   if (img) {
-    image(img, 0, 0, img.width, img.height);//dimension, (dimension * 3) / 4);
+    image(img, width - img.width, height - img.height, img.width, img.height);//dimension, (dimension * 3) / 4);
   }
   if (otherFromAI) {
     image(otherFromAI, dimension / 2, 0, dimension / 2, (dimension * 3) / 4);
