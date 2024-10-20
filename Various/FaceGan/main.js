@@ -21,7 +21,7 @@ let bodyPoseOptions = {
     enableSmoothing: false,
     minPoseScore: 0.2,
     multiPoseMaxDimension: 256,
-    enableTracking: false,
+    enableTracking: true,
     trackerType: "boundingBox", // "keypoint" or "boundingBox"
     trackerConfig: {},
     modelUrl: undefined,
@@ -126,6 +126,7 @@ function bodyPoseVideoResults(poses) {
     }
     if (poses.length > people.length) {
         let person = new Person(null, null, -9000, -9000);
+
         people.push(person);
     }
     // else if (poses.length < people.length) {
@@ -292,6 +293,18 @@ class Person {
             };
             url = GPUServer + "locateImage/";
             request = { postData: postData, url: url };
+
+        } else if (!this.latents) {
+            console.log("no latents locate self");
+            if (!this.imageWithoutMask) return null;
+            let imgBase64 = this.imageWithoutMask.canvas.toDataURL("image/jpeg", 1.0);
+            imgBase64 = imgBase64.split(",")[1];
+            postData = {
+                image: imgBase64,
+            };
+            url = GPUServer + "locateImage/";
+            request = { postData: postData, url: url };
+
 
         } else if (this.raisingHands.left.raised == true && this.latents) {
 
