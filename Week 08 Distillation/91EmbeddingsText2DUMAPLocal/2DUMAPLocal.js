@@ -45,7 +45,8 @@ function placeSentence(sentence, fitting) {
     ctx.font = "20px Arial";
     ctx.fillStyle = "rgba(100,100,100,127)";
     let w = ctx.measureText(sentence).width;
-    ctx.fillText(sentence, fitting[0] * window.innerWidth - w / 2, fitting[1] * window.innerHeight);
+    console.log(canvas.width, canvas.height, fitting[0] * canvas.width, fitting[1] * canvas.height);
+    ctx.fillText(sentence, fitting[0] * canvas.width - w / 2, fitting[1] * canvas.height + 30);
 
     //or use DOM elements
     // let sentenceDiv = document.createElement('div');
@@ -144,10 +145,10 @@ function runUMAP(embeddingsAndSentences) {
     var myrng = new Math.seedrandom('hello.');
     let umap = new UMAP({
         nNeighbors: 6,
-        minDist: .5,
+        minDist: 0.1,
         nComponents: 2,
         random: myrng,  //special library seeded random so it is the same randome numbers every time
-        spread: .99,
+        spread: 0.99,
         //distanceFn: 'cosine',
     });
     let fittings = umap.fit(embeddings);

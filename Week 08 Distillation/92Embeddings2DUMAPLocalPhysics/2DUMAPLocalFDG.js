@@ -132,7 +132,14 @@ class Particle extends VerletParticle2D {
         ctx.arc(this.currentX, this.currentY, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        // }
+        ctx.font = "9px Arial";
+
+        let lines = this.text.split(" ");
+
+        for (let i = 0; i < lines.length; i++) {
+            let w = ctx.measureText(lines[i]).width;
+            ctx.fillText(lines[i], this.currentX - w / 2, 20 + this.currentY + 12 * i);
+        }
     }
     showText() {
         showText.style.display = "block";
