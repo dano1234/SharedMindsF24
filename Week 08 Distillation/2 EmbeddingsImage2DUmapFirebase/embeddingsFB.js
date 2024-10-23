@@ -292,7 +292,7 @@ async function askForPicture(text) {
     console.log("Proxy Returned", proxy_said);
     if (!proxy_said.output) {
         console.log("Something went wrong, try it again, maybe NSFW" + proxy_said.error);
-        return "https://notsafeforwork.jpg";
+        return "NSFW.png";
     } else {
         input_image_field.value = text;
         return proxy_said.output[0];
