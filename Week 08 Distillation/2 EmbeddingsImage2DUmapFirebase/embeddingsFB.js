@@ -4,7 +4,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-
 //import { getFirestore } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-firestore.js"
 import { getDatabase, update, ref, push, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js";
 
-let distanceFromCenter = 500;
+
 let clusterSize = 6;
 
 const replicateProxy = "https://replicate-api-proxy.glitch.me"
@@ -51,17 +51,12 @@ function runUMAP(data) {
     //console.log("fitting", fitting);
 }
 
-
-
-async function askForImageEmbedding(prompt, base64) {
-    let justBase64 = base64.split(",")[1];
+async function askForImageEmbedding(prompt, imageURL) {
+    //let justBase64 = base64.split(",")[1];
     const data = {
         "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
-        "fieldToConvertBase64ToURL": "input",
-        "fileFormat": "png",
-        // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
         "input": {
-            "input": justBase64,
+            "input": imageURL,
             "modality": "vision"
         },
     };
@@ -85,51 +80,9 @@ async function askForImageEmbedding(prompt, base64) {
     document.body.style.cursor = "auto";
 
     console.log("replicateJSON", replicateJSON);
-    if (replicateJSON.output.length == 0) {
-        feedback.innerHTML = "Something went wrong, try it again";
-    } else {
-        console.log("image embedding", replicateJSON.output);
-        feedback.innerHTML = "";
-        console.log("embedding", replicateJSON.output);
-
-        console.log("user", user);
-
-        setDataInFirebase(exampleName, { userName: user, prompt: prompt, base64: base64, imageEmbedding: replicateJSON.output });
-    }
+    return replicateJSON.output;
 }
 
-
-async function askForEmbedding(p_prompt) {
-    //let promptInLines = p_prompt.replace(/,/g,) "\n";  //replace commas with new lines
-    //p_prompt = p_prompt + "\n"
-    const data = {
-        "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
-        // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
-        "input": {
-            "text_input": p_prompt,
-            "modality": "text"
-        },
-    };
-    // let data = {
-    //     version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
-    //     input: {
-    //         inputs: p_prompt,
-    //     },
-    // };
-    console.log("Asking for Embedding Similarities From Replicate via Proxy", data);
-    let options = {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    };
-    const url = replicateProxy + "/create_n_get/";
-    let rawResponse = await fetch(url, options)
-    let jsonData = await rawResponse.json();
-    // return jsonData.output[0].embedding;
-    return jsonData.output;
-}
 
 function normalize(arrayOfNumbers) {
     //find max and min in the array
@@ -156,6 +109,21 @@ function normalize(arrayOfNumbers) {
 }
 
 
+function removeObject(key, data) {
+    let div = document.getElementById(key);
+    div.remove();
+    //remove from local variable
+    for (let i = 0; i < objects.length; i++) {
+        if (objects[i].key == key) {
+            objects.splice(i, 1);
+            break;
+        }
+    }
+
+    if (objects.length > 6) {
+        runUMAP(objects)
+    }
+}
 
 
 function updateObject(key, data) {
@@ -170,9 +138,9 @@ export function createObject(key, data) {
     let image = data.image;
 
 
-    let div = document.createElement("div");
-    div.id = key;
-    div.style.position = "absolute";
+    let divster = document.createElement("div");
+    divster.id = key;
+    divster.style.position = "absolute";
     let imageElement = document.createElement("img");
     imageElement.src = image.base64Image;
     imageElement.style.width = "25%";
@@ -182,9 +150,22 @@ export function createObject(key, data) {
     textElement.style.width = "25%";
     textElement.style.height = "25%";
     textElement.style.visibility = "hidden";
-    div.append(imageElement);
-    div.append(textElement);
-    document.body.append(div);
+    divster.append(imageElement);
+    divster.append(textElement);
+    divster.addEventListener("mouseover", function () {
+        console.log("mouseover", this);
+        this.style.zIndex = 100;
+    });
+    divster.addEventListener("mouseout", function () {
+        console.log("mouseout", this);
+        this.style.zIndex = 1;
+    });
+    divster.addEventListener("click", function () {
+        console.log("clicked", this);
+    });
+    document.body.append(divster);
+
+
 
     //make a copy of info in local variable
     objects.push(data);
@@ -200,7 +181,7 @@ export function createObject(key, data) {
 
 
 async function askGod() {
-    let text = "a lis with 36 prompts  for stable diffusion image generation organized into 6 themes connect to" + input_image_field.value + "without repeating prompt or any other introductory text or text after";
+    let text = "a list with 36 prompts  for stable diffusion image generation organized into 6 themes connect to the phrase '" + input_image_field.value + "' Don't prompt or any other introductory text or text after";
     document.body.style.cursor = "progress";
     // // feedback.html("Waiting for reply from OpenAi...");
 
@@ -247,12 +228,13 @@ async function askGod() {
     //now go and get embedding and images and store in firebase for each prompt
     for (let i = 0; i < prompts.length; i++) {
         let thisPrompt = prompts[i];
-        let all = {}
-        let embedding = await askForEmbedding(thisPrompt);
-        all.embedding = embedding;
-        all.prompt = thisPrompt;
         let imageURL = await askForPicture(thisPrompt);
         let b64 = await convertURLToBase64(imageURL);
+        let embedding = await askForImageEmbedding(thisPrompt, imageURL);
+        //let embedding = await askForEmbedding(thisPrompt);
+        let all = {}
+        all.embedding = embedding;
+        all.prompt = thisPrompt;
         all.image = { base64Image: b64, url: imageURL };
         storeInFirebase(all);
     }
@@ -400,7 +382,7 @@ function initWebInterface() {
     input_image_field = document.createElement("input");
     input_image_field.type = "text";
     input_image_field.id = "input_image_prompt";
-    input_image_field.value = "\"Beauty will save the world\"";
+    input_image_field.value = "Beauty will save the world";
     input_image_field.style.position = "absolute";
     input_image_field.style.zIndex = "200";
     input_image_field.style.fontSize = "30px";
@@ -413,17 +395,9 @@ function initWebInterface() {
     input_image_field.style.left = "50%";
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.style.pointerEvents = "all";
-    input_image_field.addEventListener("keyup", function (event) {
-        if (event.key === "Enter") {
-            askForAll(input_image_field.value);
-        }
-    });
     webInterfaceContainer.append(input_image_field);
 
 }
-
-
-
 
 
 async function convertURLToBase64(url) {
@@ -442,6 +416,37 @@ async function convertURLToBase64(url) {
 
 
 
+// async function askForEmbedding(p_prompt) {
+//     //let promptInLines = p_prompt.replace(/,/g,) "\n";  //replace commas with new lines
+//     //p_prompt = p_prompt + "\n"
+//     const data = {
+//         "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+//         // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+//         "input": {
+//             "text_input": p_prompt,
+//             "modality": "text"
+//         },
+//     };
+//     // let data = {
+//     //     version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+//     //     input: {
+//     //         inputs: p_prompt,
+//     //     },
+//     // };
+//     console.log("Asking for Embedding Similarities From Replicate via Proxy", data);
+//     let options = {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify(data),
+//     };
+//     const url = replicateProxy + "/create_n_get/";
+//     let rawResponse = await fetch(url, options)
+//     let jsonData = await rawResponse.json();
+//     // return jsonData.output[0].embedding;
+//     return jsonData.output;
+// }
 
 /////FIREBASE STUFF
 
