@@ -37,40 +37,85 @@ function runUMAP(data) {
         spread: .1,
         //distanceFn: 'cosine',
     });
+    //umap only wants embeddings, not all the rest of the stuff
     let fittings = umap.fit(embeddings);
     fittings = normalize(fittings);  //normalize to 0-1
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
         let obj = embeddingsAndPrompts[i];
         let pos = fittings[i];
-        obj.mesh.position.x = pos[0] * distanceFromCenter - distanceFromCenter / 2;
-        obj.mesh.position.y = pos[1] * distanceFromCenter / 2 - distanceFromCenter / 4;  //dont go too high or low
-        obj.mesh.position.z = pos[2] * distanceFromCenter - distanceFromCenter / 2;
-        obj.mesh.lookAt(0, 0, 0);
+        let key = obj.key;
+        let thisDiv = document.getElementById(key);
+        thisDiv.style.left = pos[0] * window.innerWidth + "px";
+        thisDiv.style.top = pos[1] * window.innerHeight + "px";
     }
     //console.log("fitting", fitting);
 }
 
-async function askForAll(thisPrompt) {
-    let all = {}
-    let embedding = await askForEmbedding(thisPrompt);
-    all.embedding = embedding;
-    all.prompt = thisPrompt;
-    let imageURL = await askForPicture(thisPrompt);
-    let b64 = await convertURLToBase64(imageURL);
-    all.image = { base64Image: b64, url: imageURL };
-    all.location = getPositionInFrontOfCamera();
-    storeInFirebase(all);
+
+
+async function askForImageEmbedding(prompt, base64) {
+    let justBase64 = base64.split(",")[1];
+    const data = {
+        "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+        "fieldToConvertBase64ToURL": "input",
+        "fileFormat": "png",
+        // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+        "input": {
+            "input": justBase64,
+            "modality": "vision"
+        },
+    };
+
+
+    feedback.innerHTML = "Waiting for reply from API...";
+    let url = replicateProxy + "/create_n_get/";
+    document.body.style.cursor = "progress";
+    console.log("Making a Fetch Request", data);
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: 'application/json',
+        },
+        body: JSON.stringify(data),
+    };
+    const raw_response = await fetch(url, options);
+    //turn it into json
+    const replicateJSON = await raw_response.json();
+    document.body.style.cursor = "auto";
+
+    console.log("replicateJSON", replicateJSON);
+    if (replicateJSON.output.length == 0) {
+        feedback.innerHTML = "Something went wrong, try it again";
+    } else {
+        console.log("image embedding", replicateJSON.output);
+        feedback.innerHTML = "";
+        console.log("embedding", replicateJSON.output);
+
+        console.log("user", user);
+
+        setDataInFirebase(exampleName, { userName: user, prompt: prompt, base64: base64, imageEmbedding: replicateJSON.output });
+    }
 }
+
 
 async function askForEmbedding(p_prompt) {
     //let promptInLines = p_prompt.replace(/,/g,) "\n";  //replace commas with new lines
-    p_prompt = p_prompt + "\n"
-    let data = {
-        version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
-        input: {
-            inputs: p_prompt,
+    //p_prompt = p_prompt + "\n"
+    const data = {
+        "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+        // "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+        "input": {
+            "text_input": p_prompt,
+            "modality": "text"
         },
     };
+    // let data = {
+    //     version: "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+    //     input: {
+    //         inputs: p_prompt,
+    //     },
+    // };
     console.log("Asking for Embedding Similarities From Replicate via Proxy", data);
     let options = {
         method: "POST",
@@ -82,7 +127,8 @@ async function askForEmbedding(p_prompt) {
     const url = replicateProxy + "/create_n_get/";
     let rawResponse = await fetch(url, options)
     let jsonData = await rawResponse.json();
-    return jsonData.output[0].embedding;
+    // return jsonData.output[0].embedding;
+    return jsonData.output;
 }
 
 function normalize(arrayOfNumbers) {
@@ -117,34 +163,36 @@ function updateObject(key, data) {
 }
 
 export function createObject(key, data) {
-
+    data.key = key;
     //get stuff from firebase
     let text = data.prompt;
     let embedding = data.embedding;
-    let pos = data.location;
     let image = data.image;
 
-    //create a texturem mapped 3D object
-    let canvas = document.createElement('canvas');
-    let ctx = canvas.getContext('2d');
-    let size = 1024;
-    canvas.height = size;
-    canvas.width = size;
 
-    if (image) {
-        let incomingImage = new Image();
-        thisObject.image = incomingImage;
-        incomingImage.crossOrigin = "anonymous";
-        incomingImage.onload = function () {
-            console.log("loaded image", thisObject.text);
-        };
-        incomingImage.src = image.base64Image;
-    }
+    let div = document.createElement("div");
+    div.id = key;
+    div.style.position = "absolute";
+    let imageElement = document.createElement("img");
+    imageElement.src = image.base64Image;
+    imageElement.style.width = "25%";
+    imageElement.style.height = "25%";
+    let textElement = document.createElement("div");
+    textElement.innerHTML = text;
+    textElement.style.width = "25%";
+    textElement.style.height = "25%";
+    textElement.style.visibility = "hidden";
+    div.append(imageElement);
+    div.append(textElement);
+    document.body.append(div);
+
+    //make a copy of info in local variable
+    objects.push(data);
+
     if (objects.length > 6) {
         runUMAP(objects)
     }
 
-    return thisObject;
 }
 
 
@@ -195,11 +243,10 @@ async function askGod() {
         prompts.push(prompt.trim());
 
     }
+    console.log("prompts", prompts);
+    //now go and get embedding and images and store in firebase for each prompt
     for (let i = 0; i < prompts.length; i++) {
         let thisPrompt = prompts[i];
-
-        console.log("prompts", prompts);
-
         let all = {}
         let embedding = await askForEmbedding(thisPrompt);
         all.embedding = embedding;
@@ -209,30 +256,7 @@ async function askGod() {
         all.image = { base64Image: b64, url: imageURL };
         storeInFirebase(all);
     }
-    //outputJoin += "}";
 
-    // let prompts = outputJSON[theme];
-    // let promptJoin = "";
-    // for (let i = 0; i < prompts.length; i++) {
-    //     promptJoin += prompts[i] + "\n";
-    // }
-    // console.log("promptJoin", promptJoin);
-    // performCreation(prompt
-
-    // if (got_json.choices.length == 0) {
-    //     //feedback.html("Something went wrong, try it again");
-    //     return 0;
-    // } else {
-    //     let choicesjoin = "";
-    //     for (let i = 0; i < openAI_json.choices.length; i++) {
-    //         choicesjoin += openAI_json.choices[i].text;
-    //     }
-    //     //feedback.html(choicesjoin);
-    //     console.log("open ai returned ", choicesjoin);
-
-    //     performCreation(choicesjoin)
-    //     //console.log("proxy_said", proxy_said.output.join(""));
-    // }
     document.body.style.cursor = "auto";
 
 }
@@ -249,11 +273,10 @@ async function askForPicture(text) {
         //c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316",
         input: {
             "prompt": text,
-            "width": "256",
-            "height": "256",
+
         },
     };
-    //console.log("Asking for Picture Info From Replicate via Proxy", data);
+    console.log("Asking for Picture Info From Replicate via Proxy", data);
     let options = {
         method: "POST",
         headers: {
@@ -267,12 +290,13 @@ async function askForPicture(text) {
     //console.log("picture_response", picture_info);
     const proxy_said = await picture_info.json();
     console.log("Proxy Returned", proxy_said);
-    // if (proxy_said.output.length == 0) {
-    //     alert("Something went wrong, try it again");
-    // } else {
-    //     input_image_field.value = text;
-    //     return proxy_said.output[0];
-    // }
+    if (!proxy_said.output) {
+        console.log("Something went wrong, try it again, maybe NSFW" + proxy_said.error);
+        return "https://notsafeforwork.jpg";
+    } else {
+        input_image_field.value = text;
+        return proxy_said.output[0];
+    }
 }
 
 
@@ -366,7 +390,7 @@ function initWebInterface() {
     ThanosButton.style.color = "white";
     ThanosButton.style.backgroundColor = "black";
     ThanosButton.addEventListener("click", function () {
-        //destroyDatabase();
+        destroyDatabase();
 
     });
     ThanosButton.style.pointerEvents = "all";
@@ -400,21 +424,7 @@ function initWebInterface() {
 
 
 
-async function performCreation(prompts) {
-    console.log("prompts", prompts);
-    let promptsArray = prompts.split("\n");
-    for (let i = 0; i < promptsArray.length; i++) {
 
-        let prompt = promptsArray[i];
-        if (prompt.length < 30) {
-            continue;
-        }
-        prompt = prompt.slice(2).trim();
-
-        console.log("prompt created", prompt);
-        await askForAll(prompt);
-    }
-}
 
 async function convertURLToBase64(url) {
     var incomingImage = new Image();
@@ -431,15 +441,6 @@ async function convertURLToBase64(url) {
 }
 
 
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    for (let i = 0; i < objects.length; i++) {
-        repaintObject(objects[i]);
-    }
-    renderer.render(scene, camera3D);
-}
 
 
 /////FIREBASE STUFF
@@ -484,10 +485,10 @@ function subscribeToFirebase() {
     onChildAdded(myRef, (data) => {
         console.log("added", data.val())
         feedback.innerHTML = "Ready"
-        let newObject = createObject(data.key, data.val());
-        if (newObject.dbKey == localKey && object.image == null) {
-            askForPicture(text, object.key);
-        }
+        createObject(data.key, data.val());
+        // if (newObject.dbKey == localKey && object.image == null) {
+        //     askForPicture(text, object.key);
+        // }
     });
     onChildChanged(myRef, (data) => {
         console.log("changed", data.key, data);
