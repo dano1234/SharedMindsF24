@@ -120,7 +120,7 @@ export function initMoveCameraWithMouse(_camera, _renderer) {
     window.addEventListener('dblclick', div3DDoubleClick, false); // Add double click event listener
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('keydown', div3DKeyDown, false);
-    event.stopPropagation();
+    // event.stopPropagation();
 
 }
 
