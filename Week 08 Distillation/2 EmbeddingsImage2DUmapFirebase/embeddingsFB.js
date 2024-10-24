@@ -141,10 +141,11 @@ export function createObject(key, data) {
     let divster = document.createElement("div");
     divster.id = key;
     divster.style.position = "absolute";
+    divster.className = "imageDivs";
     let imageElement = document.createElement("img");
     imageElement.src = image.base64Image;
-    imageElement.style.width = "25%";
-    imageElement.style.height = "25%";
+    imageElement.style.width = "10%";
+    imageElement.style.height = "10%";
     let textElement = document.createElement("div");
     textElement.innerHTML = text;
     textElement.style.width = "25%";
@@ -152,18 +153,39 @@ export function createObject(key, data) {
     textElement.style.visibility = "hidden";
     divster.append(imageElement);
     divster.append(textElement);
-    divster.addEventListener("mouseover", function () {
-        console.log("mouseover", this);
-        this.style.zIndex = 100;
-    });
-    divster.addEventListener("mouseout", function () {
-        console.log("mouseout", this);
-        this.style.zIndex = 1;
-    });
-    divster.addEventListener("click", function () {
-        console.log("clicked", this);
-    });
     document.body.append(divster);
+
+
+
+
+
+    // divster.addEventListener("mouseover", function () {
+    //     console.log("mouseover", this);
+    //     this.style.zIndex = 1;
+    // });
+    // divster.addEventListener("mouseout", function () {
+    //     console.log("mouseout", this);
+    //     this.style.zIndex = 1000;
+    // });
+    divster.addEventListener("click", function () {
+        console.log("clicked", this.id);
+        feature.innerHTML = this.innerHTML;
+        feature.style.display = "block";
+        feature.style.zIndex = 1000;
+
+        feature.style.fontSize = "20px";
+
+        feature.style.border = "5px solid white";
+        feature.style.width = "100%";
+        feature.style.height = "100%";
+        feature.style.top = "50%";
+        feature.style.left = "50%";
+        feature.style.transform = "translate(-50%, -50%)";
+        feature.style.position = "absolute";
+
+
+    });
+
 
 
 
@@ -287,29 +309,20 @@ async function askForPicture(text) {
 function initWebInterface() {
 
     //something to contain all the web interface elements
-    var webInterfaceContainer = document.createElement("div");
-    webInterfaceContainer.id = "webInterfaceContainer";
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.zIndex = "2";
-    webInterfaceContainer.style.top = "0%";
-    webInterfaceContainer.style.left = "0%";
-    //webInterfaceContainer.style.transform = "translate(-50%, -50%)";
-    webInterfaceContainer.style.position = "absolute";
-    webInterfaceContainer.style.height = "100%";
-    webInterfaceContainer.style.width = "100%";
-    webInterfaceContainer.style.pointerEvents = "none";
-    document.body.append(webInterfaceContainer);
+    // var webInterfaceContainer = document.createElement("div");
+    // webInterfaceContainer.id = "webInterfaceContainer";
+    // webInterfaceContainer.style.position = "absolute";
+    // webInterfaceContainer.style.zIndex = "2";
+    // webInterfaceContainer.style.top = "0%";
+    // webInterfaceContainer.style.left = "0%";
+    // //webInterfaceContainer.style.transform = "translate(-50%, -50%)";
+    // webInterfaceContainer.style.position = "absolute";
+    // webInterfaceContainer.style.height = "100%";
+    // webInterfaceContainer.style.width = "100%";
+    // webInterfaceContainer.style.pointerEvents = "none";
+    // document.body.append(webInterfaceContainer);
 
-    //something to contain all the 3D stuff (so it can be behind the web interface)
-    let ThreeJSContainer = document.createElement("div");
-    ThreeJSContainer.style.zIndex = "1";
-    ThreeJSContainer.id = "ThreeJSContainer";
-    ThreeJSContainer.style.position = "absolute";
-    ThreeJSContainer.style.top = "0%";
-    ThreeJSContainer.style.left = "0%";
-    ThreeJSContainer.style.width = "100%";
-    ThreeJSContainer.style.height = "100%";
-    document.body.append(ThreeJSContainer);
+
 
     //make a feedback div
     feedback = document.createElement("div");
@@ -325,21 +338,20 @@ function initWebInterface() {
 
     feedback.style.fontSize = "20px";
     feedback.style.color = "white";
-    webInterfaceContainer.append(feedback);
+    // document.body.append(feedback);
 
     //show off pictures big when you double click on them
     feature = document.createElement("div");
-    feature.style.ali
     feature.id = "feature";
     feature.style.zIndex = "5";
-    feature.style.width = "512px";
-    feature.style.height = "512px";
+    feature.style.width = "1024px";
+    feature.style.height = "1024px";
     feature.style.position = "absolute";
     feature.style.top = "50%";
     feature.style.left = "50%";
     feature.style.transform = "translate(-50%, -50%)";
     feature.style.display = "none";
-    webInterfaceContainer.append(feature);
+    //document.body.append(feature);
 
 
 
@@ -347,7 +359,7 @@ function initWebInterface() {
     let GodButton = document.createElement("button");
     GodButton.innerHTML = "GOD";
     GodButton.style.position = "absolute";
-    GodButton.style.top = "50%";
+    GodButton.style.top = "90%";
     GodButton.style.right = "10%";
     GodButton.style.zIndex = "2";
     GodButton.style.fontSize = "20px";
@@ -358,14 +370,14 @@ function initWebInterface() {
         askGod();
         //console.log("result", result);
     });
-    webInterfaceContainer.append(GodButton);
+    document.body.append(GodButton);
 
 
     //make a button in the upper right corner called "THANOS" that will remove many new objects
     let ThanosButton = document.createElement("button");
     ThanosButton.innerHTML = "THANOS";
     ThanosButton.style.position = "absolute";
-    ThanosButton.style.top = "50%";
+    ThanosButton.style.top = "90%";
     ThanosButton.style.left = "10%";
     ThanosButton.style.zIndex = "200";
     ThanosButton.style.fontSize = "20px";
@@ -376,7 +388,7 @@ function initWebInterface() {
 
     });
     ThanosButton.style.pointerEvents = "all";
-    webInterfaceContainer.append(ThanosButton);
+    document.body.append(ThanosButton);
 
     //make a text input field
     input_image_field = document.createElement("input");
@@ -395,7 +407,7 @@ function initWebInterface() {
     input_image_field.style.left = "50%";
     input_image_field.style.transform = "translate(-50%, -50%)";
     input_image_field.style.pointerEvents = "all";
-    webInterfaceContainer.append(input_image_field);
+    document.body.append(input_image_field);
 
 }
 
