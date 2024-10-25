@@ -24,18 +24,18 @@ export async function getDataFromProjectsAPI() {
     console.log("openAI_json", projects_json);
     for (let i = 0; i < projects_json.length; i++) {
 
+        let title = projects_json[i].project_name;
         let description = projects_json[i].description;
         let elevatorPitch = projects_json[i].elevatorPitch;
         let keywords = projects_json[i].keywords;
-        let title = projects_json[i].project_name;
         let tech = projects_json[i].techical_system;
         let user_scenario = projects_json[i].user_scenario;
         let image_url = "https://itp.nyu.edu" + projects_json[i].image;
 
         let prompt = description + " " + elevatorPitch + " " + keywords + " " + title + " " + tech + " " + user_scenario;
         console.log("prompt created", prompt, image_url);
-        await getImageEmbeddingB64IntoFirebase(prompt, image_url);
-    }   
+        await getEmbeddingB64IntoFirebase(prompt, image_url, title);
+    }
     // if (openAI_json.choices.length == 0) {
     //     //feedback.html("Something went wrong, try it again");
     //     return 0; 
@@ -64,15 +64,16 @@ export async function getDataFromProjectsAPI() {
 
 }
 
-async function getImageEmbeddingB64IntoFirebase(thisPrompt, imageURL) {
+async function getEmbeddingB64IntoFirebase(thisPrompt, imageURL, title) {
     let all = {}
-    let embedding = await askForEmbedding(thisPrompt);
-    all.embedding = embedding;
+    all.title = title;
+    all.text_embedding = await askForEmbedding(thisPrompt);
+    all.image_embedding = await askForImageEmbedding(imageURL);
     all.prompt = thisPrompt;
 
     //let imageURL = await askForPicture(thisPrompt);
-    let b64 = await convertURLToBase64(imageURL);
-    all.image = { base64Image: b64, url: imageURL };
+    let b64 = "none"; //await convertURLToBase64(imageURL);
+    all.image = { url: imageURL };  //base64Image: b64, 
     all.location = getPositionInFrontOfCamera();
     storeInFirebase(all);
 }
@@ -99,6 +100,39 @@ async function askForEmbedding(p_prompt) {
     let rawResponse = await fetch(url, options)
     let jsonData = await rawResponse.json();
     return jsonData.output[0].embedding;
+}
+
+
+async function askForImageEmbedding(prompt, imageURL) {
+    //let justBase64 = base64.split(",")[1];
+    const data = {
+        "version": "0383f62e173dc821ec52663ed22a076d9c970549c209666ac3db181618b7a304",
+        "input": {
+            "input": imageURL,
+            "modality": "vision"
+        },
+    };
+
+
+    feedback.innerHTML = "Waiting for reply from API...";
+    let url = replicateProxy + "/create_n_get/";
+    document.body.style.cursor = "progress";
+    console.log("Making a Fetch Request", data);
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: 'application/json',
+        },
+        body: JSON.stringify(data),
+    };
+    const raw_response = await fetch(url, options);
+    //turn it into json
+    const replicateJSON = await raw_response.json();
+    document.body.style.cursor = "auto";
+
+    console.log("replicateJSON", replicateJSON);
+    return replicateJSON.output;
 }
 
 

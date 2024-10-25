@@ -139,24 +139,20 @@ export function createObject(key, data) {
 
 
     let divster = document.createElement("div");
+    divster.innerHTML = "";
     divster.id = key;
     divster.style.position = "absolute";
     divster.className = "imageDivs";
+    divster.style.zIndex = 1;
+    divster.style.pointerEvents = "all";
+    divster.style.width = "256px";
+    divster.style.height = "256px";
     let imageElement = document.createElement("img");
     imageElement.src = image.base64Image;
-    imageElement.style.width = "10%";
-    imageElement.style.height = "10%";
-    let textElement = document.createElement("div");
-    textElement.innerHTML = text;
-    textElement.style.width = "25%";
-    textElement.style.height = "25%";
-    textElement.style.visibility = "hidden";
+    imageElement.style.width = "100%";
+    imageElement.style.height = "100%";
     divster.append(imageElement);
-    divster.append(textElement);
     document.body.append(divster);
-
-
-
 
 
     // divster.addEventListener("mouseover", function () {
@@ -167,23 +163,48 @@ export function createObject(key, data) {
     //     console.log("mouseout", this);
     //     this.style.zIndex = 1000;
     // });
-    divster.addEventListener("click", function () {
+
+    //FEATURE THIS ONE IN THE CENTER
+    divster.addEventListener("click", function (event) {
         console.log("clicked", this.id);
-        feature.innerHTML = this.innerHTML;
+        let obj;
+        for (let i = 0; i < objects.length; i++) {
+            obj = objects[i];
+            if (obj.key == this.id) {
+                console.log("found", obj);
+                break;
+            }
+        }
+        console.log("obj", obj);
+        let image = obj.image;
+        feature.innerHTML = "";
+        let imageElement = document.createElement("img");
+        imageElement.src = image.url;
+        feature.append(imageElement);
+        let textElement = document.createElement("div");
+        textElement.innerHTML = obj.prompt;
+        textElement.style.fontSize = "32px";
+        textElement.style.position = "absolute";
+        textElement.style.color = "white";
+        textElement.style.top = "0%";
+        textElement.style.left = "0%";
+        textElement.style.zIndex = 10;
+        textElement.style.pointerEvents = 'none';
+        feature.append(textElement);
+
+
+        //  feature.innerHTML = this.innerHTML;
         feature.style.display = "block";
-        feature.style.zIndex = 1000;
+        feature.style.zIndex = 10;
 
-        feature.style.fontSize = "20px";
-
-        feature.style.border = "5px solid white";
-        feature.style.width = "100%";
-        feature.style.height = "100%";
+        feature.style.width = "50%";
+        feature.style.height = "50%";
         feature.style.top = "50%";
         feature.style.left = "50%";
         feature.style.transform = "translate(-50%, -50%)";
         feature.style.position = "absolute";
-
-
+        feature.style.pointerEvents = 'none';
+        event.stopPropagation();
     });
 
 
@@ -343,24 +364,22 @@ function initWebInterface() {
     //show off pictures big when you double click on them
     feature = document.createElement("div");
     feature.id = "feature";
-    feature.style.zIndex = "5";
-    feature.style.width = "1024px";
-    feature.style.height = "1024px";
-    feature.style.position = "absolute";
-    feature.style.top = "50%";
-    feature.style.left = "50%";
-    feature.style.transform = "translate(-50%, -50%)";
+
     feature.style.display = "none";
-    //document.body.append(feature);
+    feature.style.pointerEvents = "none";
+    document.body.append(feature);
 
-
-
+    // Add event listener to make the feature element disappear when clicked
+    document.addEventListener("click", function () {
+        feature.style.display = "none";
+        console.log("clicked feature");
+    });
     //make a button in the upper right corner called "GOD" that will create many new objects\
     let GodButton = document.createElement("button");
     GodButton.innerHTML = "GOD";
     GodButton.style.position = "absolute";
     GodButton.style.top = "90%";
-    GodButton.style.right = "10%";
+    GodButton.style.right = "20%";
     GodButton.style.zIndex = "2";
     GodButton.style.fontSize = "20px";
     GodButton.style.color = "white";
@@ -368,7 +387,6 @@ function initWebInterface() {
     GodButton.style.pointerEvents = "all";
     GodButton.addEventListener("click", function () {
         askGod();
-        //console.log("result", result);
     });
     document.body.append(GodButton);
 
@@ -378,7 +396,7 @@ function initWebInterface() {
     ThanosButton.innerHTML = "THANOS";
     ThanosButton.style.position = "absolute";
     ThanosButton.style.top = "90%";
-    ThanosButton.style.left = "10%";
+    ThanosButton.style.left = "20%";
     ThanosButton.style.zIndex = "200";
     ThanosButton.style.fontSize = "20px";
     ThanosButton.style.color = "white";

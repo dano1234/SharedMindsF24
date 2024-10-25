@@ -41,7 +41,7 @@ export class Expressions extends VerletParticle2D {
         super(data.location.x, data.location.y, data.location.z);
         this.key = key;
         this.prompt = data.prompt;
-        this.embedding = data.embedding;
+        this.embedding = data.text_embedding;
         this.location = data.location;
         this.imageData = data.image;  //should probably rename in the database
 
@@ -51,7 +51,7 @@ export class Expressions extends VerletParticle2D {
         this.canvas.height = this.size;
         this.canvas.width = this.size;
         this.showText = false;
-        this.obeyPhysics = true;
+        this.obeyPhysics = false;
 
         this.create3DObject()
 
@@ -64,7 +64,17 @@ export class Expressions extends VerletParticle2D {
                 expression.image = incomingImage;
             };
             incomingImage.src = this.imageData.base64Image;
+        } else if (this.imageData.url) {
+            let incomingImage = new Image();
+            incomingImage.crossOrigin = "anonymous";
+            let expression = this;
+            incomingImage.onload = function () {
+                //console.log("loaded image", expression.prompt);
+                expression.image = incomingImage;
+            };
+            incomingImage.src = this.imageData.url;
         }
+
     }
     create3DObject() {
         this.texture = new THREE.Texture(this.canvas);

@@ -49,7 +49,9 @@ export function findClosest(toWhere) {
 }
 
 function runUMAP(data) {
+
     let embeddingsAndPrompts = data;
+    //console.log("embeddingsAndPrompts", embeddingsAndPrompts);
     // console.log("embeddingsAndPrompts", embeddingsAndPrompts);
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
@@ -66,6 +68,7 @@ function runUMAP(data) {
         spread: .1,
         //distanceFn: 'cosine',
     });
+    //console.log("embeddings", embeddings);
     let fittings = umap.fit(embeddings);
     fittings = normalize(fittings);  //normalize to 0-1
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
@@ -84,9 +87,9 @@ export function createLocally(key, data) {
     let newObject = new Expressions(key, data);
     byFirebase[key] = newObject;
     byUUID[newObject.mesh.uuid] = newObject;
-    if (newObject.key == localKey && object.image == null) {
-        askForPicture(data.prompt, object.key);
-    }
+    // if (newObject.key == localKey && object.image == null) {
+    //     askForPicture(data.prompt, object.key);
+    // }
     scene.add(newObject.mesh);
     hitTestableThings.push(newObject.mesh);//make a list for the raycaster to check for intersection
     //leave the image null formesh, "uuid": mesh.uuid, "texture": texture, "text": text, "show_text": false, "context": ctx, "image": null, "canvas": canvas }; now
