@@ -5,50 +5,16 @@
         (async () => {
             const response = await fetch('https://api.github.com/repos/dano1234/SharedMindsF24/contents/');
             const data = await response.json();
-            console.log('dataeeeee', data);
+            console.log('data', data);
 
+            let htmlString = '<ul>';
 
-            async function fetchDirectoryContents(path) {
-                const response = await fetch(`https://api.github.com/repos/dano1234/SharedMindsF24/contents/${path}`);
-                return await response.json();
+            for (let file of data) {
+                htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
             }
 
-            async function processDirectory(path) {
-                const contents = await fetchDirectoryContents(path);
-                let htmlString = '';
-
-                for (let item of contents) {
-                    if (item.type === 'dir') {
-                        htmlString += `<li>${item.name}<ul>${await processDirectory(item.path)}</ul></li>`;
-                    } else {
-                        const githubLink = `https://github.com/dano1234/SharedMindsF24/blob/main/${item.path}`;
-                        const githubPagesLink = `https://dano1234.github.io/SharedMindsF24/${item.path}`;
-                        htmlString += `<li><a href="${githubLink}">${item.name}</a> - <a href="${githubPagesLink}">Live</a>`;
-
-                        if (item.name.endsWith('.md')) {
-                            const fileResponse = await fetch(item.download_url);
-                            const fileContent = await fileResponse.text();
-                            const excerpt = fileContent.split('\n').slice(0, 5).join(' ');
-                            htmlString += ` - <a href="${githubLink}">Excerpt</a>: ${excerpt}`;
-                        }
-
-                        htmlString += `</li>`;
-                    }
-                }
-
-                return htmlString;
-            }
-
-            let htmlString = '<ul>' + await processDirectory('') + '</ul>';
+            htmlString += '</ul>';
             document.getElementsByTagName('body')[0].innerHTML = htmlString;
-            // let htmlString = '<ul>';
-
-            // for (let file of data) {
-            //     htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
-            // }
-
-            // htmlString += '</ul>';
-            // document.getElementsByTagName('body')[0].innerHTML = htmlString;
         })()
     </script>
 
