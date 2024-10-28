@@ -172,7 +172,7 @@ async function convertURLToBase64(url) {
     var incomingImage = new Image();
     incomingImage.crossOrigin = "anonymous";
     incomingImage.src = url;
-    await incomingImage.decode();
+    //await incomingImage.decode();
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     canvas.height = incomingImage.height;
