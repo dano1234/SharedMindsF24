@@ -11,7 +11,7 @@
             const data = await response.json();
             console.log('datarec', data);
 
-            let htmlString = '<ul>';
+            htmlString += '<ul>';
 
             for (let file of data) {
                 if (file.name.charAt(0) === '.') {
