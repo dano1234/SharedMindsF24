@@ -17,7 +17,7 @@
                 if (file.name.charAt(0) === '.') {
                     continue;
                 }
-                htmlString += `<li><a href="${file1.path}">${file1.name}</a></li>`;
+                htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
                 if (!file.download_url) {
                     digInDirectory(file.url, htmlString);
                 }
