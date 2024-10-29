@@ -27,7 +27,7 @@
                 }
                 htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
                 if (!file.download_url) {
-                    htmlString += `<li><a href="javascript:digInDirectory(${file.url}, ${htmlString})">NextLevel</a></li>`;
+                    htmlString += `<li><a href="javascript:digInDirectory(${file.url},${htmlString})">NextLevel</a></li>`;
 
                     //     digInDirectory(file.url, htmlString);
                 }
