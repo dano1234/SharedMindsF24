@@ -27,16 +27,16 @@
                 }
                 htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
                 if (!file.download_url) {
-                    htmlString += `<li><a href="javascript:digInDirectory(${file.url},${htmlString})">NextLevel</a></li>`;
+                    htmlString += `<li><a href="javascript:digInDirectory(${file.url},${htmlString});">NextLevel</a></li>`;
 
                     //     digInDirectory(file.url, htmlString);
                 }
             }
             htmlString += '</ul>';
             console.log('htmlString', htmlString);
-            document.body.innerHTML = htmlString;
-        }
 
+        }
+        document.body.innerHTML = htmlString;
         digInDirectory('https://api.github.com/repos/dano1234/SharedMindsF24/contents/', htmlString);
         console.log('htmlString', htmlString);
 
