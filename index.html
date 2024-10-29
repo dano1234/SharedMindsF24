@@ -6,18 +6,18 @@
 <body>
     <script>
         let htmlString = '';
-        let myAccessToken = getAccessToken();
+        //let myAccessToken = getAccessToken();
         async function digInDirectory(dir, htmlString) {
-            let options = {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json'
-                        `Authorization: Bearer {$myAccessToken}`
-                }
-            };
+            // let options = {
+            //     method: 'GET',
+            //     headers: {
+            //         'Accept': 'application/vnd.github.v3+json'
+            //             `Authorization: Bearer {$myAccessToken}`
+            //     }
+            // };
             const response = await fetch(dir);
             const data = await response.json();
-            console.log('datalinker', data);
+            console.log('datalinkernoauth', data);
 
             htmlString += '<ul>';
 
