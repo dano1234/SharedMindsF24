@@ -34,11 +34,12 @@
             }
             htmlString += '</ul>';
             console.log('htmlString', htmlString);
+            document.body.innerHTML = htmlString;
         }
 
         digInDirectory('https://api.github.com/repos/dano1234/SharedMindsF24/contents/', htmlString);
         console.log('htmlString', htmlString);
-        document.body.innerHTML = htmlString;
+
         //document.getElementsByTagName('body').innerHTML = htmlString;
         // (async () => {
         //     const response = await fetch('https://api.github.com/repos/dano1234/SharedMindsF24/contents/');
