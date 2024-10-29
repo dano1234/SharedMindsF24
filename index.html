@@ -5,11 +5,19 @@
 
 <body>
     <script>
-
+        let htmlString = '';
+        let myAccessToken = getAccessToken();
         async function digInDirectory(dir, htmlString) {
+            let options = {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json'
+                        `Authorization: Bearer {$myAccessToken}`
+                }
+            };
             const response = await fetch(dir);
             const data = await response.json();
-            console.log('datalink', data);
+            console.log('datalinker', data);
 
             htmlString += '<ul>';
 
@@ -25,8 +33,9 @@
                 }
             }
             htmlString += '</ul>';
+            console.log('htmlString', htmlString);
         }
-        let htmlString = '';
+
         digInDirectory('https://api.github.com/repos/dano1234/SharedMindsF24/contents/', htmlString);
         console.log('htmlString', htmlString);
         document.getElementsByTagName('body').innerHTML = htmlString;
@@ -60,6 +69,12 @@
         //     htmlString += '</ul>';
         //     document.getElementsByTagName('body')[0].innerHTML = htmlString;
         // })()
+        async function getAccessToken() {
+            const response = await fetch('.env');
+            const text = await response.text();
+            const token = text.match(/GITHUB_ACCESS_TOKEN=(.*)/)[1];
+            return token;
+        }
     </script>
 
     <body>
