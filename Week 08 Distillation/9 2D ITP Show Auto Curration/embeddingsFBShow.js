@@ -19,25 +19,88 @@ initWebInterface();
 initFirebase("2D ITP Show UMAPFirebase", "imagesAndEmbeddings");
 
 
+async function getDataFromProjectsAPI() {
+    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
+    document.body.style.cursor = "progress";
+    // // feedback.html("Waiting for reply from OpenAi...");
+    let url = "https://itp.nyu.edu/projects/public/projectsJSON_ALL.php?venue_id=204";
+
+    console.log("Asking info from project Database");
+    let options = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+    };
+
+    const response = await fetch(url, options);
+    console.log("words_response", response);
+    const projects_json = await response.json();
+    console.log("openAI_json", projects_json);
+    for (let i = 0; i < projects_json.length; i++) {
+
+        let title = projects_json[i].project_name;
+        let project_id = projects_json[i].project_id;
+        let description = projects_json[i].description;
+        let elevatorPitch = projects_json[i].elevatorPitch;
+        let keywords = projects_json[i].keywords;
+        let tech = projects_json[i].techical_system;
+        let user_scenario = projects_json[i].user_scenario;
+        let instructors = projects_json[i].instructors.join(", ");
+        let image_url = "https://itp.nyu.edu" + projects_json[i].image;
+
+        let prompt = description + " " + elevatorPitch + " " + keywords + " " + title + " " + tech + " " + user_scenario + " " + instructors;
+        console.log("prompt created", prompt, image_url);
+        //base64Image: b64, 
+        let imageEmbedding = await askForImageEmbedding(prompt, image_url);
+        let embedding = await askForEmbedding(prompt);
+        let all = {}
+        all.title = title;
+        all.imageEmbedding = imageEmbedding;
+        all.project_id = project_id;
+        all.embedding = embedding;
+        all.prompt = prompt;
+        all.image = { url: image_url };
+        storeInFirebase(all);
+    }
+
+    document.body.style.cursor = "auto";
+
+}
+
 document.addEventListener("mousemove", function (event) {
-    console.log("mouse moved");
+
     for (let i = 0; i < objects.length; i++) {
         let obj = objects[i];
         let thisDiv = document.getElementById(obj.key);
         if (event.clientX > thisDiv.offsetLeft && event.clientX < thisDiv.offsetLeft + thisDiv.offsetWidth &&
             event.clientY > thisDiv.offsetTop && event.clientY < thisDiv.offsetTop + thisDiv.offsetHeight) {
-            console.log("hovering over", obj.title);
+            //console.log("hovering over", obj.title);
         }
     }
 });
 
 
-function runUMAP(data) {
+function runUMAP(data, embeddingType) {
     let embeddingsAndPrompts = data;
     //comes back with a list of embeddings and prompts, single out the embeddings for UMAP
     let embeddings = [];
     for (let i = 0; i < embeddingsAndPrompts.length; i++) {
-        embeddings.push(embeddingsAndPrompts[i].embedding);
+        if (embeddingType == "text") {
+            embeddings.push(embeddingsAndPrompts[i].embedding);
+        } else if (embeddingType == "image") {
+            if (!embeddingsAndPrompts[i].imageEmbedding) {
+                console.log("no image embedding", embeddingsAndPrompts[i]);
+                let fakeImageEmbedding = [];
+                for (let j = 0; j < 1024; j++) {
+                    fakeImageEmbedding.push([0, 0]);
+                }
+                embeddingsAndPrompts[i].imageEmbedding = fakeImageEmbedding;
+            }
+            // console.log("image embedding", embeddingsAndPrompts[i].imageEmbedding, embeddingsAndPrompts[i].imageEmbedding.length);
+            embeddings.push(embeddingsAndPrompts[i].imageEmbedding);
+        }
     }
     //let fittings = runUMAP(embeddings);
     var repeatableRandomNumberFunction = new Math.seedrandom('hello.');
@@ -132,10 +195,10 @@ function removeObject(key, data) {
         }
     }
 
-    if (objects.length > 6) {
-        console.log(objects);
-        runUMAP(objects)
-    }
+    // if (objects.length > 6) {
+    //     console.log(objects);
+    //     runUMAP(objects)
+    // }
 }
 
 
@@ -185,7 +248,7 @@ export function createObject(key, data) {
     //     this.style.zIndex = 1000;
     // });
 
-    //FEATURE THIS ONE IN THE CENTER
+
     divster.addEventListener("click", function (event) {
         console.log("clicked", this.id);
         let obj;
@@ -193,42 +256,44 @@ export function createObject(key, data) {
             obj = objects[i];
             if (obj.key == this.id) {
                 console.log("found", obj);
+                window.open("https://itp.nyu.edu/shows/spring2024/projects/#" + obj.project_id);
                 break;
             }
         }
-        console.log("obj", obj);
-        let image = obj.image;
-        feature.innerHTML = "";
-        let imageElement = document.createElement("img");
-        imageElement.src = image.url;
-        imageElement.style.width = "256px";
-        imageElement.style.height = "256px";
-        feature.append(imageElement);
-        let textElement = document.createElement("div");
-        textElement.innerHTML = obj.prompt;
-        textElement.style.fontSize = "12px";
-        textElement.style.position = "absolute";
-        textElement.style.color = "white";
-        textElement.style.textShadow = "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 0 0 #000, 0 2px 0 #000, -2px 0 0 #000, 0 -2px 0 #000";
 
-        textElement.style.top = "0%";
-        textElement.style.left = "0%";
-        textElement.style.zIndex = 10;
-        textElement.style.pointerEvents = 'none';
-        feature.append(textElement);
+        // console.log("obj", obj);
+        // let image = obj.image;
+        // feature.innerHTML = "";
+        // let imageElement = document.createElement("img");
+        // imageElement.src = image.url;
+        // imageElement.style.width = "256px";
+        // imageElement.style.height = "256px";
+        // feature.append(imageElement);
+        // let textElement = document.createElement("div");
+        // textElement.innerHTML = obj.prompt;
+        // textElement.style.fontSize = "12px";
+        // textElement.style.position = "absolute";
+        // textElement.style.color = "white";
+        // textElement.style.textShadow = "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 0 0 #000, 0 2px 0 #000, -2px 0 0 #000, 0 -2px 0 #000";
+
+        // textElement.style.top = "0%";
+        // textElement.style.left = "0%";
+        // textElement.style.zIndex = 10;
+        // textElement.style.pointerEvents = 'none';
+        // feature.append(textElement);
 
 
-        //  feature.innerHTML = this.innerHTML;
-        feature.style.display = "block";
-        feature.style.zIndex = 10;
+        // //  feature.innerHTML = this.innerHTML;
+        // feature.style.display = "block";
+        // feature.style.zIndex = 10;
 
-        feature.style.width = "256px";
-        feature.style.height = "256px";
-        feature.style.top = "50%";
-        feature.style.left = "50%";
-        feature.style.transform = "translate(-50%, -50%)";
-        feature.style.position = "absolute";
-        feature.style.pointerEvents = 'none';
+        // feature.style.width = "256px";
+        // feature.style.height = "256px";
+        // feature.style.top = "50%";
+        // feature.style.left = "50%";
+        // feature.style.transform = "translate(-50%, -50%)";
+        // feature.style.position = "absolute";
+        // feature.style.pointerEvents = 'none';
         event.stopPropagation();
     });
 
@@ -244,75 +309,6 @@ export function createObject(key, data) {
 
 }
 
-
-
-export async function getDataFromProjectsAPI() {
-    let text = "give me a json object with 36 prompts  for stable diffusion image generation organized into 6 themes"
-    document.body.style.cursor = "progress";
-    // // feedback.html("Waiting for reply from OpenAi...");
-    let url = "https://itp.nyu.edu/projects/public/projectsJSON_ALL.php?venue_id=204";
-
-    console.log("Asking info from project Database");
-    let options = {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-        },
-    };
-
-    const response = await fetch(url, options);
-    console.log("words_response", response);
-    const projects_json = await response.json();
-    console.log("openAI_json", projects_json);
-    for (let i = 0; i < projects_json.length; i++) {
-
-        let title = projects_json[i].project_name;
-        let description = projects_json[i].description;
-        let elevatorPitch = projects_json[i].elevatorPitch;
-        let keywords = projects_json[i].keywords;
-        let tech = projects_json[i].techical_system;
-        let user_scenario = projects_json[i].user_scenario;
-        let image_url = "https://itp.nyu.edu" + projects_json[i].image;
-
-        let prompt = description + " " + elevatorPitch + " " + keywords + " " + title + " " + tech + " " + user_scenario;
-        console.log("prompt created", prompt, image_url);
-        //base64Image: b64, 
-        let embedding = await askForEmbedding(prompt);
-        let all = {}
-        all.title = title;
-        all.embedding = embedding;
-        all.prompt = prompt;
-        all.image = { url: image_url };
-        storeInFirebase(all);
-    }
-    // if (openAI_json.choices.length == 0) {
-    //     //feedback.html("Something went wrong, try it again");
-    //     return 0; 
-    // } else {
-    //     let prompts = [];
-    //     for (let i = 0; i < openAI_json.choices.length; i++) {
-    //         prompts.push(openAI_json.choices[i].text);
-    //     }
-    //     //let promptsArray = prompts.split("\n");
-    //     for (let i = 0; i < prompts.length; i++) {
-
-    //         let prompt = prompts[i];
-    //         if (prompt.length < 30) {
-    //             continue;
-    //         }
-    //         prompt = prompt.slice(2).trim();
-    //         //place is some random place for now
-    //         lon = Math.random() * 360 - 180;
-    //         lat = Math.random() * 60 - 30;
-    //         computeCameraOrientation();
-    //         console.log("prompt created", prompt);
-    //         await getImageEmbeddingB64IntoFirebase(prompt);
-    //     }
-    // }
-    document.body.style.cursor = "auto";
-
-}
 
 
 async function askForPicture(text) {
@@ -391,19 +387,19 @@ function initWebInterface() {
     document.body.append(feedback);
     // document.body.append(feedback);
 
-    //show off pictures big when you double click on them
-    feature = document.createElement("div");
-    feature.id = "feature";
+    // //show off pictures big when you double click on them
+    // feature = document.createElement("div");
+    // feature.id = "feature";
 
-    feature.style.display = "none";
-    feature.style.pointerEvents = "none";
-    document.body.append(feature);
+    // feature.style.display = "none";
+    // feature.style.pointerEvents = "none";
+    // document.body.append(feature);
 
     // Add event listener to make the feature element disappear when clicked
-    document.addEventListener("click", function () {
-        feature.style.display = "none";
-        console.log("clicked feature");
-    });
+    // document.addEventListener("click", function () {
+    //     feature.style.display = "none";
+    //     console.log("clicked feature");
+    // });
     //make a button in the upper right corner called "GOD" that will create many new objects\
     let GodButton = document.createElement("button");
     GodButton.innerHTML = "GOD";
@@ -422,7 +418,7 @@ function initWebInterface() {
 
 
     let UMAPButton = document.createElement("button");
-    UMAPButton.innerHTML = "UMAP";
+    UMAPButton.innerHTML = "UMAP Text";
     UMAPButton.style.position = "absolute";
     UMAPButton.style.top = "20%";
     UMAPButton.style.left = "20%";
@@ -431,10 +427,25 @@ function initWebInterface() {
     UMAPButton.style.color = "white";
     UMAPButton.style.backgroundColor = "black";
     UMAPButton.addEventListener("click", function () {
-        runUMAP(objects);
+        runUMAP(objects, "text");
     });
     UMAPButton.style.pointerEvents = "all";
     document.body.append(UMAPButton);
+
+    let UMAPButtonImage = document.createElement("button");
+    UMAPButtonImage.innerHTML = "UMAP Image";
+    UMAPButtonImage.style.position = "absolute";
+    UMAPButtonImage.style.top = "20%";
+    UMAPButtonImage.style.left = "40%";
+    UMAPButtonImage.style.zIndex = "2";
+    UMAPButtonImage.style.fontSize = "20px";
+    UMAPButtonImage.style.color = "white";
+    UMAPButtonImage.style.backgroundColor = "black";
+    UMAPButtonImage.addEventListener("click", function () {
+        runUMAP(objects, "image");
+    });
+    UMAPButtonImage.style.pointerEvents = "all";
+    document.body.append(UMAPButtonImage);
 
 
     //make a button in the upper right corner called "THANOS" that will remove many new objects
@@ -500,6 +511,7 @@ async function askForEmbedding(p_prompt) {
     let rawResponse = await fetch(url, options)
     let jsonData = await rawResponse.json();
     // return jsonData.output[0].embedding;
+    //console.log("image embedding response", jsonData.output);
     return jsonData.output;
 }
 
