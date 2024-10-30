@@ -62,6 +62,29 @@
                                 continue;
                             }
                             htmlString += `<li><a href="${file1.path}">${file1.name}</a></li>`;
+
+
+                            if (!file1.download_url) {
+                                const response2 = await fetch(file1.url);
+                                const data2 = await response2.json();
+                                htmlString += '<ul>';
+                                for (let file2 of data2) {
+                                    if (file2.name.charAt(0) === '.') {
+                                        continue;
+                                    }
+                                    htmlString += `<li><a href="${file2.path}">${file2.name}</a></li>`;
+                                }
+                                htmlString += '</ul>';
+                            } else {
+                                htmlString += `<li><a href="${file1.download_url}">Click</a></li>`;
+                            }
+
+
+
+
+
+
+
                         }
                         htmlString += '</ul>';
                     } else {
