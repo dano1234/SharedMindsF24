@@ -56,6 +56,7 @@
                     if (!file.download_url) {
                         const response1 = await fetch(file.url, options);
                         const data1 = await response1.json();
+                        console.log('dataccd', data1);
                         htmlString += '<ul>';
                         for (let file1 of data1) {
                             if (file1.name.charAt(0) === '.') {
@@ -67,6 +68,7 @@
                             if (!file1.download_url) {
                                 const response2 = await fetch(file1.url, options);
                                 const data2 = await response2.json();
+                                console.log('dataccd', data2);
                                 htmlString += '<ul>';
                                 for (let file2 of data2) {
                                     if (file2.name.charAt(0) === '.') {
