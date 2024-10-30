@@ -64,6 +64,8 @@
                             htmlString += `<li><a href="${file1.path}">${file1.name}</a></li>`;
                         }
                         htmlString += '</ul>';
+                    } else {
+                        htmlString += `<li><a href="${file.download_url}">Click</a></li>`;
                     }
 
                 }
