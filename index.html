@@ -16,6 +16,9 @@
                 }
             }
 
+
+
+
             const response = await fetch(dir, options);
             const data = await response.json();
             console.log('dataccd', data);
@@ -26,7 +29,14 @@
                 if (file.name.charAt(0) === '.') {
                     continue;
                 }
-                htmlString += `<li><a href="${file.name}">${file.name}</a>, <a href="${githubPagesRoot}${file.path}">live</a></li>`;
+                let liveLink = "";
+                if (onlyHTML && file.name.includes('html') && file.download_url) {
+                    if (!file.name.includes('html')) continue;
+                    liveLink = `, <a href="${githubPagesRoot}${file.path}">live</a>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
+                }
+                htmlString += `<li><a href="${file._links.html}">${file.name}</a>${liveLink}</li>`;
+
+                //htmlString += `<li><a href="${file.name}">${file.name}</a>, <a href="${githubPagesRoot}${file.path}">live</a></li>`;
                 if (!file.download_url) {
                     const response1 = await fetch(file.url, options);
                     const data1 = await response1.json();
@@ -36,7 +46,15 @@
                         if (file1.name.charAt(0) === '.') {
                             continue;
                         }
-                        htmlString += `<li><a href="${file1._links.html}">${file1.name}</a>, <a href="${githubPagesRoot}${file1.path}">live</a></li>`;
+                        let liveLink = "";
+                        if (onlyHTML && file1.name.includes('html') && file1.download_url) {
+                            if (!file1.name.includes('html')) continue;
+                            liveLink = `, <a href="${githubPagesRoot}${file1.path}">live</a>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
+                        }
+                        htmlString += `<li><a href="${file1._links.html}">${file1.name}</a>${liveLink}</li>`;
+
+
+                        //htmlString += `<li><a href="${file1._links.html}">${file1.name}</a>, <a href="${githubPagesRoot}${file1.path}">live</a></li>`;
 
                         if (!file1.download_url) {
                             const response2 = await fetch(file1.url, options);
@@ -47,10 +65,38 @@
                                 if (file2.name.charAt(0) === '.') {
                                     continue;
                                 }
-                                let liveLink = `, <a href="${githubPagesRoot}${file2.path}">live</a>`;
-                                if (onlyHTML && file2.name.includes('html') && file2.download_url) {
-                                    htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
+                                let liveLink = "";
+                                if (onlyHTML && file2.download_url) {
+                                    if (!file2.name.includes('html')) continue;
+                                    liveLink = `, <a href="${githubPagesRoot}${file2.path}">live</a>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
                                 }
+                                htmlString += `<li><a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;
+
+                                if (!file2.download_url) {
+                                    const response3 = await fetch(file2.url, options);
+                                    const data3 = await response3.json();
+                                    console.log('dataccd', data2);
+                                    htmlString += '<ul>';
+                                    for (let file3 of data3) {
+                                        if (file3.name.charAt(0) === '.') {
+                                            continue;
+                                        }
+                                        let liveLink = "";
+                                        if (onlyHTML && file3.download_url) {
+                                            if (!file3.name.includes('html')) continue;
+                                            liveLink = `, <a href="${githubPagesRoot}${file3.path}">live</a>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
+                                        }
+                                        htmlString += `<li><a href="${file3._links.html}">${file3.name}</a>${liveLink}</li>`;
+                                    }
+                                    htmlString += '</ul>';
+                                    // } else {
+                                    //htmlString += `<li><a href="${githubPagesRoot}${file1.download_url}">Click</a></li>`;
+                                }
+
+
+
+
+
                             }
                             htmlString += '</ul>';
                             // } else {
