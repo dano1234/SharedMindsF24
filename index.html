@@ -27,21 +27,23 @@
                     continue;
                 }
                 let liveLink = "";
-                if (onlyHTML && file.download_url) {
+                if (file.download_url) {
                     if (!file.name.includes('html')) continue;
                     htmlString = htmlString.slice(0, -10);
                     liveLink = `<a href="${githubPagesRoot}${file.path}">live</a></li>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
                     htmlString += `<a href="${file._links.html}"></a>  -- ${liveLink}`;
+                    htmlString += '<ul>';
                 } else {
                     htmlString += `<li><a href="${file._links.html}">${file.name}</a>${liveLink}</li>`;
+                    await digInDirectory(file.url, githubPagesRoot);
                 }
 
                 //htmlString += `<li><a href="${file.name}">${file.name}</a>, <a href="${githubPagesRoot}${file.path}">live</a></li>`;
-                if (!file.download_url) {
-                    await digInDirectory(file.url, githubPagesRoot);
-                } else {
-                    htmlString += '<ul>';
-                }
+                // if (!file.download_url) {
+                //     await digInDirectory(file.url, githubPagesRoot);
+                // } else {
+                //     htmlString += '<ul>';
+                // }
             }
             htmlString += '</ul>';
             document.body.innerHTML = htmlString;
