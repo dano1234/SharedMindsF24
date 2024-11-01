@@ -4,48 +4,23 @@
 <link rel="icon" href="#">
 
 <body>
+    <H1>This Takes a Long Time to Load...</H1>
     <script>
-        let htmlString = '';
-        let onlyHTML = true;
-        async function digInDirectory(dir, githubPagesRoot) {
-            let options = {
-                method: 'GET',
-                headers: {
-                    "Accept": "application/vnd.github.v3+json",
-                    "Authorization": "Bearer "
-                }
-            }
-            const response = await fetch(dir, options);
-            const data = await response.json();
-            console.log('data', data);
+        //moved to glitch proxy to insert git access token, code in file indexMovedToGlitch.html
+        let query = "gitURL=https://api.github.com/repos/dano1234/SharedMindsF24/contents/&pagesRoot=https://dano1234.github.io/SharedMindsF24/";
+        const url = "https://getgit.glitch.me/getGit/?" + query
+        console.log('url', url);
+        async function fetchDirectoryContents() {
 
-            htmlString += '<ul>';
-            for (let file of data) {
-                if (file.name.charAt(0) === '.' || (file.download_url && !file.name.includes('html'))) {
-                    continue;
-                }
-                let liveLink = "";
-                if (file.download_url) {
-                    if (!file.name.includes('html')) continue;
-                    htmlString = htmlString.slice(0, -10);
-                    liveLink = `<a href="${githubPagesRoot}${file.path}">live</a></li>`;    //htmlString += `<li>, <a href="${file2._links.html}">${file2.name}</a>${liveLink}</li>`;// <a href="${githubPagesRoot}${file2.path}">live</a>
-                    htmlString += `<a href="${file._links.html}"></a>  -- ${liveLink}`;
-                    htmlString += '<ul>';
-                } else {
-                    htmlString += `<li><a href="${file._links.html}">${file.name}</a>${liveLink}</li>`;
-                    await digInDirectory(file.url, githubPagesRoot);
-                }
+            let response = await fetch(url)
+            let data = await response.json();
 
-            }
-            htmlString += '</ul>';
-            document.body.innerHTML = htmlString;
-
-
+            console.log('htmlString', data.htmlString);
+            document.body.innerHTML = data.htmlString;
         }
-        digInDirectory('https://api.github.com/repos/dano1234/SharedMindsF24/contents/', "https://dano1234.github.io/SharedMindsF24/");
+        fetchDirectoryContents();
 
     </script>
-
-    <body>
+</body>
 
 </html>
