@@ -14,136 +14,185 @@ let predictions = [];
 var line;
 var count = 0;
 var mouse = new THREE.Vector3();
+let raycaster
+let selectedObject = null;
 
-init();
-animate();
+
+//animate();
 
 
 
 //FROM EXAMPLE https://jsfiddle.net/wilt/a21ey9y6/
 function initLine() {
 
-  // geometry
-  var geometry = new THREE.BufferGeometry();
-  var MAX_POINTS = 500;
-  positions = new Float32Array(MAX_POINTS * 3);
-  geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // geometry
+    var geometry = new THREE.BufferGeometry();
+    var MAX_POINTS = 500;
+    positions = new Float32Array(MAX_POINTS * 3);
+    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  // material
-  var material = new THREE.LineBasicMaterial({
-    color: 0xff0000,
-    linewidth: 2
-  });
+    // material
+    var material = new THREE.LineBasicMaterial({
+        color: 0xff0000,
+        linewidth: 2
+    });
 
-  // line
-  line = new THREE.Line(geometry, material);
-  scene.add(line);
+    // line
+    line = new THREE.Line(geometry, material);
+    scene.add(line);
 
 }
 
 // update line
 function updateLine() {
-  positions[count * 3 - 3] = mouse.x;
-  positions[count * 3 - 2] = mouse.y;
-  positions[count * 3 - 1] = mouse.z;
-  line.geometry.attributes.position.needsUpdate = true;
+    positions[count * 3 - 3] = mouse.x;
+    positions[count * 3 - 2] = mouse.y;
+    positions[count * 3 - 1] = mouse.z;
+    line.geometry.attributes.position.needsUpdate = true;
 }
 
 // mouse move handler
 function onMouseMove(event) {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  mouse.z = 0;
-  mouse.unproject(camera);
-  if( count !== 0 ){
-  	updateLine();
-  }
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    mouse.z = 0;
+    mouse.unproject(camera);
+    if (count !== 0) {
+        updateLine();
+    }
 }
 
 // add point
-function addPoint(event){
-  console.log("point nr " + count + ": " + mouse.x + " " + mouse.y + " " + mouse.z);
-  positions[count * 3 + 0] = mouse.x;
-  positions[count * 3 + 1] = mouse.y;
-  positions[count * 3 + 2] = mouse.z;
-  count++;
-  line.geometry.setDrawRange(0, count);
-  updateLine();
+function addPoint(event) {
+    console.log("point nr " + count + ": " + mouse.x + " " + mouse.y + " " + mouse.z);
+    positions[count * 3 + 0] = mouse.x;
+    positions[count * 3 + 1] = mouse.y;
+    positions[count * 3 + 2] = mouse.z;
+    count++;
+    line.geometry.setDrawRange(0, count);
+    updateLine();
 }
 
 // mouse down handler
 function onMouseDown(evt) {
-  // on first click add an extra point
-  if( count === 0 ){
-      addPoint();
-  }
-  addPoint();
+    // on first click add an extra point
+    if (count === 0) {
+        addPoint();
+    }
+    addPoint();
 }
+function preload() {
+    // Load the handPose model
+    handPose = ml5.handPose();
+}
+
 
 function setup() {
     video = createCapture(VIDEO);
-    video.size(640,480);
+    video.size(640, 480);
+    video.hide();
     // Create a new handpose method
-    const handpose = ml5.handpose(video, modelLoaded);
-    // Listen to new 'predict' events
-    handpose.on('predict', results => {
-        predictions = results;
-        //console.log(results);
-        if (results.length > 0 && results[0].handInViewConfidence > 0.8){
-        let left = results[0].boundingBox.topLeft[0];
-        let top = results[0].boundingBox.topLeft[1];
-        let right = results[0].boundingBox.bottomRight[0];
-        let bottom = results[0].boundingBox.bottomRight[1];
-        let centerx = parseInt(left + (right-left)/2);
-        let centery = parseInt(top + (bottom-top)/2);
-        let thumbx = results[0].annotations.thumb[3][0];
-        let thumby = results[0].annotations.thumb[3][1];
-        let awayFromCenter = dist(thumbx,thumby,centerx,centery);
-        //let tallerThanWide = (bottom-top)/(right-left);
-        let openHand = false;
-        if(awayFromCenter > 100) openHand = true;
-        let x = map(centerx, 0,video.width, 1, -1); //turn 0-640 to -320 to 320 
-        let y = map(centery, 0,video.height, 1, -1); //turn 0-640 to -320 to 320 
+    //handPose.detectStart(video, gotHands);
+    raycaster = new THREE.Raycaster(); // create once
+    handPose.detectStart(video, gotHands)
+}
+
+function draw() {
+    // Draw the video
+}
+
+
+// Listen to new 'predict' events
+function gotHands(results) {
+
+    predictions = results;
+    // if (results.length > 0) console.log(results[0].confidence);
+
+    if (results.length > 0 && results[0].confidence > 0.5) {
+        let indexX = results[0].index_finger_tip.x;
+        let indexY = results[0].index_finger_tip.y;
+        let thumbX = results[0].thumb_tip.x;
+        let thumbY = results[0].thumb_tip.y;
+        let distanceBetweenFingers = dist(indexX, indexY, thumbX, thumbY);
+        let pinched = false;
+        //console.log(distanceBetweenFingers);
+        if (distanceBetweenFingers < 50) {
+            pinched = true;
+        }
+
+        // let left = results[0].boundingBox.topLeft[0];
+        // let top = results[0].boundingBox.topLeft[1];
+        // let right = results[0].boundingBox.bottomRight[0];
+        // let bottom = results[0].boundingBox.bottomRight[1];
+        // let centerx = parseInt(left + (right - left) / 2);
+        // let centery = parseInt(top + (bottom - top) / 2);
+        // let thumbx = results[0].annotations.thumb[3][0];
+        // let thumby = results[0].annotations.thumb[3][1];
+        // let awayFromCenter = dist(thumbx, thumby, centerx, centery);
+        // //let tallerThanWide = (bottom-top)/(right-left);
+        // let openHand = false;
+        // if (awayFromCenter > 100) openHand = true;
+
+        // let mouse = {};
+        // mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+        // mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+        // raycaster.setFromCamera(mouse, camera);
+
+
+
+        let x = map(indexX, 0, video.width, 1, -1); //turn 0-640 to -320 to 320 
+        let y = map(indexY, 0, video.height, 1, -1); //turn 0-640 to -320 to 320 
         var mouse = { "x": x, "y": y };
-        var raycaster = new THREE.Raycaster(); // create once
-        raycaster.near = 10;
-        raycaster.far = 1000;
-        raycaster.setFromCamera(mouse, camera3D);
-        var intersects = raycaster.intersectObjects(hitTestableOjects, false);
-        handProxy.position.x = x* 100;
-        handProxy.position.y = y* 100;
-      //  console.log( handProxy.position);
-        if(intersects.length > 0){
-         
-             if (openHand == false){
-                console.log(intersects[0]);
+
+        handProxy.position.x = x * 100;
+        handProxy.position.y = y * 100;
+        //  console.log( handProxy.position);
+        if (pinched) {
+            handProxy.material.color.setHex(0x00ff00);
+            if (selectedObject == null) {
+                console.log("pinched and cast");
+                var mouse = { "x": 0, "y": 0 };
+                //mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
+                //mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
+                //raycaster.near = 10;
+                //raycaster.far = 1000;
+                raycaster.setFromCamera(mouse, camera3D);
+                var intersects = raycaster.intersectObjects(hitTestableOjects, false);
+                if (intersects.length > 0) {
+
+                    selectedObject = intersects[0].object;
+                }
+            }
+
+            if (selectedObject) {
+                //console.log(intersects[0]);
                 var posInWorld = new THREE.Vector3();
                 handProxy.getWorldPosition(posInWorld);
-                intersects[0].object.position.x = posInWorld.x;
-                intersects[0].object.position.y = posInWorld.y;
+
+                selectedObject.position.x = posInWorld.x;
+                selectedObject.position.y = posInWorld.y;
+                selectedObject.position.z = posInWorld.z;
+                selectedObject.lookAt(0, 0, 0);
             }
+        } else {
+            handProxy.material.color.setHex(0xff00ff);
+            selectedObject = null;
         }
+
     }
-    });
 
 }
-
-// When the model is loaded
-function modelLoaded() {
-    console.log('Model Loaded!');
-}
-
 
 
 window.onload = (event) => {
     let stored = localStorage.getItem("texts");
-    console.log(stored);
+    //console.log(stored);
     if (stored) {
         let incomingTexts = JSON.parse(stored);
-        console.log(incomingTexts);
+        // console.log(incomingTexts);
         for (var i = 0; i < incomingTexts.length; i++) {
             createNewText(incomingTexts[i].text, incomingTexts[i].location)
-            console.log("new ", incomingTexts[i].text, incomingTexts[i].location);
+            // console.log("new ", incomingTexts[i].text, incomingTexts[i].location);
         }
 
     }
@@ -282,6 +331,7 @@ function hitTest(x, y) {  //called from onDocumentMouseDown()
     mouse.x = (x / renderer.domElement.clientWidth) * 2 - 1;
     mouse.y = - (y / renderer.domElement.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera3D);
+
     var intersects = raycaster.intersectObjects(hitTestableOjects, false);
     // if there is one (or more) intersections
     currentObject = null;
@@ -304,11 +354,14 @@ function hitTest(x, y) {  //called from onDocumentMouseDown()
 }
 
 function animate() {
-    requestAnimationFrame(animate);
-    for (var i = 0; i < texts.length; i++) {
-        texts[i].texture.needsUpdate = true;
-    }
+
+    // for (var i = 0; i < texts.length; i++) {
+    //     texts[i].texture.needsUpdate = true;
+    // }
     renderer.render(scene, camera3D);
+    requestAnimationFrame(animate);
+
+
 }
 
 var textInput = document.getElementById("text");  //get a hold of something in the DOM

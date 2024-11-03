@@ -17,7 +17,7 @@ let make_objects = false;
 let hands = [];
 
 function preload() {
-    handpose = ml5.handpose();
+    handpose = ml5.handPose();
 }
 
 let input = document.getElementById('text');

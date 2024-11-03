@@ -1,16 +1,22 @@
 <html>
 
 <head>
-    <title>Draw</title>
+    <link rel="icon" href="#">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+
+<head>
+    <title>Paint</title>
     <style>
-        
         #container {
             pointer-events: none;
             position: absolute;
             top: 0;
-            z-index: 1; 
+            z-index: 1;
             position: absolute;
-            background-color: transparent; 
+            background-color: transparent;
         }
 
 
@@ -25,14 +31,14 @@
             font-size: 18px;
             font-weight: bold;
             text-align: left;
-            z-index: 2; 
+            z-index: 2;
         }
-        </style>
+    </style>
 </head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.js"></script>
-<script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
 
 
 <body>
@@ -40,9 +46,9 @@
     <div>
         Text: <input type="text" value='Hi There' id="text">
     </div>
-    <!--<script src="p5LiveMediaStuff.js"></script>-->
-    <script src="draw.js"></script>
-    
+
+    <script src="paint.js"></script>
+
 </body>
 
 </html>

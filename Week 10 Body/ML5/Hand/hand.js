@@ -15,12 +15,13 @@ let handIsReset = true;
 let hands = [];
 
 function preload() {
-    handpose = ml5.handpose();
+    // Load the handPose model
+    handpose = ml5.handPose();
 }
 
 
 function setup() {
-    console.log("Model Loaded!");
+
     video = createCapture(VIDEO);
     video.size(512, 512);
     video.hide();
@@ -38,7 +39,7 @@ function draw() {
             let keypoint = hand.keypoints[j];
             fill(0, 255, 0);
             noStroke();
-            circle(keypoint.x, keypoint.y, 10);
+            circle(keypoint.x, height - keypoint.y, 10);
         }
     }
 
@@ -52,10 +53,14 @@ function gotHands(results) {
         computeCameraOrientation()
         //if there are two hand move the carmera
     }
-    if (hands[0] && hands[0].score > 0.9) {//&& hands[0].handedness == "Left" 
+    if (hands[0] && hands[0].confidence > 0.9) {//&& hands[0].handedness == "Left" 
         let indexZ = hands[0].index_finger_tip.z3D;
         let indexX = hands[0].index_finger_tip.x3D;
         let indexY = hands[0].index_finger_tip.y3D;
+        let thumbZ = hands[0].thumb_tip.z3D;
+        let thumbX = hands[0].thumb_tip.x3D;
+        let thumbY = hands[0].thumb_tip.y3D;
+        let distanceBetweenFingers = dist(indexX, indexY, thumbX, thumbY, indexZ, thumbZ);
 
         let x = map(indexX, 0, 0.07, 64, -64); //turn 0-640 to -320 to 320 
         let y = map(indexY, 0, 0.07, 32, -64); //turn 0-640 to -320 to 320 
@@ -63,16 +68,16 @@ function gotHands(results) {
 
         mouse = averageLastFewHands(mouse);
         mouse.z = Math.abs(mouse.z);
-
-        if (mouse.z < 0.01) {
-            if (handIsReset) {
-                console.log("create shape", mouse.z)
-                createNewShape();
-                handIsReset = false;
-            }
-        } else {
-            handIsReset = true;
+        console.log("distance", distanceBetweenFingers);
+        if (distanceBetweenFingers > 0.1) {
+            //if (handIsReset) {
+            console.log("create shape", mouse.z)
+            //createNewShape();
+            //handIsReset = false;
         }
+        // } else {
+        //     handIsReset = true;
+        // }
 
         ///hitTest(mouse.x, mouse.y);
         var raycaster = new THREE.Raycaster(); // create once
@@ -123,7 +128,7 @@ function averageLastFewHands(mouse) {
 
 function createNewShape() {
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    var material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     var geo = new THREE.SphereGeometry(1, 16, 32);
     var mesh = new THREE.Mesh(geo, material);
     mesh.position.x = handProxy.position.x;
@@ -131,7 +136,7 @@ function createNewShape() {
     mesh.position.z = handProxy.position.z;
     // console.log(posInWorld);
     mesh.lookAt(0, 0, 0);
-    mesh.scale.set(10, 10, 10);
+    mesh.scale.set(1, 1, 1);
     scene.add(mesh);
     hitTestableOjects.push(mesh);
 }
