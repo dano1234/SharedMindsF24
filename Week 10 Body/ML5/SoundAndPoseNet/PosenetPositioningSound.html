@@ -76,15 +76,15 @@
                 //find the right wrist locations from posenet
 
                 //pan the camera depending on which hand you raise.
-                if (poses[0].pose.rightWrist.confidence > 0.1 && poses[0].pose.rightWrist.y < 500) {
+                if (poses[0].right_wrist.confidence > 0.1 && poses[0].right_wrist.y < 200) {
                     console.log("right");
                     camera3D.rotation.y += 0.01;
-                } else if (poses[0].pose.leftWrist.confidence > 0.1 && poses[0].pose.leftWrist.y < 500) {
+                } else if (poses[0].left_wrist.confidence > 0.1 && poses[0].left_wrist.y < 200) {
                     console.log("left");
                     camera3D.rotation.y -= 0.01;
                 }
 
-                let distBetweenEyes = dist(poses[0].pose.rightEar.x, poses[0].pose.rightEar.y, poses[0].pose.leftEar.x, poses[0].pose.leftEar.y);
+                let distBetweenEyes = dist(poses[0].right_ear.x, poses[0].right_ear.y, poses[0].left_ear.x, poses[0].left_ear.y);
                 let cameraZDistance = map(distBetweenEyes, 0, video.width, 700, -700);
 
 
@@ -141,34 +141,16 @@
             //This makes a primitive cube to be a proxy for a point from Posenet
 
 
-            var params = {
-                imageScaleFactor: 0.6,
-                outputStride: 8,
-                flipHorizontal: false,
-                minConfidence: 0.2,
-                maxPoseDetections: 1,
-                scoreThreshold: 0.5,
-                nmsRadius: 20,
-                detectionType: 'single',
-                multiplier: 1.01,
-            }
 
             // Create a new poseNet method with a single detection
             video = createCapture(VIDEO);
             //video.size(width, height);
-            poseNet = ml5.poseNet(video, params, function () {
-                console.log('model ready');
-                select('#status').html('Model Loaded');
-                poseNet.detectionType = 'single';
-            });
-            //poseNet.detectionType = 'single';
-            // This sets up an event that fills the global variable "poses"
-            // with an array every time new poses are detected
-            poseNet.on('pose', function (results) {
+            bodyPose.detectStart(video, function (results) {
                 poses = results;
-                // console.log(poses);
+                //console.log(poses);
                 //these get used in draw
             });
+
             // Hide the video element, and just show the canvas
             video.hide();
 

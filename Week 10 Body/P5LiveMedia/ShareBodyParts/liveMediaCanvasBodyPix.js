@@ -4,16 +4,17 @@ let myCanvas, myVideo, myMask;
 let people = [];
 let myRoomName = "mycrazyCanvasBodyPixRoomName";   //make a different room from classmates
 let bodypix;
-const bodypixOptions = {
-    outputStride: 32, // 8, 16, or 32, default is 16
-    segmentationThreshold: 0.3, // 0 - 1, defaults to 0.5 
-}
+let segmentation;
+let options = {
+    maskType: "parts",
+};
+
 let p5lm;
 
 let myName; // = prompt("name?");
 
 function preload() {
-    bodypix = ml5.bodyPix(bodypixOptions);
+    bodypix = ml5.bodySegmentation("BodyPix", options);
 }
 function setup() {
     myCanvas = createCanvas(512, 512, videoReady);
@@ -39,25 +40,35 @@ function setup() {
 
 
     init3D();
+    console.log("setup done");
+    bodypix.detectStart(myVideo, gotResults);
+
 }
 
 function videoReady() {  //this gets called when create capture finishe
-    bodypix.segmentWithParts(myVideo, gotResults, bodypixOptions);  //kick start it
+    console.log("video ready");
+    //kick start it
 }
 
-function gotResults(err, result) {
-    if (err) {
-        console.log(err);
-        return;
-    }
+// callback function for body segmentation
+function gotResults(result) {
+
     segmentation = result;
-    console.log(sementation);
-    background(255, 0, 0);
-    // image(video, 0, 0, width, height)
-    image(segmentation.partMask, 0, 0, width, height);
-
-    bodypix.segmentWithParts(video, gotResults, bodypixOptions);
 }
+
+// function gotResults(err, result) {
+//     if (err) {
+//         console.log(err);
+//         return;
+//     }
+//     segmentation = result;
+//     console.log(sementation);
+//     background(255, 0, 0);
+//     // image(video, 0, 0, width, height)
+//     image(segmentation.partMask, 0, 0, width, height);
+
+
+// }
 
 function gotStream(videoObject, id) {
     console.log(stream);
@@ -123,18 +134,24 @@ function draw() {
         }
 
     }
-    //now daw me on  the canvas I am sending out to the group
-    //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
-    //use a mask make only the center circle to have an alpha that shows through
-    myMask.ellipseMode(CENTER);
-    myMask.clear()//clear the mask
-    myMask.fill(0, 0, 0, 255);//set alpha of mask
-    myMask.noStroke();
-    myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
+    if (segmentation) {
+        //console.log(segmentation);
+        myMask = segmentation.mask;
+    } else {
+        //now daw me on  the canvas I am sending out to the group
+        //to justify using a canvas instead  of just sending out the straigh video I will do a little maninpulation
+        //use a mask make only the center circle to have an alpha that shows through
+        myMask.ellipseMode(CENTER);
+        myMask.clear()//clear the mask
+        myMask.fill(0, 0, 0, 255);//set alpha of mask
+        myMask.noStroke();
+        myMask.ellipse(width / 2, height / 2, 300, 300)//draw a circle of alpha
+    }
     myVideo.mask(myMask);//use alpha of mask to clip the vido
 
     clear();//for making background transparent on the main picture
     image(myVideo, (myCanvas.width - myVideo.width) / 2, (myCanvas.height - myVideo.height) / 2);
+    image(myMask, 0, 0, width, height);
     textSize(72);
     fill(255)
     text(myName, width / 2 - textWidth(myName) / 2, height - 80);
