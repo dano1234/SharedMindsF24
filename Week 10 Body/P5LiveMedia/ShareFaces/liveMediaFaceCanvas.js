@@ -9,6 +9,14 @@ let p5lm;
 let progress = "loading Face ML";
 
 let myName; //= prompt("name?");
+
+let options = { maxFaces: 1, refineLandmarks: false, flipHorizontal: false };
+
+function preload() {
+    // Load the faceMesh model
+    faceMesh = ml5.faceMesh(options);
+}
+
 function setup() {
     myCanvas = createCanvas(512, 512);
     //  document.body.append(myCanvas.elt);
@@ -36,12 +44,8 @@ function setup() {
     //ALSO ADD AUDIO STREAM
     //addAudioStream() ;
 
-    facemesh = ml5.facemesh(myVideo, function () {
-        progress = "ML model loaded";
-        console.log('face mesh model ready!')
-    });
+    faceMesh.detectStart(myVideo, gotFaces);
 
-    facemesh.on("predict", gotFaceResults);
 
     init3D();
 }
@@ -59,46 +63,47 @@ function gotData(data, id) {
 
 }
 
-// function gotFaceResults(results) {
-//     if (results && results.length > 0) {
-//         progress = "";
-//         //  console.log(results[0]);
-//         //DRAW THE ALPHA MASK FROM THE OUTLINE OF MASK
+function gotFaces(faces) {
+    if (faces && faces.length > 0) {
+        progress = "";
+        //  console.log(results[0]);
+        //DRAW THE ALPHA MASK FROM THE OUTLINE OF MASK
 
-//         outline = results[0].annotations.silhouette;
-//         myMask.clear();
-//         myMask.noStroke();
-//         myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
-//         myMask.beginShape();
-//         for (var i = 0; i < outline.length - 1; i++) {
-//             myMask.curveVertex(outline[i][0], outline[i][1]);
+        // outline = results[0].annotations.silhouette;
+        myMask.clear();
+        myMask.noStroke();
+        myMask.fill(0, 0, 0, 255);//some nice alphaa in fourth number
+        myMask.beginShape();
+        for (var i = 0; i < faces[0].faceOval.keypoints.length; i++) {
+            myMask.curveVertex(faces[0].faceOval.keypoints[i].x, faces[0].faceOval.keypoints[i].y);
+        }
+        myMask.endShape(CLOSE);
+        //Get the angle between eyes
+        //console.log(faces);
 
-//         }
-//         myMask.endShape(CLOSE);
-//         //Get the angle between eyes
-//         let xDiff = results[0].annotations.leftEyeLower0[0][0] - results[0].annotations.rightEyeLower0[0][0];
-//         let yDiff = results[0].annotations.leftEyeLower0[0][1] - results[0].annotations.rightEyeLower0[0][1]
-//         headAngle = Math.atan2(yDiff, xDiff);
-//         headAngle = THREE.Math.radToDeg(headAngle);
-//         //console.log(headAngle);
-//         if (headAngle > 12) {
-//             angleOnCircle -= 0.05;
-//             positionOnCircle(angleOnCircle, myAvatarObj);
-//             let dataToSend = { "angleOnCircle": angleOnCircle };
-//             // Send it
-//             p5lm.send(JSON.stringify(dataToSend));
-//         }
-//         if (headAngle < -12) {
-//             angleOnCircle += 0.05;
-//             positionOnCircle(angleOnCircle, myAvatarObj);
-//             // Package as JSON to send
+        let xDiff = faces[0].leftEye.x - faces[0].rightEye.x;
+        let yDiff = faces[0].leftEye.y - faces[0].rightEye.y;
+        headAngle = Math.atan2(yDiff, xDiff);
+        headAngle = THREE.Math.radToDeg(headAngle);
+        //console.log(headAngle);
+        if (headAngle > 12) {
+            angleOnCircle -= 0.05;
+            positionOnCircle(angleOnCircle, myAvatarObj);
+            let dataToSend = { "angleOnCircle": angleOnCircle };
+            // Send it
+            p5lm.send(JSON.stringify(dataToSend));
+        }
+        if (headAngle < -12) {
+            angleOnCircle += 0.05;
+            positionOnCircle(angleOnCircle, myAvatarObj);
+            // Package as JSON to send
 
-//             let dataToSend = { "angleOnCircle": angleOnCircle };
-//             // Send it
-//             p5lm.send(JSON.stringify(dataToSend));
-//         }
-//     }
-// }
+            let dataToSend = { "angleOnCircle": angleOnCircle };
+            // Send it
+            p5lm.send(JSON.stringify(dataToSend));
+        }
+    }
+}
 function gotStream(stream, id) {
 
     myName = id;

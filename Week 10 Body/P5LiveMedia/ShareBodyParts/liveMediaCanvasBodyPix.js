@@ -6,7 +6,7 @@ let myRoomName = "mycrazyCanvasBodyPixRoomName";   //make a different room from 
 let bodypix;
 let segmentation;
 let options = {
-    maskType: "parts",
+    maskType: "background",
 };
 
 let p5lm;
@@ -56,28 +56,16 @@ function gotResults(result) {
     segmentation = result;
 }
 
-// function gotResults(err, result) {
-//     if (err) {
-//         console.log(err);
-//         return;
-//     }
-//     segmentation = result;
-//     console.log(sementation);
-//     background(255, 0, 0);
-//     // image(video, 0, 0, width, height)
-//     image(segmentation.partMask, 0, 0, width, height);
 
-
-// }
 
 function gotStream(videoObject, id) {
-    console.log(stream);
+    // console.log(stream);
     myName = id;
     //this gets called when there is someone else in the room, new or existing
     //don't want the dom object, will use in p5 and three.js instead
     //get a network id from each person who joins
 
-    stream.hide();
+    videoObject.hide();
     creatNewVideoObject(videoObject, id);
 }
 
@@ -91,7 +79,7 @@ function creatNewVideoObject(videoObject, id) {  //this is for remote and local
 
     scene.add(myAvatarObj);
 
-    people.push({ "object": myAvatarObj, "texture": canvasTexture, "id": id, "canvas": canvas });
+    people.push({ "object": myAvatarObj, "texture": canvasTexture, "id": id, "canvas": videoObject });
     positionEveryoneOnACircle();
 }
 
@@ -130,6 +118,14 @@ function draw() {
         if (people[i].id == "me") {
             people[i].texture.needsUpdate = true;
         } else if (people[i].canvas.elt.readyState == people[i].canvas.elt.HAVE_ENOUGH_DATA) {
+            people[i].canvas.loadPixels();
+            for (var j = 0; j < people[i].canvas.pixels.length; j += 4) {
+                // if (people[i].canvas.pixels[j] < 50 && people[i].canvas.pixels[j + 1] < 40 && people[i].canvas.pixels[j + 2] < 40) {
+                people[i].canvas.pixels[j + 3] = 120;
+                // }
+            }
+            people[i].canvas.updatePixels();
+
             people[i].texture.needsUpdate = true;
         }
 
@@ -151,7 +147,7 @@ function draw() {
 
     clear();//for making background transparent on the main picture
     image(myVideo, (myCanvas.width - myVideo.width) / 2, (myCanvas.height - myVideo.height) / 2);
-    image(myMask, 0, 0, width, height);
+    //image(myMask, 0, 0, width, height);
     textSize(72);
     fill(255)
     text(myName, width / 2 - textWidth(myName) / 2, height - 80);
