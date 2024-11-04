@@ -39,7 +39,7 @@ function draw() {
             let keypoint = hand.keypoints[j];
             fill(0, 255, 0);
             noStroke();
-            circle(keypoint.x, height - keypoint.y, 10);
+            circle(keypoint.x, keypoint.y, 10);
         }
     }
 
@@ -79,17 +79,17 @@ function gotHands(results) {
         //     handIsReset = true;
         // }
 
-        ///hitTest(mouse.x, mouse.y);
-        var raycaster = new THREE.Raycaster(); // create once
-        raycaster.near = 10;
-        raycaster.far = 1000;
-        raycaster.setFromCamera(mouse, camera3D);
-        var intersects = raycaster.intersectObjects(hitTestableOjects, false);
+        // ///hitTest(mouse.x, mouse.y);
+        // var raycaster = new THREE.Raycaster(); // create once
+        // raycaster.near = 10;
+        // raycaster.far = 1000;
+        // raycaster.setFromCamera(mouse, camera3D);
+        // var intersects = raycaster.intersectObjects(hitTestableOjects, false);
 
-        // //  console.log( handProxy.position);
-        if (intersects.length > 0) {
-            console.log("intersetion", intersects[0]);
-        }
+        // // //  console.log( handProxy.position);
+        // if (intersects.length > 0) {
+        //     console.log("intersetion", intersects[0]);
+        // }
 
         //     if (openHand == false) {
         //         console.log(intersects[0]);

@@ -11,7 +11,7 @@ let options = {
 
 let p5lm;
 
-let myName; // = prompt("name?");
+let myName = prompt("name?");
 
 function preload() {
     bodypix = ml5.bodySegmentation("BodyPix", options);
@@ -70,16 +70,25 @@ function gotStream(videoObject, id) {
 }
 
 function creatNewVideoObject(videoObject, id) {  //this is for remote and local
-
+    let extraGraphicsStage = createGraphics(width, height)
     var videoGeometry = new THREE.PlaneGeometry(512, 512);
-    let canvasTexture = new THREE.Texture(videoObject.elt);  //NOTICE THE .elt  this give the element
-    let videoMaterial = new THREE.MeshBasicMaterial({ map: canvasTexture, transparent: true, opacity: 1, side: THREE.DoubleSide });
+    // let canvasTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
+    let myTexture;
+    if (id == "me") {
+        myTexture = new THREE.Texture(videoObject.elt);  //NOTICE THE .elt  this give the element
+    } else {
+        myTexture = new THREE.Texture(extraGraphicsStage.elt);  //NOTICE THE .elt  this give the element
+    }
+
+
+
+    let videoMaterial = new THREE.MeshBasicMaterial({ map: myTexture, transparent: true, opacity: 1, side: THREE.DoubleSide });
     videoMaterial.map.minFilter = THREE.LinearFilter;  //otherwise lots of power of 2 errors
     myAvatarObj = new THREE.Mesh(videoGeometry, videoMaterial);
 
     scene.add(myAvatarObj);
 
-    people.push({ "object": myAvatarObj, "texture": canvasTexture, "id": id, "canvas": videoObject });
+    people.push({ "object": myAvatarObj, "texture": myTexture, "id": id, "canvas": videoObject, "videoObject": videoObject, "extraGraphicsStage": extraGraphicsStage });
     positionEveryoneOnACircle();
 }
 
@@ -118,13 +127,19 @@ function draw() {
         if (people[i].id == "me") {
             people[i].texture.needsUpdate = true;
         } else if (people[i].canvas.elt.readyState == people[i].canvas.elt.HAVE_ENOUGH_DATA) {
-            people[i].canvas.loadPixels();
-            for (var j = 0; j < people[i].canvas.pixels.length; j += 4) {
-                // if (people[i].canvas.pixels[j] < 50 && people[i].canvas.pixels[j + 1] < 40 && people[i].canvas.pixels[j + 2] < 40) {
-                people[i].canvas.pixels[j + 3] = 120;
-                // }
+            //remove background that became black and not transparent  in transmission
+            people[i].extraGraphicsStage.image(people[i].videoObject, 0, 0);
+            people[i].extraGraphicsStage.loadPixels();
+            for (var j = 0; j < people[i].extraGraphicsStage.pixels.length; j += 4) {
+                let r = people[i].extraGraphicsStage.pixels[j];
+                let g = people[i].extraGraphicsStage.pixels[j + 1];
+                let b = people[i].extraGraphicsStage.pixels[j + 2];
+                if (r + g + b < 10) {
+                    people[i].extraGraphicsStage.pixels[j + 3] = 0;
+                }
             }
-            people[i].canvas.updatePixels();
+            people[i].extraGraphicsStage.updatePixels();
+
 
             people[i].texture.needsUpdate = true;
         }

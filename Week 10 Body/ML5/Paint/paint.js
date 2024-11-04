@@ -130,6 +130,7 @@ function gotHands(results) {
         handProxy.position.y = y * 100;
         handProxy.position.z = indexZ * 3000;
         console.log(handProxy.position);
+        console.log(handProxy.position);
         if (pinched) {
             handProxy.material.color.setHex(0x00ff00);
 
@@ -141,7 +142,7 @@ function gotHands(results) {
             mesh.position.y = handProxy.position.y;
             mesh.position.z = handProxy.position.z;
             // console.log(posInWorld);
-            mesh.lookAt(0, 0, 0);
+            //mesh.lookAt(0, 0, 0);
             mesh.scale.set(3, 3, 3);
             scene.add(mesh);
             // hitTestableOjects.push(mesh);

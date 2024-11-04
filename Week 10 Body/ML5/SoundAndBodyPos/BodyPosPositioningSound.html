@@ -49,11 +49,11 @@
         let camera3D;
         let renderer;
 
-        //posenet variables
+        //bodyPose variables
         let video;
-        let poseNet;
+        let bodyPose;
         let poses = [];
-        let poseNetProxy;
+
 
         let videoTexture;
         let videoElement;
@@ -71,23 +71,23 @@
 
             //recursively call this function is a way that the renderer does it in a smart way
             requestAnimationFrame(animate);
-            //move the red cube around based on rightWrist info coming  from posenet
+            //move the red cube around based on rightWrist info coming  from bodypos
             if (poses.length > 0) {
-                //find the right wrist locations from posenet
+                //find the right wrist locations from bodypos
 
                 //pan the camera depending on which hand you raise.
-                if (poses[0].right_wrist.confidence > 0.1 && poses[0].right_wrist.y < 200) {
+                if (poses[0].right_wrist.confidence > 0.1 && poses[0].right_wrist.y < 300) {
                     console.log("right");
                     camera3D.rotation.y += 0.01;
-                } else if (poses[0].left_wrist.confidence > 0.1 && poses[0].left_wrist.y < 200) {
+                } else if (poses[0].left_wrist.confidence > 0.1 && poses[0].left_wrist.y < 300) {
                     console.log("left");
                     camera3D.rotation.y -= 0.01;
                 }
 
                 let distBetweenEyes = dist(poses[0].right_ear.x, poses[0].right_ear.y, poses[0].left_ear.x, poses[0].left_ear.y);
-                let cameraZDistance = map(distBetweenEyes, 0, video.width, 700, -700);
+                let cameraZDistance = map(distBetweenEyes, 30, 70, 700, 200);
 
-
+                //  console.log("distBetweenEyes " + distBetweenEyes + " cameraZDistance " + cameraZDistance, poses[0].left_wrist.y);
                 camera3D.position.z = cameraZDistance;
 
             }
@@ -98,7 +98,19 @@
         function setup() {
             //same as init but some p5 stuff needs to be called from setup
             console.log("setup  ");
-            setupPoseNet();
+
+            //This makes a primitive cube to be a proxy for a point from Posenet
+            // Create a new poseNet method with a single detection
+            video = createCapture(VIDEO);
+            //video.size(width, height);
+            bodyPose.detectStart(video, function (results) {
+                poses = results;
+
+                //these get used in draw
+            });
+
+            // Hide the video element, and just show the canvas
+            video.hide();
         }
 
         function mousePressed() {
@@ -136,25 +148,7 @@
             return sound1;
         }
 
-        function setupPoseNet() {
-            console.log("Start Up PoseNet")
-            //This makes a primitive cube to be a proxy for a point from Posenet
 
-
-
-            // Create a new poseNet method with a single detection
-            video = createCapture(VIDEO);
-            //video.size(width, height);
-            bodyPose.detectStart(video, function (results) {
-                poses = results;
-                //console.log(poses);
-                //these get used in draw
-            });
-
-            // Hide the video element, and just show the canvas
-            video.hide();
-
-        }
 
 
 
